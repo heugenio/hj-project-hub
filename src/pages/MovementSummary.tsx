@@ -106,7 +106,7 @@ export default function MovementSummary() {
     const now = new Date();
     const dtPrint = `${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
     doc.text(`Dt Impressão: ${dtPrint}`, pageW - 14, 10, { align: "right" });
-    doc.text(`Usuário: ${auth?.usuario?.pess_Nome || ""}`, pageW - 14, 15, { align: "right" });
+    doc.text(`Usuário: ${auth?.user?.pess_Nome || ""}`, pageW - 14, 15, { align: "right" });
 
     const tipoLabel = tipoOperacao === "E" ? "Entrada" : tipoOperacao === "S" ? "Saída" : "Todas";
     doc.text(`Período: ${dtInicial} a ${dtFinal}  |  Tipo: ${tipoLabel}`, 14, 21);
