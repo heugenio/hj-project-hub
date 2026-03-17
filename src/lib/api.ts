@@ -167,3 +167,29 @@ export const getConsultaEstoqueFiliais = (params: {
     .join('&');
   return apiGet<EstoqueItem[]>(`/getConsultaEstoqueFiliais?${query}`);
 };
+
+// Comparativo
+export interface Comparativo {
+  UNEM_ID: string;
+  GRPO_NOME: string;
+  ITFT_VLR_CONTABIL: string;
+  ITFT_QTDE: string;
+  ITFT_VLR_CONTABIL_ANT: string;
+  ITFT_QTDE_ANT: string;
+  CRECIMENTO: string;
+}
+
+export interface ComparativoResumo {
+  UNEM_ID: string;
+  ITFT_VLR_CONTABIL: string;
+  ITFT_QTDE: string;
+  ITFT_VLR_CONTABIL_ANT: string;
+  ITFT_QTDE_ANT: string;
+  CRECIMENTO: string;
+}
+
+export const getComparativo = (unem_id: string) =>
+  apiGet<Comparativo[]>(`/getComparativo?unem_id=${encodeURIComponent(unem_id)}`);
+
+export const getComparativoResumo = (unem_id: string) =>
+  apiGet<ComparativoResumo[]>(`/getComparativoResumo?unem_id=${encodeURIComponent(unem_id)}`);
