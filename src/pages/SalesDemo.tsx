@@ -169,7 +169,7 @@ export default function SalesDemo() {
 
     for (const group of grouped) {
       body.push([
-        { content: formatGroupName(group.grpoId, group.grupo), colSpan: 12, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
+        { content: formatGroupName(group.grpoId, group.grupo), colSpan: 12, styles: { fontStyle: "bold", fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: { bottom: 0.3, top: 0, left: 0, right: 0 }, lineColor: [180, 180, 180] } },
       ]);
 
       for (const item of group.items) {
@@ -229,7 +229,7 @@ export default function SalesDemo() {
       head: [["Curva", "Código", "Produto", "Referência", "Unid", "Qtd", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Saldo"]],
       body,
       styles: { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold" },
+      headStyles: { fillColor: [100, 100, 100], textColor: [255, 255, 255], fontStyle: "bold" },
       columnStyles: {
         5: { halign: "right" },
         6: { halign: "right" },
