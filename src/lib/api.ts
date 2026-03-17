@@ -126,7 +126,27 @@ export interface Produto {
 export const getProdutos = (nome: string) =>
   apiGet<Produto[]>(`/getProdutos?nome=${encodeURIComponent(nome)}`);
 
-// Relatórios
+// Consulta Estoque (por unidade)
+export interface ConsultaEstoqueItem {
+  [key: string]: string | undefined;
+}
+
+export const getConsultaEstoque = (params: {
+  unem_id: string;
+  prod_codigo?: string;
+  prod_nome?: string;
+  marc_id?: string;
+  grpo_id?: string;
+  referencia?: string;
+  aplicacao?: string;
+}) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return apiGet<ConsultaEstoqueItem[]>(`/getConsultaEstoque?${query}`);
+};
+
 export interface SalesDemo {
   GRPO_ID: string;
   GRUPO: string;
