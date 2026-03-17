@@ -140,7 +140,7 @@ export default function ConsultaEstoque() {
   const numericCols = new Set(["sest_qtd_saldo", "test_reserva", "test_requisicoes"]);
 
   const formatValue = (col: string, val: string | undefined) => {
-    if (!val || val === "") return "-";
+    if (!val || val === "") return "";
     const lower = col.toLowerCase();
     if (rightAlignKeys.has(lower)) {
       const num = parseFloat(val);
