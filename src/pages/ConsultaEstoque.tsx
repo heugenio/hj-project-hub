@@ -200,7 +200,7 @@ export default function ConsultaEstoque() {
                         rightAlignCols.includes(col) ? "text-right" : "text-left"
                       }`}
                     >
-                      {colLabels[col] || col}
+                      {getColLabel(col)}
                     </th>
                   ))}
                 </tr>
