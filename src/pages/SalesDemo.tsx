@@ -409,18 +409,18 @@ function GroupRows({
     <>
       {/* Group Header */}
       <TableRow
-        className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+        className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors [&>td]:py-1.5 [&>td]:px-2"
         onClick={onToggle}
       >
-         <TableCell className="w-8 px-2">
+         <TableCell className="w-7 px-1">
            {isExpanded ? (
-             <ChevronDown className="h-4 w-4 text-muted-foreground" />
+             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
            ) : (
-             <ChevronRight className="h-4 w-4 text-muted-foreground" />
+             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
            )}
          </TableCell>
-         <TableCell colSpan={4} className="font-semibold">
-           {group.grpoId} - {group.grupo}
+         <TableCell colSpan={5} className="font-semibold text-xs">
+           {formatGroupName(group.grpoId, group.grupo)}
          </TableCell>
          <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtdFat)}</TableCell>
          <TableCell className="text-right font-semibold">{fmtBRL(group.totals.vlrContabil)}</TableCell>
@@ -440,9 +440,10 @@ function GroupRows({
            const pctLucro = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
 
            return (
-             <TableRow key={i} className="text-sm">
+             <TableRow key={i} className={`text-xs [&>td]:py-1 [&>td]:px-2 ${i % 2 === 0 ? 'bg-background' : 'bg-muted/15'}`}>
                <TableCell></TableCell>
-               <TableCell className="pl-8 text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.CURVA || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_NOME || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_REFERENCIA || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.ITFT_UNID_SIGLA || ""}</TableCell>
