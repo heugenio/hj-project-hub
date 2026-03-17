@@ -16,6 +16,7 @@ import {
   BarChart3,
   LogOut,
   Store,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const mainItems = [
