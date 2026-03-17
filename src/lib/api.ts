@@ -243,3 +243,25 @@ export const getComparativo = (unem_id: string) =>
 
 export const getComparativoResumo = (unem_id: string) =>
   apiGet<ComparativoResumo[]>(`/getComparativoResumo?unem_id=${encodeURIComponent(unem_id)}`);
+
+// Ordem de Serviço
+export interface OrdemServico {
+  vEIC_MARCA: string;
+  oRSV_DATA: string;
+  vEIC_PLACA: string;
+  oRSV_OBSERVACOES: string;
+  oRSV_HODOMETRO: string;
+  vEND_NOME: string;
+  oRSV_DATA_CANC: string;
+  oRSV_CPFCNPJ: string;
+  oRSV_ID: string;
+  oRSV_NUMERO: string;
+  oRSV_STATUS: string;
+  vEIC_MODELO: string;
+  oRSV_VLR_TOTAL: number;
+  oRSV_MOTIVO_CANC: string;
+  oRSV_NOME: string;
+}
+
+export const getOrdemServicos = (unem_id: string) =>
+  apiGet<OrdemServico[]>(`/getOrdemServicos?unem_id=${encodeURIComponent(unem_id)}`);
