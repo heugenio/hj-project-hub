@@ -405,47 +405,50 @@ function GroupRows({
         className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
         onClick={onToggle}
       >
-        <TableCell className="w-8 px-2">
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
-        </TableCell>
-        <TableCell className="font-semibold">
-          {group.grpoId} - {group.grupo}
-        </TableCell>
-        <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtd)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtdFat)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.vlrContabil)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.custo)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.lucro)}</TableCell>
-        <TableCell className="text-right font-semibold">{group.totals.pctLucro.toFixed(2)}%</TableCell>
-        <TableCell className="text-right font-semibold">-</TableCell>
-      </TableRow>
+         <TableCell className="w-8 px-2">
+           {isExpanded ? (
+             <ChevronDown className="h-4 w-4 text-muted-foreground" />
+           ) : (
+             <ChevronRight className="h-4 w-4 text-muted-foreground" />
+           )}
+         </TableCell>
+         <TableCell colSpan={4} className="font-semibold">
+           {group.grpoId} - {group.grupo}
+         </TableCell>
+         <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtdFat)}</TableCell>
+         <TableCell className="text-right font-semibold">{fmtBRL(group.totals.vlrContabil)}</TableCell>
+         <TableCell className="text-right font-semibold">{fmtBRL(group.totals.custo)}</TableCell>
+         <TableCell className="text-right font-semibold">{fmtBRL(group.totals.lucro)}</TableCell>
+         <TableCell className="text-right font-semibold">{group.totals.pctLucro.toFixed(2)}%</TableCell>
+         <TableCell className="text-right font-semibold">-</TableCell>
+         <TableCell className="text-right font-semibold">-</TableCell>
+       </TableRow>
 
-      {/* Detail Rows */}
-      {isExpanded &&
-        group.items.map((item, i) => {
-          const vlr = parseNum(item.ITFT_VLR_CONTABIL);
-          const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
-          const lucro = vlr - cst;
-          const pctLucro = vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00";
+       {/* Detail Rows */}
+       {isExpanded &&
+         group.items.map((item, i) => {
+           const vlr = parseNum(item.ITFT_VLR_CONTABIL);
+           const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
+           const lucro = item.ITFT_VLR_LUCRO ? parseNum(item.ITFT_VLR_LUCRO) : vlr - cst;
+           const pctLucro = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
 
-          return (
-            <TableRow key={i} className="text-sm">
-              <TableCell></TableCell>
-              <TableCell className="pl-8 text-muted-foreground">{item.GRUPO}</TableCell>
-              <TableCell className="text-right">{item.DCFS_QTD}</TableCell>
-              <TableCell className="text-right">{item.ITFT_QTDE_FATURADA}</TableCell>
-              <TableCell className="text-right">{fmtBRL(vlr)}</TableCell>
-              <TableCell className="text-right">{fmtBRL(cst)}</TableCell>
-              <TableCell className="text-right">{fmtBRL(lucro)}</TableCell>
-              <TableCell className="text-right">{pctLucro}%</TableCell>
-              <TableCell className="text-right">{item.ITFT_PARTICIPACAO}%</TableCell>
-            </TableRow>
-          );
-        })}
-    </>
-  );
-}
+           return (
+             <TableRow key={i} className="text-sm">
+               <TableCell></TableCell>
+               <TableCell className="pl-8 text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.PROD_NOME || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.PROD_REFERENCIA || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.ITFT_UNID_SIGLA || ""}</TableCell>
+               <TableCell className="text-right">{item.ITFT_QTDE_FATURADA}</TableCell>
+               <TableCell className="text-right">{fmtBRL(vlr)}</TableCell>
+               <TableCell className="text-right">{fmtBRL(cst)}</TableCell>
+               <TableCell className="text-right">{fmtBRL(lucro)}</TableCell>
+               <TableCell className="text-right">{pctLucro}%</TableCell>
+               <TableCell className="text-right">{item.ITFT_PARTICIPACAO}%</TableCell>
+               <TableCell className="text-right">{item.SEST_QTD_MOV || ""}</TableCell>
+             </TableRow>
+           );
+         })}
+     </>
+   );
+ }
