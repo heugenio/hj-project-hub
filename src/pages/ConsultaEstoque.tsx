@@ -72,11 +72,12 @@ export default function ConsultaEstoque() {
   ]);
   // Define preferred column order (lowercase keys)
   const columnOrder = [
-    "prod_codigo", "prod_nome", "unid_sigla", "sest_qtd_saldo", "test_reserva", "test_requisicoes",
-    "prod_referencia", "grpo_nome", "marc_nome", "prod_unidade",
+    "prod_codigo", "prod_nome", "unid_sigla", "pcpr_preco", "pcpr_preco_prod",
+    "sest_qtd_saldo", "test_reserva", "test_requisicoes",
+    "grpo_nome", "marc_nome", "prod_unidade",
     "sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_aplicacao", "prod_situacao",
-    "prod_preco_venda", "prod_desc_complementar", "uepd_estoque_minimo", "pcpr_preco_prod",
-    "pcpr_preco", "test_nome", "ncms_codigo", "unem_fantasia",
+    "prod_preco_venda", "prod_desc_complementar", "uepd_estoque_minimo",
+    "test_nome", "ncms_codigo", "prod_referencia", "unem_fantasia",
     "prod_natureza_economica", "prod_local_est",
   ];
 
