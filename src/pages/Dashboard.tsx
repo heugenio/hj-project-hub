@@ -69,16 +69,18 @@ export default function Dashboard() {
             <CardTitle className="text-base">Vendas vs Meta Mensal</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
-                <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(220, 10%, 46%)" />
-                <YAxis tick={{ fontSize: 12 }} stroke="hsl(220, 10%, 46%)" tickFormatter={(v) => `${v / 1000}k`} />
-                <Tooltip formatter={(value: number) => `R$ ${value.toLocaleString()}`} />
-                <Bar dataKey="vendas" fill="hsl(215, 80%, 48%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="meta" fill="hsl(220, 15%, 85%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
+                  <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(220, 10%, 46%)" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(220, 10%, 46%)" tickFormatter={(v) => `${v / 1000}k`} />
+                  <Tooltip formatter={(value: number) => `R$ ${value.toLocaleString()}`} />
+                  <Bar dataKey="vendas" fill="hsl(215, 80%, 48%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="meta" fill="hsl(220, 15%, 85%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
