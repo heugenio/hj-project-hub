@@ -21,9 +21,14 @@ import { cn } from "@/lib/utils";
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
   { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
+];
+
+const estoqueItems = [
+  { title: "Produtos", url: "/estoque/produtos", icon: Package },
+  { title: "Consulta Estoque Filiais", url: "/estoque/filiais", icon: Package },
+  { title: "Consulta Estoque", url: "/estoque/consulta", icon: Package },
 ];
 
 const reportItems = [
@@ -34,11 +39,13 @@ const reportItems = [
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [estoqueOpen, setEstoqueOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const { auth, logout } = useAuth();
   const isActive = (path: string) => location.pathname === path;
+  const isEstoqueActive = estoqueItems.some((i) => isActive(i.url));
   const isReportActive = reportItems.some((r) => isActive(r.url));
 
   const NavLink = ({
@@ -99,6 +106,66 @@ export function AppLayout() {
         {mainItems.map((item) => (
           <NavLink key={item.url} item={item} mobile={mobile} />
         ))}
+
+        {/* Estoque group */}
+        <div className="mt-1">
+          {collapsed && !mobile ? (
+            <div className="relative group">
+              <button
+                className={cn(
+                  "flex items-center justify-center w-full px-2 py-2.5 rounded-lg text-sm transition-all duration-200",
+                  isEstoqueActive
+                    ? "bg-sidebar-primary/15 text-sidebar-primary"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                )}
+                onClick={() => setEstoqueOpen(!estoqueOpen)}
+              >
+                <Package className="h-5 w-5 shrink-0" />
+              </button>
+              <div className="absolute left-full ml-2 top-0 bg-sidebar border border-sidebar-border rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 py-1 min-w-[220px]">
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">Estoque</p>
+                {estoqueItems.map((item) => (
+                  <Link
+                    key={item.url}
+                    to={item.url}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 text-sm transition-colors",
+                      isActive(item.url)
+                        ? "text-sidebar-primary font-medium bg-sidebar-primary/10"
+                        : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.title}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setEstoqueOpen(!estoqueOpen)}
+                className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
+                  isEstoqueActive
+                    ? "text-sidebar-primary font-medium"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                )}
+              >
+                <Package className="h-[18px] w-[18px] shrink-0" />
+                <span className="whitespace-nowrap flex-1 text-left">Estoque</span>
+                <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", (estoqueOpen || isEstoqueActive) && "rotate-180")} />
+              </button>
+              {(estoqueOpen || isEstoqueActive) && (
+                <div className="space-y-0.5 mt-0.5">
+                  {estoqueItems.map((item) => (
+                    <NavLink key={item.url} item={item} mobile={mobile} indent />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Relatórios group */}
         <div className="mt-3">
