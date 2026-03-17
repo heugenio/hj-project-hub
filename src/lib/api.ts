@@ -61,4 +61,4 @@ export const getCorporacoes = () => apiGet<Corporacao[]>('/getCorporacoes');
 export const getEmpresas = (cprcId: string) => apiGet<Empresa[]>(`/getEmpresas?cprc_id=${cprcId}`);
 export const getUnidadesEmpresariais = (emprId: string) => apiGet<UnidadeEmpresarial[]>(`/getUnidadesEmpresariais?empr_id=${emprId}`);
 export const getUsuarios = (unemId: string) => apiGet<Usuario[]>(`/getUsuario?unem_id=${unemId}`);
-export const getLogo = () => apiGetBlob('/getLogo');
+
