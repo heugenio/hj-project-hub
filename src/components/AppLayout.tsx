@@ -35,6 +35,8 @@ export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { auth, logout } = useAuth();
   const isActive = (path: string) => location.pathname === path;
   const isReportActive = reportItems.some((r) => isActive(r.url));
 
