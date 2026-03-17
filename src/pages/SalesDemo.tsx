@@ -285,7 +285,7 @@ export default function SalesDemo() {
             <Card className="border-border/50">
               <CardContent className="pt-4 pb-4">
                 <p className="text-xs text-muted-foreground">Quantidade</p>
-                <p className="text-xl font-bold text-foreground">{fmtQtd(grandTotals.qtd)}</p>
+                <p className="text-xl font-bold text-foreground">{fmtQtd(grandTotals.qtdFat)}</p>
               </CardContent>
             </Card>
             <Card className="border-border/50">
