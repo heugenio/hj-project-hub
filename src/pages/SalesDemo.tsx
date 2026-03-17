@@ -170,7 +170,7 @@ export default function SalesDemo() {
 
     for (const group of grouped) {
       body.push([
-        { content: `${group.grpoId} - ${group.grupo}`, colSpan: 11, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
+        { content: formatGroupName(group.grpoId, group.grupo), colSpan: 12, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
       ]);
 
       for (const item of group.items) {
@@ -179,6 +179,7 @@ export default function SalesDemo() {
         const lucro = item.ITFT_VLR_LUCRO ? parseNum(item.ITFT_VLR_LUCRO) : vlr - cst;
         const pct = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
         body.push([
+          item.CURVA || "",
           item.PROD_CODIGO || "",
           item.PROD_NOME || "",
           item.PROD_REFERENCIA || "",
@@ -194,7 +195,7 @@ export default function SalesDemo() {
       }
 
       body.push([
-        { content: `Total do Grupo →`, colSpan: 4, styles: { fontStyle: "bold" } },
+        { content: `Total do Grupo →`, colSpan: 5, styles: { fontStyle: "bold" } },
         { content: fmtQtd(group.totals.qtdFat), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.vlrContabil), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.custo), styles: { fontStyle: "bold", halign: "right" } },
@@ -205,7 +206,7 @@ export default function SalesDemo() {
     }
 
     body.push([
-      { content: "Total Geral →", colSpan: 4, styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
+      { content: "Total Geral →", colSpan: 5, styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
       { content: fmtQtd(grandTotals.qtdFat), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.vlrContabil), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.custo), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
@@ -217,7 +218,7 @@ export default function SalesDemo() {
 
     if (grandTotals.vlrDev > 0) {
       body.push([
-        { content: "Devolução →", colSpan: 4, styles: { fontStyle: "bold" } },
+        { content: "Devolução →", colSpan: 5, styles: { fontStyle: "bold" } },
         fmtQtd(grandTotals.qtdDev),
         fmtBRL(grandTotals.vlrDev),
         "", "", "", "", "",
@@ -226,18 +227,18 @@ export default function SalesDemo() {
 
     autoTable(doc, {
       startY: 33,
-      head: [["Código", "Produto", "Referência", "Unid", "Qtd Fat.", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Qtd Mov"]],
+      head: [["Curva", "Código", "Produto", "Referência", "Unid", "Qtd", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Saldo"]],
       body,
       styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold" },
       columnStyles: {
-        4: { halign: "right" },
         5: { halign: "right" },
         6: { halign: "right" },
         7: { halign: "right" },
         8: { halign: "right" },
         9: { halign: "right" },
         10: { halign: "right" },
+        11: { halign: "right" },
       },
       theme: "grid",
     });
