@@ -137,14 +137,19 @@ export default function ConsultaEstoque() {
   const rightAlignKeys = new Set(["sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_preco_venda", "pcpr_preco_prod", "pcpr_preco", "uepd_estoque_minimo", "sest_qtd_saldo", "test_reserva", "test_requisicoes"]);
   const isRightAlign = (col: string) => rightAlignKeys.has(col.toLowerCase());
 
+  const numericCols = new Set(["sest_qtd_saldo", "test_reserva", "test_requisicoes"]);
+
   const formatValue = (col: string, val: string | undefined) => {
     if (!val || val === "") return "-";
     const lower = col.toLowerCase();
     if (rightAlignKeys.has(lower)) {
       const num = parseFloat(val);
       if (isNaN(num)) return val;
+      if (numericCols.has(lower)) {
+        return num.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
+      }
       if (lower.includes("vlr") || lower.includes("preco")) {
-        return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
       return num.toLocaleString("pt-BR");
     }
