@@ -69,8 +69,56 @@ export interface Usuario {
   pess_ID: string;
 }
 
+export interface Grupo {
+  grpo_id: string;
+  grpo_Nome: string;
+}
+
+export interface Marca {
+  marc_id: string;
+  marc_Nome: string;
+}
+
+export interface EstoqueItem {
+  Codigo: string;
+  Nome: string;
+  Referencia: string;
+  G01?: string;
+  G02?: string;
+  G03?: string;
+  G04?: string;
+  G05?: string;
+  G06?: string;
+  G07?: string;
+  G08?: string;
+  G09?: string;
+  G10?: string;
+  G11?: string;
+  G12?: string;
+  GO?: string;
+  DF?: string;
+  Geral?: string;
+}
+
 // API calls
 export const getCorporacoes = () => apiGet<Corporacao[]>('/getCorporacoes');
 export const getEmpresas = (cprcId: string) => apiGet<Empresa[]>(`/getEmpresas?cprc_id=${cprcId}`);
 export const getUnidadesEmpresariais = (emprId: string) => apiGet<UnidadeEmpresarial[]>(`/getUnidadesEmpresariais?empr_id=${emprId}`);
 export const getUsuarios = (unemId: string) => apiGet<Usuario[]>(`/getUsuario?unem_id=${unemId}`);
+export const getGrupos = () => apiGet<Grupo[]>('/getGrupos');
+export const getMarcas = () => apiGet<Marca[]>('/getMarcas');
+
+export const getConsultaEstoqueFiliais = (params: {
+  prod_codigo?: string;
+  prod_nome?: string;
+  marc_id?: string;
+  grpo_id?: string;
+  referencia?: string;
+  empr_id: string;
+}) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return apiGet<EstoqueItem[]>(`/getConsultaEstoqueFiliais?${query}`);
+};
