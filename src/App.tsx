@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +33,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/estoque" element={<Navigate to="/estoque/filiais" replace />} />
                 <Route path="/estoque/produtos" element={<Produtos />} />
                 <Route path="/estoque/filiais" element={<Estoque />} />
                 <Route path="/estoque/consulta" element={<ConsultaEstoque />} />
