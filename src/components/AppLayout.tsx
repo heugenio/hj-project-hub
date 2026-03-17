@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Package,
@@ -13,6 +14,7 @@ import {
   ChevronLeft,
   ChevronDown,
   BarChart3,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +35,8 @@ export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { auth, logout } = useAuth();
   const isActive = (path: string) => location.pathname === path;
   const isReportActive = reportItems.some((r) => isActive(r.url));
 
@@ -162,6 +166,18 @@ export function AppLayout() {
       <div className="border-t border-sidebar-border px-2 py-3 space-y-0.5">
         <NavLink item={{ title: "Configurações", url: "/configuracoes", icon: Settings }} mobile={mobile} />
 
+        <button
+          onClick={() => { logout(); navigate("/login"); }}
+          className={cn(
+            "flex items-center gap-3 rounded-lg text-sm text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 w-full",
+            collapsed && !mobile ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+          )}
+          title={collapsed && !mobile ? "Sair" : undefined}
+        >
+          <LogOut className={cn("shrink-0", collapsed && !mobile ? "h-5 w-5" : "h-[18px] w-[18px]")} />
+          {(!collapsed || mobile) && <span>Sair</span>}
+        </button>
+
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -213,8 +229,9 @@ export function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex-1" />
+          <span className="text-sm text-muted-foreground hidden sm:inline">{auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login}</span>
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-            U
+            {(auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login || "U").charAt(0).toUpperCase()}
           </div>
         </header>
 

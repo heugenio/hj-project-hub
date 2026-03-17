@@ -8,10 +8,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function Configuracoes() {
-  const [urlBase, setUrlBase] = useState("http://hjsystems.dynns.com:8085");
+  const [urlBase, setUrlBase] = useState(() => localStorage.getItem("hj_system_url_base") || "http://hjsystems.dynns.com:8085");
   const [darkMode, setDarkMode] = useState(false);
 
   const handleSave = () => {
+    localStorage.setItem("hj_system_url_base", urlBase);
     toast.success("Configurações salvas com sucesso!");
   };
 
