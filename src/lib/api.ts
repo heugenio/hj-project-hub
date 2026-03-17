@@ -12,13 +12,14 @@ async function apiGet<T>(endpoint: string): Promise<T> {
   return res.json();
 }
 
-export async function apiGetBlob(endpoint: string): Promise<string> {
-  const res = await fetch(`${getBaseUrl()}${endpoint}`, {
+export async function getLogo(): Promise<string> {
+  const res = await fetch(`${getBaseUrl()}/getLogo`, {
     headers: { 'Authorization': BASIC_AUTH },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
-  const blob = await res.blob();
-  return URL.createObjectURL(blob);
+  const text = await res.text();
+  // API returns base64 string
+  return `data:image/png;base64,${text.replace(/^["']|["']$/g, '').trim()}`;
 }
 
 // Types
