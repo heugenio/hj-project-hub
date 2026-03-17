@@ -21,9 +21,14 @@ import { cn } from "@/lib/utils";
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
   { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
+];
+
+const estoqueItems = [
+  { title: "Produtos", url: "/estoque/produtos", icon: Package },
+  { title: "Consulta Estoque Filiais", url: "/estoque/filiais", icon: Package },
+  { title: "Consulta Estoque", url: "/estoque/consulta", icon: Package },
 ];
 
 const reportItems = [
