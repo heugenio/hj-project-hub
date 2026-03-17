@@ -1,103 +1,175 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Wrench,
+  TrendingUp,
+  ArrowLeftRight,
+  Settings,
+  Menu,
+  X,
+  ChevronLeft,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Dashboard", url: "/" },
-  { title: "Estoque", url: "/estoque" },
-  { title: "Pedidos", url: "/pedidos" },
-  { title: "Ordem de Serviço", url: "/ordem-servico" },
-  { title: "Vendas", url: "/relatorios/vendas" },
-  { title: "Movimentação", url: "/relatorios/movimentacao" },
-  { title: "Configurações", url: "/configuracoes" },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Estoque", url: "/estoque", icon: Package },
+  { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
+  { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
+  { title: "Vendas", url: "/relatorios/vendas", icon: TrendingUp },
+  { title: "Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
 ];
 
 export function AppLayout() {
+  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      {/* Navbar */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border backdrop-blur supports-[backdrop-filter]:bg-card/90">
-        <div className="container mx-auto flex h-14 items-center justify-between px-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-              HJ
-            </div>
-            <span className="font-bold text-foreground tracking-tight hidden sm:inline" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              HJ Systems
-            </span>
-          </Link>
-
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.url}
-                to={item.url}
-                className={cn(
-                  "px-3 py-1.5 text-sm rounded-md transition-colors",
-                  isActive(item.url)
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
-
-          {/* User + Mobile toggle */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-              U
-            </div>
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden p-2 rounded-md text-muted-foreground hover:bg-muted"
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
+  const NavContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className={cn("flex items-center border-b border-sidebar-border shrink-0", collapsed && !mobile ? "justify-center px-2 h-14" : "gap-2.5 px-4 h-14")}>
+        <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold text-base shrink-0">
+          HJ
         </div>
-
-        {/* Mobile nav */}
-        {mobileOpen && (
-          <nav className="lg:hidden border-t border-border bg-card px-4 py-2 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.url}
-                to={item.url}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "block px-3 py-2 text-sm rounded-md transition-colors",
-                  isActive(item.url)
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
+        {(!collapsed || mobile) && (
+          <div className="overflow-hidden">
+            <p className="text-sm font-bold text-sidebar-foreground tracking-tight whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>HJ Systems</p>
+            <p className="text-[10px] text-sidebar-foreground/50 whitespace-nowrap">Gestão Empresarial</p>
+          </div>
         )}
-      </header>
+      </div>
 
-      {/* Content */}
-      <main className="flex-1 container mx-auto px-4 py-6">
-        <Outlet />
-      </main>
+      {/* Nav links */}
+      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+        <p className={cn("text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mb-2", collapsed && !mobile ? "text-center" : "px-2")}>
+          {collapsed && !mobile ? "•" : "Principal"}
+        </p>
+        {navItems.map((item) => (
+          <Link
+            key={item.url}
+            to={item.url}
+            onClick={() => mobile && setMobileOpen(false)}
+            title={collapsed && !mobile ? item.title : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group relative",
+              collapsed && !mobile ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
+              isActive(item.url)
+                ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
+                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+            )}
+          >
+            {isActive(item.url) && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
+            )}
+            <item.icon className={cn("shrink-0", collapsed && !mobile ? "h-5 w-5" : "h-[18px] w-[18px]")} />
+            {(!collapsed || mobile) && <span className="whitespace-nowrap">{item.title}</span>}
+            {/* Tooltip for collapsed */}
+            {collapsed && !mobile && (
+              <span className="absolute left-full ml-2 px-2 py-1 rounded-md bg-foreground text-background text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+                {item.title}
+              </span>
+            )}
+          </Link>
+        ))}
+      </nav>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card py-4">
-        <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
-          © 2026 HJ Systems — Gestão Empresarial
+      <div className="border-t border-sidebar-border px-2 py-3 space-y-0.5">
+        <Link
+          to="/configuracoes"
+          onClick={() => mobile && setMobileOpen(false)}
+          title={collapsed && !mobile ? "Configurações" : undefined}
+          className={cn(
+            "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group relative",
+            collapsed && !mobile ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
+            isActive("/configuracoes")
+              ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
+              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+          )}
+        >
+          {isActive("/configuracoes") && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
+          )}
+          <Settings className={cn("shrink-0", collapsed && !mobile ? "h-5 w-5" : "h-[18px] w-[18px]")} />
+          {(!collapsed || mobile) && <span className="whitespace-nowrap">Configurações</span>}
+          {collapsed && !mobile && (
+            <span className="absolute left-full ml-2 px-2 py-1 rounded-md bg-foreground text-background text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+              Configurações
+            </span>
+          )}
+        </Link>
+
+        {/* Collapse button desktop */}
+        {!mobile && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden lg:flex items-center gap-3 rounded-lg text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 transition-all duration-200 w-full px-3 py-2.5"
+          >
+            <ChevronLeft className={cn("h-[18px] w-[18px] shrink-0 transition-transform duration-300", collapsed && "rotate-180")} />
+            {!collapsed && <span>Recolher</span>}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Desktop sidebar */}
+      <aside
+        className={cn(
+          "hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border shrink-0 transition-all duration-300 sticky top-0 h-screen",
+          collapsed ? "w-[68px]" : "w-[240px]"
+        )}
+      >
+        <NavContent />
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-[260px] bg-sidebar shadow-2xl animate-in slide-in-from-left duration-300">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-3 right-3 p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <NavContent mobile />
+          </aside>
         </div>
-      </footer>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <header className="sticky top-0 z-40 h-14 flex items-center gap-3 border-b border-border bg-card/90 backdrop-blur px-4 shrink-0">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden p-2 -ml-2 rounded-md text-muted-foreground hover:bg-muted"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="flex-1" />
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
+            U
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-auto p-4 sm:p-6">
+          <Outlet />
+        </main>
+
+        <footer className="border-t border-border bg-card py-3">
+          <p className="text-center text-[11px] text-muted-foreground">© 2026 HJ Systems — Gestão Empresarial</p>
+        </footer>
+      </div>
     </div>
   );
 }
