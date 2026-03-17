@@ -39,11 +39,13 @@ const reportItems = [
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [estoqueOpen, setEstoqueOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const { auth, logout } = useAuth();
   const isActive = (path: string) => location.pathname === path;
+  const isEstoqueActive = estoqueItems.some((i) => isActive(i.url));
   const isReportActive = reportItems.some((r) => isActive(r.url));
 
   const NavLink = ({
