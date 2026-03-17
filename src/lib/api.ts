@@ -174,6 +174,11 @@ export interface MovementSummary {
   DCFS_MODELO_NOTA: string;
   DCFS_VLR_TOTAL: string;
   DCFS_NOME: string;
+  HMOV_TIPO?: string;
+  DCFS_TIPO_MOVIMENTO?: string;
+  PDDS_NUMERO?: string;
+  VDDR_NOME?: string;
+  ITFT_VLR_TRIBUTOS?: string;
 }
 
 export const getDemonstrativoVendas = (params: {
