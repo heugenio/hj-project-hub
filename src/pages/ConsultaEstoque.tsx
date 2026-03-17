@@ -70,8 +70,34 @@ export default function ConsultaEstoque() {
     "pROD_PESO_BRUTO", "tEST_CUSTO_MEDIO", "mARC_ID", "uEPD_ESTOQUE_MAXIMO",
     "pROD_CARACTERISTICAS", "nCMS_NOME", "uNEM_SIGLA", "pROD_MOVIMENTA_ESTOQUE", "pROD_PESO",
   ]);
+  // Define preferred column order (lowercase keys)
+  const columnOrder = [
+    "prod_codigo", "prod_nome", "unid_sigla", "sest_qtd_saldo", "test_reserva", "test_requisicoes",
+    "prod_referencia", "grpo_nome", "marc_nome", "prod_unidade",
+    "sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_aplicacao", "prod_situacao",
+    "prod_preco_venda", "prod_desc_complementar", "uepd_estoque_minimo", "pcpr_preco_prod",
+    "pcpr_preco", "test_nome", "ncms_codigo", "unem_fantasia",
+    "prod_natureza_economica", "prod_local_est",
+  ];
+
   const columns = items.length > 0
-    ? Object.keys(items[0]).filter((k) => !hiddenCols.has(k))
+    ? (() => {
+        const allKeys = Object.keys(items[0]).filter((k) => !hiddenCols.has(k));
+        const sorted: string[] = [];
+        const remaining = new Set(allKeys.map((k) => k));
+        for (const ordKey of columnOrder) {
+          const match = allKeys.find((k) => k.toLowerCase() === ordKey);
+          if (match && remaining.has(match)) {
+            sorted.push(match);
+            remaining.delete(match);
+          }
+        }
+        // append any remaining columns not in the order list
+        for (const k of allKeys) {
+          if (remaining.has(k)) sorted.push(k);
+        }
+        return sorted;
+      })()
     : [];
 
   const colLabelsMap: Record<string, string> = {
@@ -81,7 +107,11 @@ export default function ConsultaEstoque() {
     grpo_nome: "Grupo",
     marc_nome: "Marca",
     prod_unidade: "Unid.",
+    unid_sigla: "Und",
     sest_qtd: "Qtd",
+    sest_qtd_saldo: "Saldo",
+    test_reserva: "Reservado",
+    test_requisicoes: "Requisitado",
     sest_vlr_custo: "Vlr Custo",
     sest_vlr_venda: "Vlr Venda",
     prod_aplicacao: "Aplicação",
@@ -90,9 +120,12 @@ export default function ConsultaEstoque() {
     prod_desc_complementar: "Desc. Complementar",
     uepd_estoque_minimo: "Estq. Mín.",
     pcpr_preco_prod: "Preço",
+    pcpr_preco: "Preço",
     test_nome: "Tabela",
     ncms_codigo: "NCM",
     unem_fantasia: "Unidade",
+    prod_natureza_economica: "Nat. Econômica",
+    prod_local_est: "Local Estoque",
   };
 
   const getColLabel = (col: string) => {
@@ -100,7 +133,7 @@ export default function ConsultaEstoque() {
     return colLabelsMap[lower] || col;
   };
 
-  const rightAlignKeys = new Set(["sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_preco_venda", "pcpr_preco_prod", "uepd_estoque_minimo"]);
+  const rightAlignKeys = new Set(["sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_preco_venda", "pcpr_preco_prod", "pcpr_preco", "uepd_estoque_minimo", "sest_qtd_saldo", "test_reserva", "test_requisicoes"]);
   const isRightAlign = (col: string) => rightAlignKeys.has(col.toLowerCase());
 
   const formatValue = (col: string, val: string | undefined) => {
