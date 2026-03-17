@@ -12,6 +12,7 @@ export default function Configuracoes() {
   const [darkMode, setDarkMode] = useState(false);
 
   const handleSave = () => {
+    localStorage.setItem("hj_system_url_base", urlBase);
     toast.success("Configurações salvas com sucesso!");
   };
 

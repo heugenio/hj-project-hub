@@ -229,8 +229,9 @@ export function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex-1" />
+          <span className="text-sm text-muted-foreground hidden sm:inline">{auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login}</span>
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-            U
+            {(auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login || "U").charAt(0).toUpperCase()}
           </div>
         </header>
 
