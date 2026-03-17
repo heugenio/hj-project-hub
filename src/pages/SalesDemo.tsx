@@ -49,11 +49,8 @@ interface GroupedData {
   };
 }
 
-function formatGroupName(grpoId: string, grupo: string): string {
-  // Extract short ID from long ID like "000640010000000001" -> use grupo directly
-  // Format: "GRPO_ID - GRUPO" but strip leading zeros/long prefix from GRPO_ID
-  const shortId = grpoId.replace(/^0+/, '').slice(-4).padStart(4, '0');
-  return `${shortId} - ${grupo}`;
+function formatGroupName(_grpoId: string, grupo: string): string {
+  return grupo;
 }
 
 function groupByGrupo(data: SalesDemoType[]): GroupedData[] {
