@@ -229,7 +229,7 @@ export default function SalesDemo() {
       head: [["Curva", "Código", "Produto", "Referência", "Unid", "Qtd", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Saldo"]],
       body,
       styles: { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold" },
+      headStyles: { fillColor: [100, 100, 100], textColor: [255, 255, 255], fontStyle: "bold" },
       columnStyles: {
         5: { halign: "right" },
         6: { halign: "right" },
