@@ -223,7 +223,7 @@ export default function ConsultaEstoque() {
                             ? "text-right tabular-nums font-medium"
                             : col.toLowerCase() === "prod_nome"
                             ? "font-medium max-w-[250px] truncate"
-                            : col === "prod_Codigo"
+                            : col.toLowerCase() === "prod_codigo"
                             ? "font-mono text-muted-foreground"
                             : "text-muted-foreground"
                         }`}
