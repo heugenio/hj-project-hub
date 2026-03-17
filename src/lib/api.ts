@@ -29,8 +29,10 @@ async function apiGet<T>(endpoint: string): Promise<T> {
 }
 
 export async function getLogo(): Promise<string> {
-  const text = await proxyFetch('/getLogo');
-  return `data:image/png;base64,${text.replace(/^["']|["']$/g, '').trim()}`;
+  const result = await proxyFetchRaw('/getLogo');
+  const base64 = result.base64 as string;
+  const mimeType = (result.mimeType as string) || 'image/png';
+  return `data:${mimeType};base64,${base64}`;
 }
 
 // Types
