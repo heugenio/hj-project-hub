@@ -34,8 +34,9 @@ export default function MovementSummary() {
           <CardTitle className="text-base">Movimentação Mensal</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={movData}>
+          <div style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={movData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
               <XAxis dataKey="mes" stroke="hsl(220, 10%, 46%)" />
               <YAxis stroke="hsl(220, 10%, 46%)" />
