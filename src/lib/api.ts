@@ -9,7 +9,18 @@ async function proxyFetch(endpoint: string): Promise<string> {
     body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
   });
   if (error) throw new Error(`API proxy error: ${error.message}`);
-  return typeof data === 'string' ? data : JSON.stringify(data);
+  // data may come as parsed object or string
+  if (typeof data === 'object' && data !== null) return JSON.stringify(data);
+  return data as string;
+}
+
+async function proxyFetchRaw(endpoint: string): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.functions.invoke('api-proxy', {
+    body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
+  });
+  if (error) throw new Error(`API proxy error: ${error.message}`);
+  if (typeof data === 'string') return JSON.parse(data);
+  return data as Record<string, unknown>;
 }
 
 async function apiGet<T>(endpoint: string): Promise<T> {
@@ -18,8 +29,10 @@ async function apiGet<T>(endpoint: string): Promise<T> {
 }
 
 export async function getLogo(): Promise<string> {
-  const text = await proxyFetch('/getLogo');
-  return `data:image/png;base64,${text.replace(/^["']|["']$/g, '').trim()}`;
+  const result = await proxyFetchRaw('/getLogo');
+  const base64 = result.base64 as string;
+  const mimeType = (result.mimeType as string) || 'image/png';
+  return `data:${mimeType};base64,${base64}`;
 }
 
 // Types

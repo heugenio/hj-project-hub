@@ -27,8 +27,25 @@ Deno.serve(async (req) => {
     });
 
     const contentType = response.headers.get('content-type') || '';
-    const text = await response.text();
+    const isImage = contentType.startsWith('image/');
 
+    if (isImage) {
+      // Convert binary image to base64 and return as JSON
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      const mimeType = contentType.split(';')[0].trim();
+      return new Response(
+        JSON.stringify({ base64, mimeType }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const text = await response.text();
     return new Response(text, {
       status: response.status,
       headers: {
