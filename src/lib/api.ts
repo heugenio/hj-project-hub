@@ -113,6 +113,7 @@ export const getMarcas = () => apiGet<Marca[]>('/getMarcas');
 export interface SalesDemo {
   GRPO_ID: string;
   GRUPO: string;
+  CURVA?: string;
   PROD_CODIGO?: string;
   PROD_NOME?: string;
   PROD_REFERENCIA?: string;
