@@ -105,7 +105,8 @@ export default function SalesDemo() {
       // Start with all groups expanded
       const allGroups = groupByGrupo(result).map(g => g.grupo);
       setExpandedGroups(new Set(allGroups));
-    if (result.length === 0) toast.info("Nenhum registro encontrado.");
+      if (result.length === 0) toast.info("Nenhum registro encontrado.");
+    } catch (e: any) {
       toast.error("Erro ao buscar dados: " + e.message);
     } finally {
       setLoading(false);
