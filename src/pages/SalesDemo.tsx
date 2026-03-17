@@ -443,7 +443,7 @@ function GroupRows({
                <TableCell></TableCell>
                <TableCell className="text-muted-foreground">{item.CURVA || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
-               <TableCell className="text-muted-foreground">{item.PROD_NOME || ""}</TableCell>
+               <TableCell className="text-muted-foreground max-w-[200px] truncate" title={item.PROD_NOME || ""}><span className="line-clamp-2 whitespace-normal">{item.PROD_NOME || ""}</span></TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_REFERENCIA || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.ITFT_UNID_SIGLA || ""}</TableCell>
                <TableCell className="text-right">{item.ITFT_QTDE_FATURADA}</TableCell>
