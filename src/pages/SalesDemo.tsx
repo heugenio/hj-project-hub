@@ -30,8 +30,9 @@ export default function SalesDemo() {
           <CardTitle className="text-base">Vendas por Unidade (Semestral)</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={chartData}>
+          <div style={{ width: "100%", height: 350 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
               <XAxis dataKey="mes" stroke="hsl(220, 10%, 46%)" />
               <YAxis stroke="hsl(220, 10%, 46%)" tickFormatter={(v) => `${v / 1000}k`} />
@@ -40,7 +41,8 @@ export default function SalesDemo() {
               <Bar dataKey="Filial 1" fill="hsl(160, 60%, 40%)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Filial 2" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
