@@ -166,6 +166,18 @@ export function AppLayout() {
       <div className="border-t border-sidebar-border px-2 py-3 space-y-0.5">
         <NavLink item={{ title: "Configurações", url: "/configuracoes", icon: Settings }} mobile={mobile} />
 
+        <button
+          onClick={() => { logout(); navigate("/login"); }}
+          className={cn(
+            "flex items-center gap-3 rounded-lg text-sm text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 w-full",
+            collapsed && !mobile ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+          )}
+          title={collapsed && !mobile ? "Sair" : undefined}
+        >
+          <LogOut className={cn("shrink-0", collapsed && !mobile ? "h-5 w-5" : "h-[18px] w-[18px]")} />
+          {(!collapsed || mobile) && <span>Sair</span>}
+        </button>
+
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
