@@ -100,14 +100,16 @@ export default function ConsultaEstoque() {
     return colLabelsMap[lower] || col;
   };
 
-  const rightAlignCols = ["sest_Qtd", "sest_Vlr_Custo", "sest_Vlr_Venda", "prod_Preco_Venda"];
+  const rightAlignKeys = new Set(["sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_preco_venda", "pcpr_preco_prod", "uepd_estoque_minimo"]);
+  const isRightAlign = (col: string) => rightAlignKeys.has(col.toLowerCase());
 
   const formatValue = (col: string, val: string | undefined) => {
     if (!val || val === "") return "-";
-    if (rightAlignCols.includes(col)) {
+    const lower = col.toLowerCase();
+    if (rightAlignKeys.has(lower)) {
       const num = parseFloat(val);
       if (isNaN(num)) return val;
-      if (col.includes("Vlr") || col.includes("Preco")) {
+      if (lower.includes("vlr") || lower.includes("preco")) {
         return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       }
       return num.toLocaleString("pt-BR");
