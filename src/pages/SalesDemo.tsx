@@ -281,7 +281,7 @@ export default function SalesDemo() {
       {searched && data.length > 0 && (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card className="border-border/50">
               <CardContent className="pt-4 pb-4">
                 <p className="text-xs text-muted-foreground">Quantidade</p>
@@ -298,6 +298,12 @@ export default function SalesDemo() {
               <CardContent className="pt-4 pb-4">
                 <p className="text-xs text-muted-foreground">Lucro</p>
                 <p className="text-xl font-bold text-green-600">{fmtBRL(grandTotals.lucro)}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground">Devolução</p>
+                <p className="text-xl font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</p>
               </CardContent>
             </Card>
             <Card className="border-border/50">
