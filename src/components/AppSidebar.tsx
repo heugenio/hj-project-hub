@@ -2,12 +2,15 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  BarChart3,
   Settings,
   Wrench,
   LogOut,
   TrendingUp,
   ArrowLeftRight,
+  ChevronDown,
+  BoxesIcon,
+  Search,
+  Warehouse,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -20,16 +23,25 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarFooter,
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
   { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
+];
+
+const estoqueItems = [
+  { title: "Produtos", url: "/estoque/produtos", icon: BoxesIcon },
+  { title: "Consulta Estoque Filiais", url: "/estoque/filiais", icon: Search },
+  { title: "Consulta Estoque", url: "/estoque/consulta", icon: Warehouse },
 ];
 
 const reportItems = [
@@ -42,6 +54,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
+  const estoqueOpen = location.pathname.startsWith("/estoque");
 
   return (
     <Sidebar collapsible="icon">
@@ -76,6 +89,39 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Estoque with submenu */}
+              <Collapsible defaultOpen={estoqueOpen} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className={`hover:bg-sidebar-accent/50 ${estoqueOpen ? "bg-sidebar-accent text-sidebar-primary font-medium" : ""}`}>
+                      <Package className="h-4 w-4" />
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1">Estoque</span>
+                          <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                        </>
+                      )}
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  {!collapsed && (
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {estoqueItems.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton asChild isActive={isActive(item.url)}>
+                              <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                                <item.icon className="h-3.5 w-3.5" />
+                                <span>{item.title}</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  )}
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
