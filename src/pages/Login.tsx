@@ -133,31 +133,30 @@ export default function Login() {
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: "radial-gradient(circle at 25% 25%, hsl(var(--sidebar-primary)) 0%, transparent 50%), radial-gradient(circle at 75% 75%, hsl(var(--sidebar-primary)) 0%, transparent 50%)",
         }} />
-        <div className="relative z-10 flex flex-col items-center gap-8 px-12">
-          {logoLoading ? (
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-12 w-12 animate-spin" style={{ color: "hsl(var(--sidebar-foreground) / 0.4)" }} />
-              <p className="text-sm" style={{ color: "hsl(var(--sidebar-foreground) / 0.5)" }}>Carregando...</p>
-            </div>
-          ) : logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="max-h-48 max-w-[80%] object-contain drop-shadow-2xl" />
-          ) : (
-            <div className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold" style={{
-              background: "hsl(var(--sidebar-primary))",
-              color: "hsl(var(--sidebar-primary-foreground))",
-              fontFamily: "'Space Grotesk', sans-serif",
-            }}>
-              HJ
-            </div>
-          )}
-          <div className="text-center">
-            {slogan && (
-              <h1 className="text-3xl font-bold tracking-tight" style={{ color: "hsl(var(--sidebar-foreground))", fontFamily: "'Space Grotesk', sans-serif" }}>
-                {slogan}
-              </h1>
+        <div className="relative z-10 flex flex-col items-center justify-center gap-8 px-12 h-full">
+          <div className="flex-1 flex items-center justify-center">
+            {logoLoading ? (
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-12 w-12 animate-spin" style={{ color: "hsl(var(--sidebar-foreground) / 0.4)" }} />
+                <p className="text-sm" style={{ color: "hsl(var(--sidebar-foreground) / 0.5)" }}>Carregando...</p>
+              </div>
+            ) : logoUrl ? (
+              <img src={logoUrl} alt="Logo da Empresa" className="max-h-64 max-w-[85%] object-contain drop-shadow-2xl" />
+            ) : (
+              <div className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold" style={{
+                background: "hsl(var(--sidebar-primary))",
+                color: "hsl(var(--sidebar-primary-foreground))",
+                fontFamily: "'Space Grotesk', sans-serif",
+              }}>
+                HJ
+              </div>
             )}
-            <p className="text-base mt-2" style={{ color: "hsl(var(--sidebar-foreground) / 0.6)" }}>
-              Gestão Empresarial Inteligente
+          </div>
+          {/* Footer credits */}
+          <div className="pb-6 flex flex-col items-center gap-2">
+            <img src={hjSystemsLogo} alt="HJ-Systems" className="h-8 object-contain opacity-60" />
+            <p className="text-xs" style={{ color: "hsl(var(--sidebar-foreground) / 0.4)" }}>
+              Gestão de Negócios
             </p>
           </div>
         </div>
