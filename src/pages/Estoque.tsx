@@ -145,7 +145,7 @@ export default function Estoque() {
                     <TableCell className="text-xs">{item.Referencia}</TableCell>
                     {filialColumns.map((col) => (
                       <TableCell key={col} className="text-right tabular-nums">
-                        {(item as Record<string, string | undefined>)[col] || "0"}
+                        {(item as unknown as Record<string, string | undefined>)[col] || "0"}
                       </TableCell>
                     ))}
                     <TableCell className="text-right font-bold tabular-nums">{item.Geral || "0"}</TableCell>
