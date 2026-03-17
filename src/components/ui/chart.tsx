@@ -229,12 +229,12 @@ const ChartLegend = RechartsPrimitive.Legend;
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  any & {
       hideIcon?: boolean;
       nameKey?: string;
     }
->(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }, ref) => {
+>(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }: any, ref: any) => {
   const { config } = useChart();
 
   if (!payload?.length) {
