@@ -15,7 +15,7 @@ import {
   ChevronDown,
   BarChart3,
   LogOut,
-} from "lucide-react";
+  Store,
 import { cn } from "@/lib/utils";
 
 const mainItems = [
