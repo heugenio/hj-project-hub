@@ -169,7 +169,7 @@ export default function SalesDemo() {
 
     for (const group of grouped) {
       body.push([
-        { content: formatGroupName(group.grpoId, group.grupo), colSpan: 12, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
+        { content: formatGroupName(group.grpoId, group.grupo), colSpan: 12, styles: { fontStyle: "bold", fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: { bottom: 0.3, top: 0, left: 0, right: 0 }, lineColor: [180, 180, 180] } },
       ]);
 
       for (const item of group.items) {
