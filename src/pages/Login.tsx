@@ -57,12 +57,24 @@ export default function Login() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    getLogo().then(setLogoUrl).catch(() => {});
+    setLogoLoading(true);
+    getLogo()
+      .then(setLogoUrl)
+      .catch(() => {})
+      .finally(() => setLogoLoading(false));
     setLoadingCorp(true);
     getCorporacoes()
       .then((data) => {
         setCorporacoes(data);
         if (data.length === 1) setSelectedCprc(data[0].cprc_id);
+        // Build slogan from first corporação name, removing LTDA suffix
+        if (data.length > 0) {
+          const name = data[0].cprc_Nome
+            .replace(/\s*-?\s*LTDA\.?$/i, '')
+            .replace(/\s*LTDA\.?$/i, '')
+            .trim();
+          setSlogan(name);
+        }
       })
       .catch(() => toast.error("Erro ao carregar corporações"))
       .finally(() => setLoadingCorp(false));
