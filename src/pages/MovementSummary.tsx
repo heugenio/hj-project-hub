@@ -287,6 +287,3 @@ export default function MovementSummary() {
     </div>
   );
 }
-
-// Need Fragment import
-import { Fragment } from "react";
