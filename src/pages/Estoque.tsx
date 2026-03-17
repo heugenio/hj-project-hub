@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Package, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -11,9 +10,11 @@ import {
   getConsultaEstoqueFiliais,
   getGrupos,
   getMarcas,
+  getUnidadesEmpresariais,
   type EstoqueItem,
   type Grupo,
   type Marca,
+  type UnidadeEmpresarial,
 } from "@/lib/api";
 
 export default function Estoque() {
@@ -25,15 +26,21 @@ export default function Estoque() {
 
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [unidades, setUnidades] = useState<UnidadeEmpresarial[]>([]);
   const [estoque, setEstoque] = useState<EstoqueItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  // Load filters on mount
+  // Load filters and unidades on mount
   useEffect(() => {
     getGrupos().then(setGrupos).catch(() => toast.error("Erro ao carregar grupos"));
     getMarcas().then(setMarcas).catch(() => toast.error("Erro ao carregar marcas"));
-  }, []);
+    if (auth?.unidade?.empr_id) {
+      getUnidadesEmpresariais(auth.unidade.empr_id)
+        .then(setUnidades)
+        .catch(() => {});
+    }
+  }, [auth?.unidade?.empr_id]);
 
   const handleSearch = async () => {
     if (!auth?.unidade?.empr_id) {
@@ -59,10 +66,30 @@ export default function Estoque() {
     }
   };
 
-  // Detect dynamic filial columns (G01, G02, etc.)
+  // Detect dynamic filial columns
   const filialColumns = estoque.length > 0
     ? Object.keys(estoque[0]).filter((k) => /^G\d{2}$/.test(k) || k === "GO" || k === "DF")
     : [];
+
+  // Build UF label map from unidades: unem_Sigla -> unem_Uf
+  const ufMap: Record<string, string> = {};
+  unidades.forEach((u) => {
+    if (u.unem_Sigla && u.unem_Uf) {
+      ufMap[u.unem_Sigla] = u.unem_Uf;
+    }
+  });
+
+  // Check if a column key is a UF total (like GO, DF — 2-letter state codes)
+  const isUfColumn = (col: string) => /^[A-Z]{2}$/.test(col) && !/^\d/.test(col) && !col.startsWith("G0") && !col.startsWith("G1");
+
+  const getColumnLabel = (col: string) => {
+    // If it's in the ufMap, use the UF
+    if (ufMap[col]) return ufMap[col];
+    // If it looks like a UF already (GO, DF), keep it
+    if (isUfColumn(col)) return col;
+    // Otherwise show as-is (G01, G02...)
+    return col;
+  };
 
   return (
     <div className="space-y-6">
@@ -125,53 +152,82 @@ export default function Estoque() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Referência</TableHead>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-muted/70 border-b border-border">
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground whitespace-nowrap">Código</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground whitespace-nowrap">Produto</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground whitespace-nowrap">Ref.</th>
                   {filialColumns.map((col) => (
-                    <TableHead key={col} className="text-right">{col}</TableHead>
+                    <th
+                      key={col}
+                      className={`text-right px-2 py-1.5 font-semibold whitespace-nowrap ${
+                        isUfColumn(col)
+                          ? "bg-primary/10 text-primary border-l border-r border-primary/20"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {getColumnLabel(col)}
+                    </th>
                   ))}
-                  <TableHead className="text-right font-bold">Geral</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                  <th className="text-right px-2 py-1.5 font-bold whitespace-nowrap bg-primary/15 text-primary border-l border-primary/20">
+                    Geral
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
                 {estoque.map((item, i) => (
-                  <TableRow key={`${item.Codigo}-${i}`}>
-                    <TableCell className="font-mono text-xs">{item.Codigo}</TableCell>
-                    <TableCell className="font-medium max-w-[250px] truncate">{item.Nome}</TableCell>
-                    <TableCell className="text-xs">{item.Referencia}</TableCell>
-                    {filialColumns.map((col) => (
-                      <TableCell key={col} className="text-right tabular-nums">
-                        {(item as unknown as Record<string, string | undefined>)[col] || "0"}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right font-bold tabular-nums">{item.Geral || "0"}</TableCell>
-                  </TableRow>
+                  <tr
+                    key={`${item.Codigo}-${i}`}
+                    className={`border-b border-border/40 hover:bg-accent/40 transition-colors ${
+                      i % 2 === 0 ? "bg-background" : "bg-muted/30"
+                    }`}
+                  >
+                    <td className="px-2 py-1 font-mono text-muted-foreground whitespace-nowrap">{item.Codigo}</td>
+                    <td className="px-2 py-1 font-medium max-w-[220px] truncate">{item.Nome}</td>
+                    <td className="px-2 py-1 text-muted-foreground whitespace-nowrap">{item.Referencia}</td>
+                    {filialColumns.map((col) => {
+                      const val = (item as unknown as Record<string, string | undefined>)[col] || "0";
+                      const numVal = parseFloat(val) || 0;
+                      return (
+                        <td
+                          key={col}
+                          className={`text-right px-2 py-1 tabular-nums whitespace-nowrap ${
+                            isUfColumn(col)
+                              ? "bg-primary/5 font-semibold text-primary border-l border-r border-primary/10"
+                              : numVal > 0 ? "text-foreground" : "text-muted-foreground/50"
+                          }`}
+                        >
+                          {val}
+                        </td>
+                      );
+                    })}
+                    <td className="text-right px-2 py-1 font-bold tabular-nums whitespace-nowrap bg-primary/10 text-primary border-l border-primary/10">
+                      {item.Geral || "0"}
+                    </td>
+                  </tr>
                 ))}
                 {searched && !loading && estoque.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3 + filialColumns.length + 1} className="text-center py-8 text-muted-foreground">
+                  <tr>
+                    <td colSpan={3 + filialColumns.length + 1} className="text-center py-8 text-muted-foreground">
                       <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
                       Nenhum produto encontrado
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 )}
                 {!searched && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <tr>
+                    <td colSpan={3 + filialColumns.length + 1} className="text-center py-8 text-muted-foreground">
                       <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
                       Utilize os filtros acima e clique em Consultar
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
           {estoque.length > 0 && (
-            <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
+            <div className="px-3 py-1.5 border-t border-border text-xs text-muted-foreground">
               {estoque.length} produto(s) encontrado(s)
             </div>
           )}
