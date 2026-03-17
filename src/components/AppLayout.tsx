@@ -15,6 +15,7 @@ import {
   ChevronDown,
   BarChart3,
   LogOut,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -228,10 +229,31 @@ export function AppLayout() {
           >
             <Menu className="h-5 w-5" />
           </button>
+
+          {/* Store info */}
+          <div className="flex items-center gap-2 min-w-0">
+            <Store className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-medium text-foreground truncate">
+              {auth?.unidade?.unem_Fantasia || '—'}
+            </span>
+            {auth?.unidade?.unem_CNPJ && (
+              <span className="text-xs text-muted-foreground hidden md:inline">
+                CNPJ: {auth.unidade.unem_CNPJ}
+              </span>
+            )}
+          </div>
+
           <div className="flex-1" />
-          <span className="text-sm text-muted-foreground hidden sm:inline">{auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login}</span>
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-            {(auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login || "U").charAt(0).toUpperCase()}
+
+          {/* User info */}
+          <div className="flex items-center gap-2">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-foreground leading-tight">{auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">{auth?.user?.usrs_Nome_Login}</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
+              {(auth?.user?.pess_Nome || auth?.user?.usrs_Nome_Login || "U").charAt(0).toUpperCase()}
+            </div>
           </div>
         </header>
 
