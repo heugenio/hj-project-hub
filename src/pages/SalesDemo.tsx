@@ -162,77 +162,75 @@ export default function SalesDemo() {
     const body: any[] = [];
 
     for (const group of grouped) {
-      // Group header row
       body.push([
-        { content: `${group.grpoId} - ${group.grupo}`, colSpan: 8, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
+        { content: `${group.grpoId} - ${group.grupo}`, colSpan: 11, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
       ]);
 
-      // Detail rows
       for (const item of group.items) {
         const vlr = parseNum(item.ITFT_VLR_CONTABIL);
         const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
-        const lucro = vlr - cst;
-        const pct = vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00";
+        const lucro = item.ITFT_VLR_LUCRO ? parseNum(item.ITFT_VLR_LUCRO) : vlr - cst;
+        const pct = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
         body.push([
-          item.GRUPO || "",
-          fmtQtd(parseNum(item.DCFS_QTD)),
+          item.PROD_CODIGO || "",
+          item.PROD_NOME || "",
+          item.PROD_REFERENCIA || "",
+          item.ITFT_UNID_SIGLA || "",
           fmtQtd(parseNum(item.ITFT_QTDE_FATURADA)),
           fmtBRL(vlr),
           fmtBRL(cst),
           fmtBRL(lucro),
           `${pct}%`,
           `${item.ITFT_PARTICIPACAO || "0"}%`,
+          item.SEST_QTD_MOV || "",
         ]);
       }
 
-      // Group total
       body.push([
-        { content: `Total do Grupo →`, styles: { fontStyle: "bold" } },
-        { content: fmtQtd(group.totals.qtd), styles: { fontStyle: "bold", halign: "right" } },
+        { content: `Total do Grupo →`, colSpan: 4, styles: { fontStyle: "bold" } },
         { content: fmtQtd(group.totals.qtdFat), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.vlrContabil), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.custo), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.lucro), styles: { fontStyle: "bold", halign: "right" } },
         { content: `${group.totals.pctLucro.toFixed(2)}%`, styles: { fontStyle: "bold", halign: "right" } },
-        "",
+        "", "",
       ]);
     }
 
-    // Grand total
     body.push([
-      { content: "Total Geral →", styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
-      { content: fmtQtd(grandTotals.qtd), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: "Total Geral →", colSpan: 4, styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
       { content: fmtQtd(grandTotals.qtdFat), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.vlrContabil), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.custo), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.lucro), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: `${grandTotals.pctLucro.toFixed(2)}%`, styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: "", styles: { fillColor: [200, 200, 200] } },
+      { content: "", styles: { fillColor: [200, 200, 200] } },
     ]);
 
-    // Devolução row
-    body.push([
-      { content: "Devolução →", styles: { fontStyle: "bold" } },
-      "",
-      "",
-      { content: fmtBRL(grandTotals.vlrDev), styles: { fontStyle: "bold", halign: "right" } },
-      "", "", "", "",
-    ]);
+    if (grandTotals.vlrDev > 0) {
+      body.push([
+        { content: "Devolução →", colSpan: 4, styles: { fontStyle: "bold" } },
+        fmtQtd(grandTotals.qtdDev),
+        fmtBRL(grandTotals.vlrDev),
+        "", "", "", "", "",
+      ]);
+    }
 
     autoTable(doc, {
       startY: 33,
-      head: [["Descrição", "Qtd NF", "Qtd Fat.", "Venda", "Custo", "Lucro", "%Lucro", "Partic."]],
+      head: [["Código", "Produto", "Referência", "Unid", "Qtd Fat.", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Qtd Mov"]],
       body,
-      styles: { fontSize: 8, cellPadding: 2 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold" },
       columnStyles: {
-        1: { halign: "right" },
-        2: { halign: "right" },
-        3: { halign: "right" },
         4: { halign: "right" },
         5: { halign: "right" },
         6: { halign: "right" },
         7: { halign: "right" },
+        8: { halign: "right" },
+        9: { halign: "right" },
+        10: { halign: "right" },
       },
       theme: "grid",
     });
