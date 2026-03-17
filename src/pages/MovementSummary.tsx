@@ -94,57 +94,82 @@ export default function MovementSummary() {
   const handleExportPDF = () => {
     if (data.length === 0) return;
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
 
+    // Header
     doc.setFontSize(14);
-    doc.text("Resumo de Movimentação", 14, 15);
-    doc.setFontSize(9);
-    doc.text(`Período: ${dtInicial} a ${dtFinal}`, 14, 21);
+    doc.setFont("helvetica", "bold");
+    doc.text("Resumo do Movimento", 14, 15);
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    const now = new Date();
+    const dtPrint = `${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    doc.text(`Dt Impressão: ${dtPrint}`, pageW - 14, 10, { align: "right" });
+    doc.text(`Usuário: ${auth?.user?.pess_Nome || ""}`, pageW - 14, 15, { align: "right" });
 
     const tipoLabel = tipoOperacao === "E" ? "Entrada" : tipoOperacao === "S" ? "Saída" : "Todas";
-    doc.text(`Tipo Operação: ${tipoLabel}`, 14, 26);
+    doc.text(`Período: ${dtInicial} a ${dtFinal}  |  Tipo: ${tipoLabel}`, 14, 21);
 
-    const head = [["Operação", "Compra", "Tipo", "Nota", "Modelo", "Data Saída", "Cliente", "Pedido", "Vendedor", "Valor Total", "Tributos"]];
-    const body: (string | number)[][] = [];
+    let startY = 26;
+
+    const head = [["Data", "Data Emis.", "Mod.", "Serie / Nº", "Vlr Doc", "Nº Pedido", "Vlr Trib Subs", "Cód Vend", "Cliente/Fornecedor"]];
 
     grouped.forEach((g) => {
-      g.items.forEach((r) => {
-        body.push([
-          r.OPCM_NOME_CLIENTE || "",
-          r.HMOV_TIPO || "",
-          r.DCFS_TIPO_MOVIMENTO || "",
-          r.DCFS_NUMERO_NOTA || "",
-          r.DCFS_MODELO_NOTA || "",
-          r.DCFS_DATA_SAIDA || "",
-          r.DCFS_NOME || "",
-          r.PDDS_NUMERO || "",
-          r.VDDR_NOME || "",
-          fmtNum(parseNum(r.DCFS_VLR_TOTAL)),
-          fmtNum(parseNum(r.ITFT_VLR_TRIBUTOS)),
-        ]);
+      // Operation title
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Operação: ${g.operacao}`, 14, startY);
+      startY += 2;
+
+      const body = g.items.map((r) => [
+        r.DCFS_DATA_SAIDA || "",
+        r.DCFS_DATA_SAIDA || "",
+        r.DCFS_MODELO_NOTA || "",
+        r.DCFS_NUMERO_NOTA || "",
+        fmtNum(parseNum(r.DCFS_VLR_TOTAL)),
+        r.PDDS_NUMERO || "",
+        fmtNum(parseNum(r.ITFT_VLR_TRIBUTOS)),
+        r.VDDR_NOME || "",
+        r.DCFS_NOME || "",
+      ]);
+
+      autoTable(doc, {
+        startY,
+        head,
+        body,
+        theme: "grid",
+        styles: { fontSize: 7, cellPadding: 1.2, lineColor: [180, 180, 180], lineWidth: 0.2 },
+        headStyles: { fillColor: [70, 70, 70], textColor: 255, fontStyle: "bold", fontSize: 7 },
+        alternateRowStyles: { fillColor: [248, 248, 248] },
+        columnStyles: {
+          4: { halign: "right" },
+          6: { halign: "right" },
+        },
       });
+
+      // Subtotal after table
+      const finalY = (doc as any).lastAutoTable?.finalY || startY + 10;
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Total Operação: ${fmtNum(g.total)}`, 14, finalY + 4);
+      doc.text(`T Tributos: ${fmtNum(g.totalTributos)}`, 100, finalY + 4);
+
+      startY = finalY + 9;
+
+      // Check page break
+      if (startY > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        startY = 15;
+      }
     });
 
-    body.push(["", "", "", "", "", "", "", "", "Total", fmtNum(totalVlr), fmtNum(totalTributos)]);
-
-    autoTable(doc, {
-      startY: 30,
-      head,
-      body,
-      theme: "grid",
-      styles: { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [55, 55, 55], textColor: 255, fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
-      columnStyles: {
-        9: { halign: "right" },
-        10: { halign: "right" },
-      },
-      didParseCell: (hookData) => {
-        if (hookData.section === "body" && hookData.row.index === body.length - 1) {
-          hookData.cell.styles.fontStyle = "bold";
-          hookData.cell.styles.fillColor = [220, 220, 220];
-        }
-      },
-    });
+    // Grand total
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    const totalLabel = tipoOperacao === "E" ? "Total das Entradas" : tipoOperacao === "S" ? "Total das Saídas" : "Total Geral";
+    doc.text(`${totalLabel} -->: ${fmtNum(totalVlr)}`, 14, startY);
+    doc.text(`T Tributos: ${fmtNum(totalTributos)}`, 100, startY);
 
     doc.save(`resumo_movimentacao_${dtInicial}_${dtFinal}.pdf`);
     toast.success("PDF exportado com sucesso!");
@@ -209,25 +234,23 @@ export default function MovementSummary() {
             )}
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full" style={{ fontSize: "0.65rem" }}>
               <thead>
                 <tr className="bg-muted/60 border-b border-border">
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Compra</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Tipo</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Nota</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Modelo</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Data Saída</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Cliente</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Pedido</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Vendedor</th>
-                  <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Valor Total</th>
-                  <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Tributos</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">Data</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">Mod.</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">Serie / Nº</th>
+                  <th className="text-right px-2 py-1.5 font-semibold text-muted-foreground">Vlr Doc</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">Nº Pedido</th>
+                  <th className="text-right px-2 py-1.5 font-semibold text-muted-foreground">Vlr Trib</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">Vendedor</th>
+                  <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">Cliente/Fornecedor</th>
                 </tr>
               </thead>
               <tbody>
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={colCount} className="text-center text-muted-foreground py-6">Nenhum dado encontrado</td>
+                    <td colSpan={8} className="text-center text-muted-foreground py-6">Nenhum dado encontrado</td>
                   </tr>
                 ) : (
                   grouped.map((g) => {
@@ -239,15 +262,16 @@ export default function MovementSummary() {
                           className="bg-muted/50 border-b border-border cursor-pointer hover:bg-muted/70 transition-colors"
                           onClick={() => toggleGroup(g.operacao)}
                         >
-                          <td colSpan={8} className="px-3 py-1.5 font-semibold text-foreground">
-                            <span className="inline-flex items-center gap-1.5">
-                              {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                              {g.operacao}
+                          <td colSpan={5} className="px-2 py-1.5 font-semibold text-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              Operação: {g.operacao}
                               <span className="text-muted-foreground font-normal ml-1">({g.items.length})</span>
                             </span>
                           </td>
-                          <td className="px-3 py-1.5 text-right font-semibold">{fmtNum(g.total)}</td>
-                          <td className="px-3 py-1.5 text-right font-semibold">{fmtNum(g.totalTributos)}</td>
+                          <td className="px-2 py-1.5 text-right font-semibold">{fmtNum(g.totalTributos)}</td>
+                          <td className="px-2 py-1.5" />
+                          <td className="px-2 py-1.5 text-right font-semibold">{fmtNum(g.total)}</td>
                         </tr>
                         {/* Group items */}
                         {!isCollapsed &&
@@ -256,16 +280,14 @@ export default function MovementSummary() {
                               key={i}
                               className={`border-b border-border/40 ${i % 2 === 0 ? "bg-background" : "bg-muted/30"} hover:bg-accent/40 transition-colors`}
                             >
-                              <td className="px-3 py-1.5">{r.HMOV_TIPO || ""}</td>
-                              <td className="px-3 py-1.5">{r.DCFS_TIPO_MOVIMENTO || ""}</td>
-                              <td className="px-3 py-1.5 font-medium">{r.DCFS_NUMERO_NOTA}</td>
-                              <td className="px-3 py-1.5">{r.DCFS_MODELO_NOTA}</td>
-                              <td className="px-3 py-1.5">{r.DCFS_DATA_SAIDA}</td>
-                              <td className="px-3 py-1.5">{r.DCFS_NOME}</td>
-                              <td className="px-3 py-1.5">{r.PDDS_NUMERO || ""}</td>
-                              <td className="px-3 py-1.5">{r.VDDR_NOME || ""}</td>
-                              <td className="px-3 py-1.5 text-right font-medium">{fmtNum(parseNum(r.DCFS_VLR_TOTAL))}</td>
-                              <td className="px-3 py-1.5 text-right">{fmtNum(parseNum(r.ITFT_VLR_TRIBUTOS))}</td>
+                              <td className="px-2 py-1">{r.DCFS_DATA_SAIDA}</td>
+                              <td className="px-2 py-1">{r.DCFS_MODELO_NOTA}</td>
+                              <td className="px-2 py-1 font-medium">{r.DCFS_NUMERO_NOTA}</td>
+                              <td className="px-2 py-1 text-right font-medium">{fmtNum(parseNum(r.DCFS_VLR_TOTAL))}</td>
+                              <td className="px-2 py-1">{r.PDDS_NUMERO || ""}</td>
+                              <td className="px-2 py-1 text-right">{fmtNum(parseNum(r.ITFT_VLR_TRIBUTOS))}</td>
+                              <td className="px-2 py-1">{r.VDDR_NOME || ""}</td>
+                              <td className="px-2 py-1">{r.DCFS_NOME}</td>
                             </tr>
                           ))}
                       </Fragment>
@@ -274,9 +296,11 @@ export default function MovementSummary() {
                 )}
                 {data.length > 0 && (
                   <tr className="bg-muted/60 border-t-2 border-border font-semibold">
-                    <td colSpan={8} className="px-3 py-2 text-right">Total Geral</td>
-                    <td className="px-3 py-2 text-right">{fmtNum(totalVlr)}</td>
-                    <td className="px-3 py-2 text-right">{fmtNum(totalTributos)}</td>
+                    <td colSpan={3} className="px-2 py-1.5 text-right">Total Geral</td>
+                    <td className="px-2 py-1.5 text-right">{fmtNum(totalVlr)}</td>
+                    <td className="px-2 py-1.5" />
+                    <td className="px-2 py-1.5 text-right">{fmtNum(totalTributos)}</td>
+                    <td colSpan={2} className="px-2 py-1.5" />
                   </tr>
                 )}
               </tbody>
