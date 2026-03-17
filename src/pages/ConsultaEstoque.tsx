@@ -74,18 +74,30 @@ export default function ConsultaEstoque() {
     ? Object.keys(items[0]).filter((k) => !hiddenCols.has(k))
     : [];
 
-  const colLabels: Record<string, string> = {
-    prod_Codigo: "Código",
-    prod_Nome: "Produto",
-    prod_Referencia: "Referência",
-    grpo_Nome: "Grupo",
-    marc_Nome: "Marca",
-    prod_Unidade: "Unid.",
-    sest_Qtd: "Qtd",
-    sest_Vlr_Custo: "Vlr Custo",
-    sest_Vlr_Venda: "Vlr Venda",
-    prod_Aplicacao: "Aplicação",
-    prod_Situacao: "Situação",
+  const colLabelsMap: Record<string, string> = {
+    prod_codigo: "Código",
+    prod_nome: "Produto",
+    prod_referencia: "Referência",
+    grpo_nome: "Grupo",
+    marc_nome: "Marca",
+    prod_unidade: "Unid.",
+    sest_qtd: "Qtd",
+    sest_vlr_custo: "Vlr Custo",
+    sest_vlr_venda: "Vlr Venda",
+    prod_aplicacao: "Aplicação",
+    prod_situacao: "Situação",
+    prod_preco_venda: "Preço Venda",
+    prod_desc_complementar: "Desc. Complementar",
+    uepd_estoque_minimo: "Estq. Mín.",
+    pcpr_preco_prod: "Preço",
+    test_nome: "Tabela",
+    ncms_codigo: "NCM",
+    unem_fantasia: "Unidade",
+  };
+
+  const getColLabel = (col: string) => {
+    const lower = col.toLowerCase();
+    return colLabelsMap[lower] || col;
   };
 
   const rightAlignCols = ["sest_Qtd", "sest_Vlr_Custo", "sest_Vlr_Venda", "prod_Preco_Venda"];
