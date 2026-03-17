@@ -32,7 +32,6 @@ export default function Login() {
 
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoLoading, setLogoLoading] = useState(true);
-  const [slogan, setSlogan] = useState("");
   const [corporacoes, setCorporacoes] = useState<Corporacao[]>([]);
   const [selectedCprc, setSelectedCprc] = useState("");
   const [loadingCorp, setLoadingCorp] = useState(false);
