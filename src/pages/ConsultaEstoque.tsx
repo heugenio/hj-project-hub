@@ -74,28 +74,42 @@ export default function ConsultaEstoque() {
     ? Object.keys(items[0]).filter((k) => !hiddenCols.has(k))
     : [];
 
-  const colLabels: Record<string, string> = {
-    prod_Codigo: "Código",
-    prod_Nome: "Produto",
-    prod_Referencia: "Referência",
-    grpo_Nome: "Grupo",
-    marc_Nome: "Marca",
-    prod_Unidade: "Unid.",
-    sest_Qtd: "Qtd",
-    sest_Vlr_Custo: "Vlr Custo",
-    sest_Vlr_Venda: "Vlr Venda",
-    prod_Aplicacao: "Aplicação",
-    prod_Situacao: "Situação",
+  const colLabelsMap: Record<string, string> = {
+    prod_codigo: "Código",
+    prod_nome: "Produto",
+    prod_referencia: "Referência",
+    grpo_nome: "Grupo",
+    marc_nome: "Marca",
+    prod_unidade: "Unid.",
+    sest_qtd: "Qtd",
+    sest_vlr_custo: "Vlr Custo",
+    sest_vlr_venda: "Vlr Venda",
+    prod_aplicacao: "Aplicação",
+    prod_situacao: "Situação",
+    prod_preco_venda: "Preço Venda",
+    prod_desc_complementar: "Desc. Complementar",
+    uepd_estoque_minimo: "Estq. Mín.",
+    pcpr_preco_prod: "Preço",
+    test_nome: "Tabela",
+    ncms_codigo: "NCM",
+    unem_fantasia: "Unidade",
   };
 
-  const rightAlignCols = ["sest_Qtd", "sest_Vlr_Custo", "sest_Vlr_Venda", "prod_Preco_Venda"];
+  const getColLabel = (col: string) => {
+    const lower = col.toLowerCase();
+    return colLabelsMap[lower] || col;
+  };
+
+  const rightAlignKeys = new Set(["sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_preco_venda", "pcpr_preco_prod", "uepd_estoque_minimo"]);
+  const isRightAlign = (col: string) => rightAlignKeys.has(col.toLowerCase());
 
   const formatValue = (col: string, val: string | undefined) => {
     if (!val || val === "") return "-";
-    if (rightAlignCols.includes(col)) {
+    const lower = col.toLowerCase();
+    if (rightAlignKeys.has(lower)) {
       const num = parseFloat(val);
       if (isNaN(num)) return val;
-      if (col.includes("Vlr") || col.includes("Preco")) {
+      if (lower.includes("vlr") || lower.includes("preco")) {
         return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       }
       return num.toLocaleString("pt-BR");
@@ -185,10 +199,10 @@ export default function ConsultaEstoque() {
                     <th
                       key={col}
                       className={`px-2 py-1.5 font-semibold text-muted-foreground whitespace-nowrap ${
-                        rightAlignCols.includes(col) ? "text-right" : "text-left"
+                        isRightAlign(col) ? "text-right" : "text-left"
                       }`}
                     >
-                      {colLabels[col] || col}
+                      {getColLabel(col)}
                     </th>
                   ))}
                 </tr>
@@ -205,11 +219,11 @@ export default function ConsultaEstoque() {
                       <td
                         key={col}
                         className={`px-2 py-1 whitespace-nowrap ${
-                          rightAlignCols.includes(col)
+                          isRightAlign(col)
                             ? "text-right tabular-nums font-medium"
-                            : col === "prod_Nome"
+                            : col.toLowerCase() === "prod_nome"
                             ? "font-medium max-w-[250px] truncate"
-                            : col === "prod_Codigo"
+                            : col.toLowerCase() === "prod_codigo"
                             ? "font-mono text-muted-foreground"
                             : "text-muted-foreground"
                         }`}
