@@ -49,11 +49,8 @@ interface GroupedData {
   };
 }
 
-function formatGroupName(grpoId: string, grupo: string): string {
-  // Extract short ID from long ID like "000640010000000001" -> use grupo directly
-  // Format: "GRPO_ID - GRUPO" but strip leading zeros/long prefix from GRPO_ID
-  const shortId = grpoId.replace(/^0+/, '').slice(-4).padStart(4, '0');
-  return `${shortId} - ${grupo}`;
+function formatGroupName(_grpoId: string, grupo: string): string {
+  return grupo;
 }
 
 function groupByGrupo(data: SalesDemoType[]): GroupedData[] {
@@ -105,7 +102,9 @@ export default function SalesDemo() {
       });
       setData(result);
       setSearched(true);
-      setExpandedGroups(new Set());
+      // Start with all groups expanded
+      const allGroups = groupByGrupo(result).map(g => g.grupo);
+      setExpandedGroups(new Set(allGroups));
       if (result.length === 0) toast.info("Nenhum registro encontrado.");
     } catch (e: any) {
       toast.error("Erro ao buscar dados: " + e.message);
@@ -286,7 +285,7 @@ export default function SalesDemo() {
             <Card className="border-border/50">
               <CardContent className="pt-4 pb-4">
                 <p className="text-xs text-muted-foreground">Quantidade</p>
-                <p className="text-xl font-bold text-foreground">{fmtQtd(grandTotals.qtd)}</p>
+                <p className="text-xl font-bold text-foreground">{fmtQtd(grandTotals.qtdFat)}</p>
               </CardContent>
             </Card>
             <Card className="border-border/50">
@@ -444,7 +443,7 @@ function GroupRows({
                <TableCell></TableCell>
                <TableCell className="text-muted-foreground">{item.CURVA || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
-               <TableCell className="text-muted-foreground">{item.PROD_NOME || ""}</TableCell>
+               <TableCell className="text-muted-foreground max-w-[200px] truncate" title={item.PROD_NOME || ""}><span className="line-clamp-2 whitespace-normal">{item.PROD_NOME || ""}</span></TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_REFERENCIA || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.ITFT_UNID_SIGLA || ""}</TableCell>
                <TableCell className="text-right">{item.ITFT_QTDE_FATURADA}</TableCell>
