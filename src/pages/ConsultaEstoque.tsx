@@ -72,11 +72,12 @@ export default function ConsultaEstoque() {
   ]);
   // Define preferred column order (lowercase keys)
   const columnOrder = [
-    "prod_codigo", "prod_nome", "unid_sigla", "sest_qtd_saldo", "test_reserva", "test_requisicoes",
-    "prod_referencia", "grpo_nome", "marc_nome", "prod_unidade",
+    "prod_codigo", "prod_nome", "unid_sigla", "pcpr_preco", "pcpr_preco_prod",
+    "sest_qtd_saldo", "test_reserva", "test_requisicoes",
+    "grpo_nome", "marc_nome", "prod_unidade",
     "sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_aplicacao", "prod_situacao",
-    "prod_preco_venda", "prod_desc_complementar", "uepd_estoque_minimo", "pcpr_preco_prod",
-    "pcpr_preco", "test_nome", "ncms_codigo", "unem_fantasia",
+    "prod_preco_venda", "prod_desc_complementar", "uepd_estoque_minimo",
+    "test_nome", "ncms_codigo", "prod_referencia", "unem_fantasia",
     "prod_natureza_economica", "prod_local_est",
   ];
 
@@ -136,14 +137,19 @@ export default function ConsultaEstoque() {
   const rightAlignKeys = new Set(["sest_qtd", "sest_vlr_custo", "sest_vlr_venda", "prod_preco_venda", "pcpr_preco_prod", "pcpr_preco", "uepd_estoque_minimo", "sest_qtd_saldo", "test_reserva", "test_requisicoes"]);
   const isRightAlign = (col: string) => rightAlignKeys.has(col.toLowerCase());
 
+  const numericCols = new Set(["sest_qtd_saldo", "test_reserva", "test_requisicoes"]);
+
   const formatValue = (col: string, val: string | undefined) => {
     if (!val || val === "") return "-";
     const lower = col.toLowerCase();
     if (rightAlignKeys.has(lower)) {
       const num = parseFloat(val);
       if (isNaN(num)) return val;
+      if (numericCols.has(lower)) {
+        return num.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
+      }
       if (lower.includes("vlr") || lower.includes("preco")) {
-        return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
       return num.toLocaleString("pt-BR");
     }
