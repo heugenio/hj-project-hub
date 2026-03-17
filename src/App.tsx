@@ -9,6 +9,8 @@ import { AppLayout } from "@/components/AppLayout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Estoque from "@/pages/Estoque";
+import Produtos from "@/pages/Produtos";
+import ConsultaEstoque from "@/pages/ConsultaEstoque";
 import Pedidos from "@/pages/Pedidos";
 import OrdemServico from "@/pages/OrdemServico";
 import SalesDemo from "@/pages/SalesDemo";
@@ -30,12 +32,14 @@ const App = () => (
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/estoque" element={<Estoque />} />
-              <Route path="/pedidos" element={<Pedidos />} />
-              <Route path="/ordem-servico" element={<OrdemServico />} />
-              <Route path="/relatorios/vendas" element={<SalesDemo />} />
-              <Route path="/relatorios/movimentacao" element={<MovementSummary />} />
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/estoque/produtos" element={<Produtos />} />
+                <Route path="/estoque/filiais" element={<Estoque />} />
+                <Route path="/estoque/consulta" element={<ConsultaEstoque />} />
+                <Route path="/pedidos" element={<Pedidos />} />
+                <Route path="/ordem-servico" element={<OrdemServico />} />
+                <Route path="/relatorios/vendas" element={<SalesDemo />} />
+                <Route path="/relatorios/movimentacao" element={<MovementSummary />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
