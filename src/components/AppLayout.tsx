@@ -11,23 +11,65 @@ import {
   Menu,
   X,
   ChevronLeft,
+  ChevronDown,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
   { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
-  { title: "Vendas", url: "/relatorios/vendas", icon: TrendingUp },
-  { title: "Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
+];
+
+const reportItems = [
+  { title: "Demonstrativo de Vendas", url: "/relatorios/vendas", icon: TrendingUp },
+  { title: "Resumo de Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
 ];
 
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(true);
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
+  const isReportActive = reportItems.some((r) => isActive(r.url));
+
+  const NavLink = ({
+    item,
+    mobile,
+    indent = false,
+  }: {
+    item: { title: string; url: string; icon: React.ElementType };
+    mobile: boolean;
+    indent?: boolean;
+  }) => (
+    <Link
+      to={item.url}
+      onClick={() => mobile && setMobileOpen(false)}
+      title={collapsed && !mobile ? item.title : undefined}
+      className={cn(
+        "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group relative",
+        collapsed && !mobile ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
+        indent && (!collapsed || mobile) && "pl-9",
+        isActive(item.url)
+          ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
+          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+      )}
+    >
+      {isActive(item.url) && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
+      )}
+      <item.icon className={cn("shrink-0", collapsed && !mobile ? "h-5 w-5" : "h-[18px] w-[18px]")} />
+      {(!collapsed || mobile) && <span className="whitespace-nowrap">{item.title}</span>}
+      {collapsed && !mobile && (
+        <span className="absolute left-full ml-2 px-2 py-1 rounded-md bg-foreground text-background text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+          {item.title}
+        </span>
+      )}
+    </Link>
+  );
 
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => (
     <div className="flex flex-col h-full">
@@ -49,62 +91,77 @@ export function AppLayout() {
         <p className={cn("text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mb-2", collapsed && !mobile ? "text-center" : "px-2")}>
           {collapsed && !mobile ? "•" : "Principal"}
         </p>
-        {navItems.map((item) => (
-          <Link
-            key={item.url}
-            to={item.url}
-            onClick={() => mobile && setMobileOpen(false)}
-            title={collapsed && !mobile ? item.title : undefined}
-            className={cn(
-              "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group relative",
-              collapsed && !mobile ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
-              isActive(item.url)
-                ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-            )}
-          >
-            {isActive(item.url) && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
-            )}
-            <item.icon className={cn("shrink-0", collapsed && !mobile ? "h-5 w-5" : "h-[18px] w-[18px]")} />
-            {(!collapsed || mobile) && <span className="whitespace-nowrap">{item.title}</span>}
-            {/* Tooltip for collapsed */}
-            {collapsed && !mobile && (
-              <span className="absolute left-full ml-2 px-2 py-1 rounded-md bg-foreground text-background text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-lg">
-                {item.title}
-              </span>
-            )}
-          </Link>
+        {mainItems.map((item) => (
+          <NavLink key={item.url} item={item} mobile={mobile} />
         ))}
+
+        {/* Relatórios group */}
+        <div className="mt-3">
+          {collapsed && !mobile ? (
+            // When collapsed, show just the icon with tooltip
+            <div className="relative group">
+              <button
+                className={cn(
+                  "flex items-center justify-center w-full px-2 py-2.5 rounded-lg text-sm transition-all duration-200",
+                  isReportActive
+                    ? "bg-sidebar-primary/15 text-sidebar-primary"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                )}
+                onClick={() => setReportsOpen(!reportsOpen)}
+              >
+                <BarChart3 className="h-5 w-5 shrink-0" />
+              </button>
+              <div className="absolute left-full ml-2 top-0 bg-sidebar border border-sidebar-border rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 py-1 min-w-[200px]">
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">Relatórios</p>
+                {reportItems.map((item) => (
+                  <Link
+                    key={item.url}
+                    to={item.url}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 text-sm transition-colors",
+                      isActive(item.url)
+                        ? "text-sidebar-primary font-medium bg-sidebar-primary/10"
+                        : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.title}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // Expanded: show collapsible group
+            <>
+              <button
+                onClick={() => setReportsOpen(!reportsOpen)}
+                className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
+                  isReportActive
+                    ? "text-sidebar-primary font-medium"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                )}
+              >
+                <BarChart3 className="h-[18px] w-[18px] shrink-0" />
+                <span className="whitespace-nowrap flex-1 text-left">Relatórios</span>
+                <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", reportsOpen && "rotate-180")} />
+              </button>
+              {reportsOpen && (
+                <div className="space-y-0.5 mt-0.5">
+                  {reportItems.map((item) => (
+                    <NavLink key={item.url} item={item} mobile={mobile} indent />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </nav>
 
       {/* Footer */}
       <div className="border-t border-sidebar-border px-2 py-3 space-y-0.5">
-        <Link
-          to="/configuracoes"
-          onClick={() => mobile && setMobileOpen(false)}
-          title={collapsed && !mobile ? "Configurações" : undefined}
-          className={cn(
-            "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group relative",
-            collapsed && !mobile ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
-            isActive("/configuracoes")
-              ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-          )}
-        >
-          {isActive("/configuracoes") && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
-          )}
-          <Settings className={cn("shrink-0", collapsed && !mobile ? "h-5 w-5" : "h-[18px] w-[18px]")} />
-          {(!collapsed || mobile) && <span className="whitespace-nowrap">Configurações</span>}
-          {collapsed && !mobile && (
-            <span className="absolute left-full ml-2 px-2 py-1 rounded-md bg-foreground text-background text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-lg">
-              Configurações
-            </span>
-          )}
-        </Link>
+        <NavLink item={{ title: "Configurações", url: "/configuracoes", icon: Settings }} mobile={mobile} />
 
-        {/* Collapse button desktop */}
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -148,7 +205,6 @@ export function AppLayout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
         <header className="sticky top-0 z-40 h-14 flex items-center gap-3 border-b border-border bg-card/90 backdrop-blur px-4 shrink-0">
           <button
             onClick={() => setMobileOpen(true)}
