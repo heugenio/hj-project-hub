@@ -110,6 +110,22 @@ export const getUsuarios = (unemId: string) => apiGet<Usuario[]>(`/getUsuario?un
 export const getGrupos = () => apiGet<Grupo[]>('/getGrupos');
 export const getMarcas = () => apiGet<Marca[]>('/getMarcas');
 
+// Produtos
+export interface Produto {
+  prod_Codigo?: string;
+  prod_Nome?: string;
+  prod_Referencia?: string;
+  grpo_Nome?: string;
+  marc_Nome?: string;
+  prod_Unidade?: string;
+  prod_Preco_Venda?: string;
+  prod_Situacao?: string;
+  [key: string]: string | undefined;
+}
+
+export const getProdutos = (nome: string) =>
+  apiGet<Produto[]>(`/getProdutos?nome=${encodeURIComponent(nome)}`);
+
 // Relatórios
 export interface SalesDemo {
   GRPO_ID: string;
