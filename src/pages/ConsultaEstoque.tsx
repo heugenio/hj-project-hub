@@ -199,7 +199,7 @@ export default function ConsultaEstoque() {
                     <th
                       key={col}
                       className={`px-2 py-1.5 font-semibold text-muted-foreground whitespace-nowrap ${
-                        rightAlignCols.includes(col) ? "text-right" : "text-left"
+                        isRightAlign(col) ? "text-right" : "text-left"
                       }`}
                     >
                       {getColLabel(col)}
