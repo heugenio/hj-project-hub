@@ -113,13 +113,20 @@ export const getMarcas = () => apiGet<Marca[]>('/getMarcas');
 export interface SalesDemo {
   GRPO_ID: string;
   GRUPO: string;
+  PROD_CODIGO?: string;
+  PROD_NOME?: string;
+  PROD_REFERENCIA?: string;
+  ITFT_UNID_SIGLA?: string;
   DCFS_QTD: string;
   ITFT_QTDE_FATURADA: string;
   ITFT_VLR_CONTABIL: string;
   ITFT_CUSTO_NA_OPERACAO: string;
+  ITFT_VLR_LUCRO?: string;
+  ITFT_PER_LUCRO?: string;
   VLR_DEV: string;
   QTDE_DEV: string;
   ITFT_PARTICIPACAO: string;
+  SEST_QTD_MOV?: string;
 }
 
 export interface MovementSummary {

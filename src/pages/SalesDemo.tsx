@@ -162,77 +162,75 @@ export default function SalesDemo() {
     const body: any[] = [];
 
     for (const group of grouped) {
-      // Group header row
       body.push([
-        { content: `${group.grpoId} - ${group.grupo}`, colSpan: 8, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
+        { content: `${group.grpoId} - ${group.grupo}`, colSpan: 11, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
       ]);
 
-      // Detail rows
       for (const item of group.items) {
         const vlr = parseNum(item.ITFT_VLR_CONTABIL);
         const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
-        const lucro = vlr - cst;
-        const pct = vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00";
+        const lucro = item.ITFT_VLR_LUCRO ? parseNum(item.ITFT_VLR_LUCRO) : vlr - cst;
+        const pct = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
         body.push([
-          item.GRUPO || "",
-          fmtQtd(parseNum(item.DCFS_QTD)),
+          item.PROD_CODIGO || "",
+          item.PROD_NOME || "",
+          item.PROD_REFERENCIA || "",
+          item.ITFT_UNID_SIGLA || "",
           fmtQtd(parseNum(item.ITFT_QTDE_FATURADA)),
           fmtBRL(vlr),
           fmtBRL(cst),
           fmtBRL(lucro),
           `${pct}%`,
           `${item.ITFT_PARTICIPACAO || "0"}%`,
+          item.SEST_QTD_MOV || "",
         ]);
       }
 
-      // Group total
       body.push([
-        { content: `Total do Grupo →`, styles: { fontStyle: "bold" } },
-        { content: fmtQtd(group.totals.qtd), styles: { fontStyle: "bold", halign: "right" } },
+        { content: `Total do Grupo →`, colSpan: 4, styles: { fontStyle: "bold" } },
         { content: fmtQtd(group.totals.qtdFat), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.vlrContabil), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.custo), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.lucro), styles: { fontStyle: "bold", halign: "right" } },
         { content: `${group.totals.pctLucro.toFixed(2)}%`, styles: { fontStyle: "bold", halign: "right" } },
-        "",
+        "", "",
       ]);
     }
 
-    // Grand total
     body.push([
-      { content: "Total Geral →", styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
-      { content: fmtQtd(grandTotals.qtd), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: "Total Geral →", colSpan: 4, styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
       { content: fmtQtd(grandTotals.qtdFat), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.vlrContabil), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.custo), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.lucro), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: `${grandTotals.pctLucro.toFixed(2)}%`, styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: "", styles: { fillColor: [200, 200, 200] } },
+      { content: "", styles: { fillColor: [200, 200, 200] } },
     ]);
 
-    // Devolução row
-    body.push([
-      { content: "Devolução →", styles: { fontStyle: "bold" } },
-      "",
-      "",
-      { content: fmtBRL(grandTotals.vlrDev), styles: { fontStyle: "bold", halign: "right" } },
-      "", "", "", "",
-    ]);
+    if (grandTotals.vlrDev > 0) {
+      body.push([
+        { content: "Devolução →", colSpan: 4, styles: { fontStyle: "bold" } },
+        fmtQtd(grandTotals.qtdDev),
+        fmtBRL(grandTotals.vlrDev),
+        "", "", "", "", "",
+      ]);
+    }
 
     autoTable(doc, {
       startY: 33,
-      head: [["Descrição", "Qtd NF", "Qtd Fat.", "Venda", "Custo", "Lucro", "%Lucro", "Partic."]],
+      head: [["Código", "Produto", "Referência", "Unid", "Qtd Fat.", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Qtd Mov"]],
       body,
-      styles: { fontSize: 8, cellPadding: 2 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold" },
       columnStyles: {
-        1: { halign: "right" },
-        2: { halign: "right" },
-        3: { halign: "right" },
         4: { halign: "right" },
         5: { halign: "right" },
         6: { halign: "right" },
         7: { halign: "right" },
+        8: { halign: "right" },
+        9: { halign: "right" },
+        10: { halign: "right" },
       },
       theme: "grid",
     });
@@ -322,15 +320,18 @@ export default function SalesDemo() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-8"></TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead className="text-right">Qtd NF</TableHead>
-                    <TableHead className="text-right">Qtd Faturada</TableHead>
-                    <TableHead className="text-right">Venda</TableHead>
-                    <TableHead className="text-right">Custo</TableHead>
-                    <TableHead className="text-right">Lucro</TableHead>
-                    <TableHead className="text-right">%Lucro</TableHead>
-                    <TableHead className="text-right">Participação</TableHead>
+                     <TableHead className="w-8"></TableHead>
+                     <TableHead>Código</TableHead>
+                     <TableHead>Produto</TableHead>
+                     <TableHead>Referência</TableHead>
+                     <TableHead>Unid</TableHead>
+                     <TableHead className="text-right">Qtd Faturada</TableHead>
+                     <TableHead className="text-right">Venda</TableHead>
+                     <TableHead className="text-right">Custo</TableHead>
+                     <TableHead className="text-right">Lucro</TableHead>
+                     <TableHead className="text-right">%Lucro</TableHead>
+                     <TableHead className="text-right">Participação</TableHead>
+                     <TableHead className="text-right">Qtd Mov</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -348,28 +349,26 @@ export default function SalesDemo() {
 
                   {/* Grand Total */}
                   <TableRow className="bg-muted/70 font-bold border-t-2 border-border">
-                    <TableCell></TableCell>
-                    <TableCell className="font-bold">TOTAL GERAL</TableCell>
-                    <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtd)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtdFat)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.vlrContabil)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.custo)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.lucro)}</TableCell>
-                    <TableCell className="text-right font-bold">{grandTotals.pctLucro.toFixed(2)}%</TableCell>
-                    <TableCell className="text-right font-bold">-</TableCell>
-                  </TableRow>
+                     <TableCell></TableCell>
+                     <TableCell colSpan={4} className="font-bold">TOTAL GERAL</TableCell>
+                     <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtdFat)}</TableCell>
+                     <TableCell className="text-right font-bold">{fmtBRL(grandTotals.vlrContabil)}</TableCell>
+                     <TableCell className="text-right font-bold">{fmtBRL(grandTotals.custo)}</TableCell>
+                     <TableCell className="text-right font-bold">{fmtBRL(grandTotals.lucro)}</TableCell>
+                     <TableCell className="text-right font-bold">{grandTotals.pctLucro.toFixed(2)}%</TableCell>
+                     <TableCell className="text-right font-bold">-</TableCell>
+                     <TableCell className="text-right font-bold">-</TableCell>
+                   </TableRow>
 
-                  {/* Devolução */}
-                  {grandTotals.vlrDev > 0 && (
-                    <TableRow className="bg-destructive/10">
-                      <TableCell></TableCell>
-                      <TableCell className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
-                      <TableCell className="text-right">{fmtQtd(grandTotals.qtdDev)}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="text-right font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</TableCell>
-                      <TableCell colSpan={4}></TableCell>
-                    </TableRow>
-                  )}
+                   {grandTotals.vlrDev > 0 && (
+                     <TableRow className="bg-destructive/10">
+                       <TableCell></TableCell>
+                       <TableCell colSpan={4} className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
+                       <TableCell className="text-right">{fmtQtd(grandTotals.qtdDev)}</TableCell>
+                       <TableCell className="text-right font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</TableCell>
+                       <TableCell colSpan={5}></TableCell>
+                     </TableRow>
+                   )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -404,47 +403,50 @@ function GroupRows({
         className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
         onClick={onToggle}
       >
-        <TableCell className="w-8 px-2">
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
-        </TableCell>
-        <TableCell className="font-semibold">
-          {group.grpoId} - {group.grupo}
-        </TableCell>
-        <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtd)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtdFat)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.vlrContabil)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.custo)}</TableCell>
-        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.lucro)}</TableCell>
-        <TableCell className="text-right font-semibold">{group.totals.pctLucro.toFixed(2)}%</TableCell>
-        <TableCell className="text-right font-semibold">-</TableCell>
-      </TableRow>
+         <TableCell className="w-8 px-2">
+           {isExpanded ? (
+             <ChevronDown className="h-4 w-4 text-muted-foreground" />
+           ) : (
+             <ChevronRight className="h-4 w-4 text-muted-foreground" />
+           )}
+         </TableCell>
+         <TableCell colSpan={4} className="font-semibold">
+           {group.grpoId} - {group.grupo}
+         </TableCell>
+         <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtdFat)}</TableCell>
+         <TableCell className="text-right font-semibold">{fmtBRL(group.totals.vlrContabil)}</TableCell>
+         <TableCell className="text-right font-semibold">{fmtBRL(group.totals.custo)}</TableCell>
+         <TableCell className="text-right font-semibold">{fmtBRL(group.totals.lucro)}</TableCell>
+         <TableCell className="text-right font-semibold">{group.totals.pctLucro.toFixed(2)}%</TableCell>
+         <TableCell className="text-right font-semibold">-</TableCell>
+         <TableCell className="text-right font-semibold">-</TableCell>
+       </TableRow>
 
-      {/* Detail Rows */}
-      {isExpanded &&
-        group.items.map((item, i) => {
-          const vlr = parseNum(item.ITFT_VLR_CONTABIL);
-          const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
-          const lucro = vlr - cst;
-          const pctLucro = vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00";
+       {/* Detail Rows */}
+       {isExpanded &&
+         group.items.map((item, i) => {
+           const vlr = parseNum(item.ITFT_VLR_CONTABIL);
+           const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
+           const lucro = item.ITFT_VLR_LUCRO ? parseNum(item.ITFT_VLR_LUCRO) : vlr - cst;
+           const pctLucro = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
 
-          return (
-            <TableRow key={i} className="text-sm">
-              <TableCell></TableCell>
-              <TableCell className="pl-8 text-muted-foreground">{item.GRUPO}</TableCell>
-              <TableCell className="text-right">{item.DCFS_QTD}</TableCell>
-              <TableCell className="text-right">{item.ITFT_QTDE_FATURADA}</TableCell>
-              <TableCell className="text-right">{fmtBRL(vlr)}</TableCell>
-              <TableCell className="text-right">{fmtBRL(cst)}</TableCell>
-              <TableCell className="text-right">{fmtBRL(lucro)}</TableCell>
-              <TableCell className="text-right">{pctLucro}%</TableCell>
-              <TableCell className="text-right">{item.ITFT_PARTICIPACAO}%</TableCell>
-            </TableRow>
-          );
-        })}
-    </>
-  );
-}
+           return (
+             <TableRow key={i} className="text-sm">
+               <TableCell></TableCell>
+               <TableCell className="pl-8 text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.PROD_NOME || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.PROD_REFERENCIA || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.ITFT_UNID_SIGLA || ""}</TableCell>
+               <TableCell className="text-right">{item.ITFT_QTDE_FATURADA}</TableCell>
+               <TableCell className="text-right">{fmtBRL(vlr)}</TableCell>
+               <TableCell className="text-right">{fmtBRL(cst)}</TableCell>
+               <TableCell className="text-right">{fmtBRL(lucro)}</TableCell>
+               <TableCell className="text-right">{pctLucro}%</TableCell>
+               <TableCell className="text-right">{item.ITFT_PARTICIPACAO}%</TableCell>
+               <TableCell className="text-right">{item.SEST_QTD_MOV || ""}</TableCell>
+             </TableRow>
+           );
+         })}
+     </>
+   );
+ }
