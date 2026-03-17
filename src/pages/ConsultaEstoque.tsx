@@ -64,7 +64,15 @@ export default function ConsultaEstoque() {
   const onEnter = (e: React.KeyboardEvent) => { if (e.key === "Enter") handleSearch(); };
 
   // Build columns dynamically from first result
-  const columns = items.length > 0 ? Object.keys(items[0]) : [];
+  const hiddenCols = new Set([
+    "gRPO_ACRESCIMO_PERMITIDO", "gRPO_DESCONTO_PERMITIDO", "pROD_USAR_DESC_COMPLEMENTAR",
+    "tEST_ID", "gRPO_ID", "pROD_ACEITA_SALDO_NEGATIVO", "pCPR_PRECO_MIN_PROD", "pROD_ID",
+    "pROD_PESO_BRUTO", "tEST_CUSTO_MEDIO", "mARC_ID", "uEPD_ESTOQUE_MAXIMO",
+    "pROD_CARACTERISTICAS", "nCMS_NOME", "uNEM_SIGLA", "pROD_MOVIMENTA_ESTOQUE", "pROD_PESO",
+  ]);
+  const columns = items.length > 0
+    ? Object.keys(items[0]).filter((k) => !hiddenCols.has(k))
+    : [];
 
   const colLabels: Record<string, string> = {
     prod_Codigo: "Código",
