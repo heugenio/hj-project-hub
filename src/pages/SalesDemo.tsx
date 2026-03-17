@@ -41,7 +41,8 @@ export default function SalesDemo() {
               <Bar dataKey="Filial 1" fill="hsl(160, 60%, 40%)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Filial 2" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 

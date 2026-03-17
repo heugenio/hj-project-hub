@@ -44,7 +44,8 @@ export default function MovementSummary() {
               <Line type="monotone" dataKey="entradas" stroke="hsl(160, 60%, 40%)" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="saidas" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
