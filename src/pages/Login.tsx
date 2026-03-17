@@ -142,8 +142,13 @@ export default function Login() {
           backgroundImage: "radial-gradient(circle at 25% 25%, hsl(var(--sidebar-primary)) 0%, transparent 50%), radial-gradient(circle at 75% 75%, hsl(var(--sidebar-primary)) 0%, transparent 50%)",
         }} />
         <div className="relative z-10 flex flex-col items-center gap-8 px-12">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo HJ Systems" className="max-h-48 max-w-[80%] object-contain drop-shadow-2xl" />
+          {logoLoading ? (
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-12 w-12 animate-spin" style={{ color: "hsl(var(--sidebar-foreground) / 0.4)" }} />
+              <p className="text-sm" style={{ color: "hsl(var(--sidebar-foreground) / 0.5)" }}>Carregando...</p>
+            </div>
+          ) : logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="max-h-48 max-w-[80%] object-contain drop-shadow-2xl" />
           ) : (
             <div className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold" style={{
               background: "hsl(var(--sidebar-primary))",
@@ -154,11 +159,13 @@ export default function Login() {
             </div>
           )}
           <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight" style={{ color: "hsl(var(--sidebar-foreground))", fontFamily: "'Space Grotesk', sans-serif" }}>
-              HJ Systems
-            </h1>
+            {slogan && (
+              <h1 className="text-3xl font-bold tracking-tight" style={{ color: "hsl(var(--sidebar-foreground))", fontFamily: "'Space Grotesk', sans-serif" }}>
+                {slogan}
+              </h1>
+            )}
             <p className="text-base mt-2" style={{ color: "hsl(var(--sidebar-foreground) / 0.6)" }}>
-              Gestão Empresarial
+              Gestão Empresarial Inteligente
             </p>
           </div>
         </div>
