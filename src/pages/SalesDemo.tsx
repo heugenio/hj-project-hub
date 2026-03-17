@@ -322,15 +322,18 @@ export default function SalesDemo() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-8"></TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead className="text-right">Qtd NF</TableHead>
-                    <TableHead className="text-right">Qtd Faturada</TableHead>
-                    <TableHead className="text-right">Venda</TableHead>
-                    <TableHead className="text-right">Custo</TableHead>
-                    <TableHead className="text-right">Lucro</TableHead>
-                    <TableHead className="text-right">%Lucro</TableHead>
-                    <TableHead className="text-right">Participação</TableHead>
+                     <TableHead className="w-8"></TableHead>
+                     <TableHead>Código</TableHead>
+                     <TableHead>Produto</TableHead>
+                     <TableHead>Referência</TableHead>
+                     <TableHead>Unid</TableHead>
+                     <TableHead className="text-right">Qtd Faturada</TableHead>
+                     <TableHead className="text-right">Venda</TableHead>
+                     <TableHead className="text-right">Custo</TableHead>
+                     <TableHead className="text-right">Lucro</TableHead>
+                     <TableHead className="text-right">%Lucro</TableHead>
+                     <TableHead className="text-right">Participação</TableHead>
+                     <TableHead className="text-right">Qtd Mov</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
