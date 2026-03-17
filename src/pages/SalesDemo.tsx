@@ -351,28 +351,26 @@ export default function SalesDemo() {
 
                   {/* Grand Total */}
                   <TableRow className="bg-muted/70 font-bold border-t-2 border-border">
-                    <TableCell></TableCell>
-                    <TableCell className="font-bold">TOTAL GERAL</TableCell>
-                    <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtd)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtdFat)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.vlrContabil)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.custo)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.lucro)}</TableCell>
-                    <TableCell className="text-right font-bold">{grandTotals.pctLucro.toFixed(2)}%</TableCell>
-                    <TableCell className="text-right font-bold">-</TableCell>
-                  </TableRow>
+                     <TableCell></TableCell>
+                     <TableCell colSpan={4} className="font-bold">TOTAL GERAL</TableCell>
+                     <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtdFat)}</TableCell>
+                     <TableCell className="text-right font-bold">{fmtBRL(grandTotals.vlrContabil)}</TableCell>
+                     <TableCell className="text-right font-bold">{fmtBRL(grandTotals.custo)}</TableCell>
+                     <TableCell className="text-right font-bold">{fmtBRL(grandTotals.lucro)}</TableCell>
+                     <TableCell className="text-right font-bold">{grandTotals.pctLucro.toFixed(2)}%</TableCell>
+                     <TableCell className="text-right font-bold">-</TableCell>
+                     <TableCell className="text-right font-bold">-</TableCell>
+                   </TableRow>
 
-                  {/* Devolução */}
-                  {grandTotals.vlrDev > 0 && (
-                    <TableRow className="bg-destructive/10">
-                      <TableCell></TableCell>
-                      <TableCell className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
-                      <TableCell className="text-right">{fmtQtd(grandTotals.qtdDev)}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="text-right font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</TableCell>
-                      <TableCell colSpan={4}></TableCell>
-                    </TableRow>
-                  )}
+                   {grandTotals.vlrDev > 0 && (
+                     <TableRow className="bg-destructive/10">
+                       <TableCell></TableCell>
+                       <TableCell colSpan={4} className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
+                       <TableCell className="text-right">{fmtQtd(grandTotals.qtdDev)}</TableCell>
+                       <TableCell className="text-right font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</TableCell>
+                       <TableCell colSpan={5}></TableCell>
+                     </TableRow>
+                   )}
                 </TableBody>
               </Table>
             </CardContent>
