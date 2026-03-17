@@ -140,7 +140,7 @@ export default function MovementSummary() {
         body,
         theme: "plain",
         styles: { fontSize: 7, cellPadding: 1.2 },
-        headStyles: { fillColor: [55, 55, 55], textColor: 255, fontStyle: "bold", fontSize: 7 },
+        headStyles: { fillColor: [90, 90, 90], textColor: 255, fontStyle: "bold", fontSize: 7 },
         alternateRowStyles: { fillColor: [245, 245, 245] },
         columnStyles: {
           4: { halign: "right" },
