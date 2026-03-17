@@ -325,21 +325,22 @@ export default function SalesDemo() {
               <CardTitle className="text-base">Resultado por Grupo</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
-              <Table>
+               <Table className="text-xs">
                 <TableHeader>
-                  <TableRow>
-                     <TableHead className="w-8"></TableHead>
+                  <TableRow className="[&>th]:py-1.5 [&>th]:px-2">
+                     <TableHead className="w-7 px-1"></TableHead>
+                     <TableHead className="w-12">Curva</TableHead>
                      <TableHead>Código</TableHead>
                      <TableHead>Produto</TableHead>
                      <TableHead>Referência</TableHead>
-                     <TableHead>Unid</TableHead>
-                     <TableHead className="text-right">Qtd Faturada</TableHead>
+                     <TableHead className="w-10">Unid</TableHead>
+                     <TableHead className="text-right w-16">Qtd</TableHead>
                      <TableHead className="text-right">Venda</TableHead>
                      <TableHead className="text-right">Custo</TableHead>
                      <TableHead className="text-right">Lucro</TableHead>
-                     <TableHead className="text-right">%Lucro</TableHead>
-                     <TableHead className="text-right">Participação</TableHead>
-                     <TableHead className="text-right">Qtd Mov</TableHead>
+                     <TableHead className="text-right w-16">%Lucro</TableHead>
+                     <TableHead className="text-right w-16">Partic.</TableHead>
+                     <TableHead className="text-right w-16">Saldo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -356,9 +357,9 @@ export default function SalesDemo() {
                   })}
 
                   {/* Grand Total */}
-                  <TableRow className="bg-muted/70 font-bold border-t-2 border-border">
+                  <TableRow className="bg-muted/70 font-bold border-t-2 border-border [&>td]:py-1.5 [&>td]:px-2">
                      <TableCell></TableCell>
-                     <TableCell colSpan={4} className="font-bold">TOTAL GERAL</TableCell>
+                     <TableCell colSpan={5} className="font-bold">TOTAL GERAL</TableCell>
                      <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtdFat)}</TableCell>
                      <TableCell className="text-right font-bold">{fmtBRL(grandTotals.vlrContabil)}</TableCell>
                      <TableCell className="text-right font-bold">{fmtBRL(grandTotals.custo)}</TableCell>
@@ -369,9 +370,9 @@ export default function SalesDemo() {
                    </TableRow>
 
                    {grandTotals.vlrDev > 0 && (
-                     <TableRow className="bg-destructive/10">
+                     <TableRow className="bg-destructive/10 [&>td]:py-1.5 [&>td]:px-2">
                        <TableCell></TableCell>
-                       <TableCell colSpan={4} className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
+                       <TableCell colSpan={5} className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
                        <TableCell className="text-right">{fmtQtd(grandTotals.qtdDev)}</TableCell>
                        <TableCell className="text-right font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</TableCell>
                        <TableCell colSpan={5}></TableCell>
