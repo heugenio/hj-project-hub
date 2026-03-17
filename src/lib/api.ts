@@ -56,6 +56,7 @@ export interface UnidadeEmpresarial {
   unem_Razao_Social: string;
   unem_Id: string;
   unem_Sigla: string;
+  unem_Uf?: string;
 }
 
 export interface Usuario {
