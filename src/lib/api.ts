@@ -108,6 +108,50 @@ export const getUsuarios = (unemId: string) => apiGet<Usuario[]>(`/getUsuario?un
 export const getGrupos = () => apiGet<Grupo[]>('/getGrupos');
 export const getMarcas = () => apiGet<Marca[]>('/getMarcas');
 
+// Relatórios
+export interface SalesDemo {
+  GRPO_ID: string;
+  GRUPO: string;
+  DCFS_QTD: string;
+  ITFT_QTDE_FATURADA: string;
+  ITFT_VLR_CONTABIL: string;
+  ITFT_CUSTO_NA_OPERACAO: string;
+  VLR_DEV: string;
+  QTDE_DEV: string;
+  ITFT_PARTICIPACAO: string;
+}
+
+export interface MovementSummary {
+  OPCM_NOME_CLIENTE: string;
+  DCFS_DATA_SAIDA: string;
+  DCFS_NUMERO_NOTA: string;
+  DCFS_MODELO_NOTA: string;
+  DCFS_VLR_TOTAL: string;
+  DCFS_NOME: string;
+}
+
+export const getDemonstrativoVendas = (params: {
+  dtInicial: string;
+  dtFinal: string;
+  unem_id: string;
+}) => {
+  const query = `dtInicial=${encodeURIComponent(params.dtInicial)}&dtFinal=${encodeURIComponent(params.dtFinal)}&unem_id=${encodeURIComponent(params.unem_id)}`;
+  return apiGet<SalesDemo[]>(`/getDemonstrativoVendas?${query}`);
+};
+
+export const getResumoMovimento = (params: {
+  dtInicial: string;
+  dtFinal: string;
+  tipooperacao: string;
+  unem_id: string;
+}) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return apiGet<MovementSummary[]>(`/getResumoMovimento?${query}`);
+};
+
 export const getConsultaEstoqueFiliais = (params: {
   prod_codigo?: string;
   prod_nome?: string;
