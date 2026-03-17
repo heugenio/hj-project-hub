@@ -230,6 +230,7 @@ export default function SalesDemo() {
       body,
       styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [90, 90, 90], textColor: [255, 255, 255], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
       columnStyles: {
         5: { halign: "right" },
         6: { halign: "right" },
@@ -239,7 +240,7 @@ export default function SalesDemo() {
         10: { halign: "right" },
         11: { halign: "right" },
       },
-      theme: "grid",
+      theme: "plain",
     });
 
     doc.save(`demonstrativo_vendas_${dtInicial}_${dtFinal}.pdf`);
