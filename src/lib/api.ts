@@ -1,24 +1,24 @@
-const BASIC_AUTH = 'Basic ' + btoa('hjsystems:11032011');
+import { supabase } from '@/integrations/supabase/client';
 
 function getBaseUrl(): string {
-  return localStorage.getItem('hj_system_url_base') || 'http://hjsystems.dynns.com:8085';
+  return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
+}
+
+async function proxyFetch(endpoint: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('api-proxy', {
+    body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
+  });
+  if (error) throw new Error(`API proxy error: ${error.message}`);
+  return typeof data === 'string' ? data : JSON.stringify(data);
 }
 
 async function apiGet<T>(endpoint: string): Promise<T> {
-  const res = await fetch(`${getBaseUrl()}${endpoint}`, {
-    headers: { 'Authorization': BASIC_AUTH },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  const text = await proxyFetch(endpoint);
+  return JSON.parse(text) as T;
 }
 
 export async function getLogo(): Promise<string> {
-  const res = await fetch(`${getBaseUrl()}/getLogo`, {
-    headers: { 'Authorization': BASIC_AUTH },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  const text = await res.text();
-  // API returns base64 string
+  const text = await proxyFetch('/getLogo');
   return `data:image/png;base64,${text.replace(/^["']|["']$/g, '').trim()}`;
 }
 
@@ -61,4 +61,3 @@ export const getCorporacoes = () => apiGet<Corporacao[]>('/getCorporacoes');
 export const getEmpresas = (cprcId: string) => apiGet<Empresa[]>(`/getEmpresas?cprc_id=${cprcId}`);
 export const getUnidadesEmpresariais = (emprId: string) => apiGet<UnidadeEmpresarial[]>(`/getUnidadesEmpresariais?empr_id=${emprId}`);
 export const getUsuarios = (unemId: string) => apiGet<Usuario[]>(`/getUsuario?unem_id=${unemId}`);
-
