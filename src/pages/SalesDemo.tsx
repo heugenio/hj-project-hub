@@ -3,17 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, ChevronDown, ChevronRight, FileDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDemonstrativoVendas, type SalesDemo as SalesDemoType } from "@/lib/api";
 import { toast } from "sonner";
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}/${m}/${d}`;
-}
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -34,6 +29,53 @@ function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function fmtQtd(n: number) {
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+interface GroupedData {
+  grupo: string;
+  grpoId: string;
+  items: SalesDemoType[];
+  totals: {
+    qtd: number;
+    qtdFat: number;
+    vlrContabil: number;
+    custo: number;
+    vlrDev: number;
+    qtdDev: number;
+    lucro: number;
+    pctLucro: number;
+  };
+}
+
+function groupByGrupo(data: SalesDemoType[]): GroupedData[] {
+  const map = new Map<string, SalesDemoType[]>();
+  for (const item of data) {
+    const key = item.GRUPO || "Sem Grupo";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(item);
+  }
+
+  return Array.from(map.entries()).map(([grupo, items]) => {
+    const qtd = items.reduce((s, r) => s + parseNum(r.DCFS_QTD), 0);
+    const qtdFat = items.reduce((s, r) => s + parseNum(r.ITFT_QTDE_FATURADA), 0);
+    const vlrContabil = items.reduce((s, r) => s + parseNum(r.ITFT_VLR_CONTABIL), 0);
+    const custo = items.reduce((s, r) => s + parseNum(r.ITFT_CUSTO_NA_OPERACAO), 0);
+    const vlrDev = items.reduce((s, r) => s + parseNum(r.VLR_DEV), 0);
+    const qtdDev = items.reduce((s, r) => s + parseNum(r.QTDE_DEV), 0);
+    const lucro = vlrContabil - custo;
+    const pctLucro = vlrContabil > 0 ? (lucro / vlrContabil) * 100 : 0;
+
+    return {
+      grupo,
+      grpoId: items[0]?.GRPO_ID || "",
+      items,
+      totals: { qtd, qtdFat, vlrContabil, custo, vlrDev, qtdDev, lucro, pctLucro },
+    };
+  });
+}
+
 export default function SalesDemo() {
   const { auth } = useAuth();
   const [dtInicial, setDtInicial] = useState(firstOfMonth());
@@ -41,6 +83,7 @@ export default function SalesDemo() {
   const [data, setData] = useState<SalesDemoType[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const handleSearch = async () => {
     if (!auth) return;
@@ -55,6 +98,7 @@ export default function SalesDemo() {
       });
       setData(result);
       setSearched(true);
+      setExpandedGroups(new Set());
       if (result.length === 0) toast.info("Nenhum registro encontrado.");
     } catch (e: any) {
       toast.error("Erro ao buscar dados: " + e.message);
@@ -63,13 +107,138 @@ export default function SalesDemo() {
     }
   };
 
-  const totals = {
+  const toggleGroup = (grupo: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(grupo)) next.delete(grupo);
+      else next.add(grupo);
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedGroups(new Set(grouped.map((g) => g.grupo)));
+  };
+
+  const collapseAll = () => {
+    setExpandedGroups(new Set());
+  };
+
+  const grouped = groupByGrupo(data);
+
+  const grandTotals = {
     qtd: data.reduce((s, r) => s + parseNum(r.DCFS_QTD), 0),
     qtdFat: data.reduce((s, r) => s + parseNum(r.ITFT_QTDE_FATURADA), 0),
     vlrContabil: data.reduce((s, r) => s + parseNum(r.ITFT_VLR_CONTABIL), 0),
     custo: data.reduce((s, r) => s + parseNum(r.ITFT_CUSTO_NA_OPERACAO), 0),
     vlrDev: data.reduce((s, r) => s + parseNum(r.VLR_DEV), 0),
     qtdDev: data.reduce((s, r) => s + parseNum(r.QTDE_DEV), 0),
+    lucro: 0,
+    pctLucro: 0,
+  };
+  grandTotals.lucro = grandTotals.vlrContabil - grandTotals.custo;
+  grandTotals.pctLucro = grandTotals.vlrContabil > 0 ? (grandTotals.lucro / grandTotals.vlrContabil) * 100 : 0;
+
+  const exportPDF = () => {
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const unidadeNome = auth?.unidade?.unem_Fantasia || auth?.unidade?.unem_Razao_Social || "";
+
+    // Header
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Demonstrativo de Vendas por Grupo", pageWidth / 2, 15, { align: "center" });
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Unidade: ${unidadeNome}`, 14, 23);
+    doc.text(`Período: ${dtInicial.replace(/-/g, "/")} a ${dtFinal.replace(/-/g, "/")}`, 14, 28);
+
+    const now = new Date();
+    doc.text(`Dt Impressão: ${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, pageWidth - 14, 23, { align: "right" });
+
+    // Build table body
+    const body: any[] = [];
+
+    for (const group of grouped) {
+      // Group header row
+      body.push([
+        { content: `${group.grpoId} - ${group.grupo}`, colSpan: 8, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
+      ]);
+
+      // Detail rows
+      for (const item of group.items) {
+        const vlr = parseNum(item.ITFT_VLR_CONTABIL);
+        const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
+        const lucro = vlr - cst;
+        const pct = vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00";
+        body.push([
+          item.GRUPO || "",
+          fmtQtd(parseNum(item.DCFS_QTD)),
+          fmtQtd(parseNum(item.ITFT_QTDE_FATURADA)),
+          fmtBRL(vlr),
+          fmtBRL(cst),
+          fmtBRL(lucro),
+          `${pct}%`,
+          `${item.ITFT_PARTICIPACAO || "0"}%`,
+        ]);
+      }
+
+      // Group total
+      body.push([
+        { content: `Total do Grupo →`, styles: { fontStyle: "bold" } },
+        { content: fmtQtd(group.totals.qtd), styles: { fontStyle: "bold", halign: "right" } },
+        { content: fmtQtd(group.totals.qtdFat), styles: { fontStyle: "bold", halign: "right" } },
+        { content: fmtBRL(group.totals.vlrContabil), styles: { fontStyle: "bold", halign: "right" } },
+        { content: fmtBRL(group.totals.custo), styles: { fontStyle: "bold", halign: "right" } },
+        { content: fmtBRL(group.totals.lucro), styles: { fontStyle: "bold", halign: "right" } },
+        { content: `${group.totals.pctLucro.toFixed(2)}%`, styles: { fontStyle: "bold", halign: "right" } },
+        "",
+      ]);
+    }
+
+    // Grand total
+    body.push([
+      { content: "Total Geral →", styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
+      { content: fmtQtd(grandTotals.qtd), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: fmtQtd(grandTotals.qtdFat), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: fmtBRL(grandTotals.vlrContabil), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: fmtBRL(grandTotals.custo), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: fmtBRL(grandTotals.lucro), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: `${grandTotals.pctLucro.toFixed(2)}%`, styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
+      { content: "", styles: { fillColor: [200, 200, 200] } },
+    ]);
+
+    // Devolução row
+    body.push([
+      { content: "Devolução →", styles: { fontStyle: "bold" } },
+      "",
+      "",
+      { content: fmtBRL(grandTotals.vlrDev), styles: { fontStyle: "bold", halign: "right" } },
+      "", "", "", "",
+    ]);
+
+    autoTable(doc, {
+      startY: 33,
+      head: [["Descrição", "Qtd NF", "Qtd Fat.", "Venda", "Custo", "Lucro", "%Lucro", "Partic."]],
+      body,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold" },
+      columnStyles: {
+        1: { halign: "right" },
+        2: { halign: "right" },
+        3: { halign: "right" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+        6: { halign: "right" },
+        7: { halign: "right" },
+      },
+      theme: "grid",
+    });
+
+    doc.save(`demonstrativo_vendas_${dtInicial}_${dtFinal}.pdf`);
+    toast.success("PDF exportado com sucesso!");
   };
 
   return (
@@ -94,65 +263,188 @@ export default function SalesDemo() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Consultar
             </Button>
+            {searched && data.length > 0 && (
+              <Button onClick={exportPDF} variant="outline" className="gap-2 ml-auto">
+                <FileDown className="h-4 w-4" />
+                Exportar PDF
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {searched && (
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-base">Resultado</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Grupo</TableHead>
-                  <TableHead className="text-right">Qtd NF</TableHead>
-                  <TableHead className="text-right">Qtd Faturada</TableHead>
-                  <TableHead className="text-right">Vlr Contábil</TableHead>
-                  <TableHead className="text-right">Custo Operação</TableHead>
-                  <TableHead className="text-right">Vlr Devolução</TableHead>
-                  <TableHead className="text-right">Qtd Devolução</TableHead>
-                  <TableHead className="text-right">Participação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.length === 0 ? (
+      {searched && data.length > 0 && (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="border-border/50">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground">Quantidade</p>
+                <p className="text-xl font-bold text-foreground">{fmtQtd(grandTotals.qtd)}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground">Total de Vendas</p>
+                <p className="text-xl font-bold text-foreground">{fmtBRL(grandTotals.vlrContabil)}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground">Lucro</p>
+                <p className="text-xl font-bold text-green-600">{fmtBRL(grandTotals.lucro)}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground">Valor Líquido</p>
+                <p className="text-xl font-bold text-foreground">{fmtBRL(grandTotals.vlrContabil - grandTotals.vlrDev)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Controls */}
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={expandAll} className="text-xs">
+              Expandir Todos
+            </Button>
+            <Button variant="ghost" size="sm" onClick={collapseAll} className="text-xs">
+              Recolher Todos
+            </Button>
+          </div>
+
+          {/* Grouped Table */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Resultado por Grupo</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum dado encontrado</TableCell>
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead>Grupo</TableHead>
+                    <TableHead className="text-right">Qtd NF</TableHead>
+                    <TableHead className="text-right">Qtd Faturada</TableHead>
+                    <TableHead className="text-right">Venda</TableHead>
+                    <TableHead className="text-right">Custo</TableHead>
+                    <TableHead className="text-right">Lucro</TableHead>
+                    <TableHead className="text-right">%Lucro</TableHead>
+                    <TableHead className="text-right">Participação</TableHead>
                   </TableRow>
-                ) : (
-                  <>
-                    {data.map((r, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-medium">{r.GRUPO}</TableCell>
-                        <TableCell className="text-right">{r.DCFS_QTD}</TableCell>
-                        <TableCell className="text-right">{r.ITFT_QTDE_FATURADA}</TableCell>
-                        <TableCell className="text-right">{fmtBRL(parseNum(r.ITFT_VLR_CONTABIL))}</TableCell>
-                        <TableCell className="text-right">{fmtBRL(parseNum(r.ITFT_CUSTO_NA_OPERACAO))}</TableCell>
-                        <TableCell className="text-right">{fmtBRL(parseNum(r.VLR_DEV))}</TableCell>
-                        <TableCell className="text-right">{r.QTDE_DEV}</TableCell>
-                        <TableCell className="text-right">{r.ITFT_PARTICIPACAO}%</TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="bg-muted/50 font-bold">
-                      <TableCell>TOTAL</TableCell>
-                      <TableCell className="text-right">{totals.qtd}</TableCell>
-                      <TableCell className="text-right">{totals.qtdFat}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(totals.vlrContabil)}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(totals.custo)}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(totals.vlrDev)}</TableCell>
-                      <TableCell className="text-right">{totals.qtdDev}</TableCell>
-                      <TableCell className="text-right">-</TableCell>
+                </TableHeader>
+                <TableBody>
+                  {grouped.map((group) => {
+                    const isExpanded = expandedGroups.has(group.grupo);
+                    return (
+                      <GroupRows
+                        key={group.grpoId}
+                        group={group}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleGroup(group.grupo)}
+                      />
+                    );
+                  })}
+
+                  {/* Grand Total */}
+                  <TableRow className="bg-muted/70 font-bold border-t-2 border-border">
+                    <TableCell></TableCell>
+                    <TableCell className="font-bold">TOTAL GERAL</TableCell>
+                    <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtd)}</TableCell>
+                    <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtdFat)}</TableCell>
+                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.vlrContabil)}</TableCell>
+                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.custo)}</TableCell>
+                    <TableCell className="text-right font-bold">{fmtBRL(grandTotals.lucro)}</TableCell>
+                    <TableCell className="text-right font-bold">{grandTotals.pctLucro.toFixed(2)}%</TableCell>
+                    <TableCell className="text-right font-bold">-</TableCell>
+                  </TableRow>
+
+                  {/* Devolução */}
+                  {grandTotals.vlrDev > 0 && (
+                    <TableRow className="bg-destructive/10">
+                      <TableCell></TableCell>
+                      <TableCell className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
+                      <TableCell className="text-right">{fmtQtd(grandTotals.qtdDev)}</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-right font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</TableCell>
+                      <TableCell colSpan={4}></TableCell>
                     </TableRow>
-                  </>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {searched && data.length === 0 && !loading && (
+        <Card className="border-border/50">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Nenhum dado encontrado para o período selecionado.
           </CardContent>
         </Card>
       )}
     </div>
+  );
+}
+
+function GroupRows({
+  group,
+  isExpanded,
+  onToggle,
+}: {
+  group: GroupedData;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+      {/* Group Header */}
+      <TableRow
+        className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={onToggle}
+      >
+        <TableCell className="w-8 px-2">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </TableCell>
+        <TableCell className="font-semibold">
+          {group.grpoId} - {group.grupo}
+        </TableCell>
+        <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtd)}</TableCell>
+        <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtdFat)}</TableCell>
+        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.vlrContabil)}</TableCell>
+        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.custo)}</TableCell>
+        <TableCell className="text-right font-semibold">{fmtBRL(group.totals.lucro)}</TableCell>
+        <TableCell className="text-right font-semibold">{group.totals.pctLucro.toFixed(2)}%</TableCell>
+        <TableCell className="text-right font-semibold">-</TableCell>
+      </TableRow>
+
+      {/* Detail Rows */}
+      {isExpanded &&
+        group.items.map((item, i) => {
+          const vlr = parseNum(item.ITFT_VLR_CONTABIL);
+          const cst = parseNum(item.ITFT_CUSTO_NA_OPERACAO);
+          const lucro = vlr - cst;
+          const pctLucro = vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00";
+
+          return (
+            <TableRow key={i} className="text-sm">
+              <TableCell></TableCell>
+              <TableCell className="pl-8 text-muted-foreground">{item.GRUPO}</TableCell>
+              <TableCell className="text-right">{item.DCFS_QTD}</TableCell>
+              <TableCell className="text-right">{item.ITFT_QTDE_FATURADA}</TableCell>
+              <TableCell className="text-right">{fmtBRL(vlr)}</TableCell>
+              <TableCell className="text-right">{fmtBRL(cst)}</TableCell>
+              <TableCell className="text-right">{fmtBRL(lucro)}</TableCell>
+              <TableCell className="text-right">{pctLucro}%</TableCell>
+              <TableCell className="text-right">{item.ITFT_PARTICIPACAO}%</TableCell>
+            </TableRow>
+          );
+        })}
+    </>
   );
 }
