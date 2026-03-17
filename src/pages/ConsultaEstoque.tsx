@@ -219,9 +219,9 @@ export default function ConsultaEstoque() {
                       <td
                         key={col}
                         className={`px-2 py-1 whitespace-nowrap ${
-                          rightAlignCols.includes(col)
+                          isRightAlign(col)
                             ? "text-right tabular-nums font-medium"
-                            : col === "prod_Nome"
+                            : col.toLowerCase() === "prod_nome"
                             ? "font-medium max-w-[250px] truncate"
                             : col === "prod_Codigo"
                             ? "font-mono text-muted-foreground"
