@@ -67,6 +67,7 @@ export interface Usuario {
   pess_Email: string;
   pess_Codigo: string;
   pess_ID: string;
+  GRUS_PERFIL?: string;
 }
 
 export interface Grupo {
