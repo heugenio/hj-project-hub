@@ -49,6 +49,13 @@ interface GroupedData {
   };
 }
 
+function formatGroupName(grpoId: string, grupo: string): string {
+  // Extract short ID from long ID like "000640010000000001" -> use grupo directly
+  // Format: "GRPO_ID - GRUPO" but strip leading zeros/long prefix from GRPO_ID
+  const shortId = grpoId.replace(/^0+/, '').slice(-4).padStart(4, '0');
+  return `${shortId} - ${grupo}`;
+}
+
 function groupByGrupo(data: SalesDemoType[]): GroupedData[] {
   const map = new Map<string, SalesDemoType[]>();
   for (const item of data) {
@@ -163,7 +170,7 @@ export default function SalesDemo() {
 
     for (const group of grouped) {
       body.push([
-        { content: `${group.grpoId} - ${group.grupo}`, colSpan: 11, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
+        { content: formatGroupName(group.grpoId, group.grupo), colSpan: 12, styles: { fontStyle: "bold", fillColor: [230, 230, 230], textColor: [0, 0, 0] } },
       ]);
 
       for (const item of group.items) {
@@ -172,6 +179,7 @@ export default function SalesDemo() {
         const lucro = item.ITFT_VLR_LUCRO ? parseNum(item.ITFT_VLR_LUCRO) : vlr - cst;
         const pct = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
         body.push([
+          item.CURVA || "",
           item.PROD_CODIGO || "",
           item.PROD_NOME || "",
           item.PROD_REFERENCIA || "",
@@ -187,7 +195,7 @@ export default function SalesDemo() {
       }
 
       body.push([
-        { content: `Total do Grupo →`, colSpan: 4, styles: { fontStyle: "bold" } },
+        { content: `Total do Grupo →`, colSpan: 5, styles: { fontStyle: "bold" } },
         { content: fmtQtd(group.totals.qtdFat), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.vlrContabil), styles: { fontStyle: "bold", halign: "right" } },
         { content: fmtBRL(group.totals.custo), styles: { fontStyle: "bold", halign: "right" } },
@@ -198,7 +206,7 @@ export default function SalesDemo() {
     }
 
     body.push([
-      { content: "Total Geral →", colSpan: 4, styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
+      { content: "Total Geral →", colSpan: 5, styles: { fontStyle: "bold", fillColor: [200, 200, 200], textColor: [0, 0, 0] } },
       { content: fmtQtd(grandTotals.qtdFat), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.vlrContabil), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
       { content: fmtBRL(grandTotals.custo), styles: { fontStyle: "bold", fillColor: [200, 200, 200], halign: "right" } },
@@ -210,7 +218,7 @@ export default function SalesDemo() {
 
     if (grandTotals.vlrDev > 0) {
       body.push([
-        { content: "Devolução →", colSpan: 4, styles: { fontStyle: "bold" } },
+        { content: "Devolução →", colSpan: 5, styles: { fontStyle: "bold" } },
         fmtQtd(grandTotals.qtdDev),
         fmtBRL(grandTotals.vlrDev),
         "", "", "", "", "",
@@ -219,18 +227,18 @@ export default function SalesDemo() {
 
     autoTable(doc, {
       startY: 33,
-      head: [["Código", "Produto", "Referência", "Unid", "Qtd Fat.", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Qtd Mov"]],
+      head: [["Curva", "Código", "Produto", "Referência", "Unid", "Qtd", "Venda", "Custo", "Lucro", "%Lucro", "Partic.", "Saldo"]],
       body,
       styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold" },
       columnStyles: {
-        4: { halign: "right" },
         5: { halign: "right" },
         6: { halign: "right" },
         7: { halign: "right" },
         8: { halign: "right" },
         9: { halign: "right" },
         10: { halign: "right" },
+        11: { halign: "right" },
       },
       theme: "grid",
     });
@@ -317,21 +325,22 @@ export default function SalesDemo() {
               <CardTitle className="text-base">Resultado por Grupo</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
-              <Table>
+               <Table className="text-xs">
                 <TableHeader>
-                  <TableRow>
-                     <TableHead className="w-8"></TableHead>
+                  <TableRow className="[&>th]:py-1.5 [&>th]:px-2">
+                     <TableHead className="w-7 px-1"></TableHead>
+                     <TableHead className="w-12">Curva</TableHead>
                      <TableHead>Código</TableHead>
                      <TableHead>Produto</TableHead>
                      <TableHead>Referência</TableHead>
-                     <TableHead>Unid</TableHead>
-                     <TableHead className="text-right">Qtd Faturada</TableHead>
+                     <TableHead className="w-10">Unid</TableHead>
+                     <TableHead className="text-right w-16">Qtd</TableHead>
                      <TableHead className="text-right">Venda</TableHead>
                      <TableHead className="text-right">Custo</TableHead>
                      <TableHead className="text-right">Lucro</TableHead>
-                     <TableHead className="text-right">%Lucro</TableHead>
-                     <TableHead className="text-right">Participação</TableHead>
-                     <TableHead className="text-right">Qtd Mov</TableHead>
+                     <TableHead className="text-right w-16">%Lucro</TableHead>
+                     <TableHead className="text-right w-16">Partic.</TableHead>
+                     <TableHead className="text-right w-16">Saldo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -348,9 +357,9 @@ export default function SalesDemo() {
                   })}
 
                   {/* Grand Total */}
-                  <TableRow className="bg-muted/70 font-bold border-t-2 border-border">
+                  <TableRow className="bg-muted/70 font-bold border-t-2 border-border [&>td]:py-1.5 [&>td]:px-2">
                      <TableCell></TableCell>
-                     <TableCell colSpan={4} className="font-bold">TOTAL GERAL</TableCell>
+                     <TableCell colSpan={5} className="font-bold">TOTAL GERAL</TableCell>
                      <TableCell className="text-right font-bold">{fmtQtd(grandTotals.qtdFat)}</TableCell>
                      <TableCell className="text-right font-bold">{fmtBRL(grandTotals.vlrContabil)}</TableCell>
                      <TableCell className="text-right font-bold">{fmtBRL(grandTotals.custo)}</TableCell>
@@ -361,9 +370,9 @@ export default function SalesDemo() {
                    </TableRow>
 
                    {grandTotals.vlrDev > 0 && (
-                     <TableRow className="bg-destructive/10">
+                     <TableRow className="bg-destructive/10 [&>td]:py-1.5 [&>td]:px-2">
                        <TableCell></TableCell>
-                       <TableCell colSpan={4} className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
+                       <TableCell colSpan={5} className="font-bold text-destructive">DEVOLUÇÃO</TableCell>
                        <TableCell className="text-right">{fmtQtd(grandTotals.qtdDev)}</TableCell>
                        <TableCell className="text-right font-bold text-destructive">{fmtBRL(grandTotals.vlrDev)}</TableCell>
                        <TableCell colSpan={5}></TableCell>
@@ -400,18 +409,18 @@ function GroupRows({
     <>
       {/* Group Header */}
       <TableRow
-        className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+        className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors [&>td]:py-1.5 [&>td]:px-2"
         onClick={onToggle}
       >
-         <TableCell className="w-8 px-2">
+         <TableCell className="w-7 px-1">
            {isExpanded ? (
-             <ChevronDown className="h-4 w-4 text-muted-foreground" />
+             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
            ) : (
-             <ChevronRight className="h-4 w-4 text-muted-foreground" />
+             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
            )}
          </TableCell>
-         <TableCell colSpan={4} className="font-semibold">
-           {group.grpoId} - {group.grupo}
+         <TableCell colSpan={5} className="font-semibold text-xs">
+           {formatGroupName(group.grpoId, group.grupo)}
          </TableCell>
          <TableCell className="text-right font-semibold">{fmtQtd(group.totals.qtdFat)}</TableCell>
          <TableCell className="text-right font-semibold">{fmtBRL(group.totals.vlrContabil)}</TableCell>
@@ -431,9 +440,10 @@ function GroupRows({
            const pctLucro = item.ITFT_PER_LUCRO ? parseNum(item.ITFT_PER_LUCRO).toFixed(2) : (vlr > 0 ? ((lucro / vlr) * 100).toFixed(2) : "0.00");
 
            return (
-             <TableRow key={i} className="text-sm">
+             <TableRow key={i} className={`text-xs [&>td]:py-1 [&>td]:px-2 ${i % 2 === 0 ? 'bg-background' : 'bg-muted/15'}`}>
                <TableCell></TableCell>
-               <TableCell className="pl-8 text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.CURVA || ""}</TableCell>
+               <TableCell className="text-muted-foreground">{item.PROD_CODIGO || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_NOME || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.PROD_REFERENCIA || ""}</TableCell>
                <TableCell className="text-muted-foreground">{item.ITFT_UNID_SIGLA || ""}</TableCell>
