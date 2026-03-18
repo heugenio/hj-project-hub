@@ -47,20 +47,25 @@ export default function Dashboard() {
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
 
+  // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
+  const resumoId = perfil === "ADM" ? unemId.substring(0, 8) : unemId;
+  const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
+
   useEffect(() => {
     if (!unemId) return;
     setLoading(true);
     Promise.all([
       getComparativo(unemId),
-      getComparativoResumo(unemId),
+      getComparativoResumo(resumoId),
     ])
       .then(([comp, res]) => {
         setComparativo(comp || []);
+        setResumoLojas(res || []);
         setResumo(res?.[0] || null);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [unemId]);
+  }, [unemId, resumoId]);
 
   if (loading) {
     return (
