@@ -158,59 +158,100 @@ export default function Dashboard() {
 
       {/* Multi-lojas — ADM only */}
       {perfil === "ADM" && resumoLojas.length > 1 && (
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Store className="h-4 w-4 text-primary" />
-              Visão Multi-Lojas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead className="text-right">Faturamento Atual</TableHead>
-                    <TableHead className="text-right">Qtd. Atual</TableHead>
-                    <TableHead className="text-right">Faturamento Anterior</TableHead>
-                    <TableHead className="text-right">Qtd. Anterior</TableHead>
-                    <TableHead className="text-right">Crescimento</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {resumoLojas.map((loja, i) => {
-                    const growth = parseGrowth(loja.CRECIMENTO);
-                    return (
-                      <TableRow key={i}>
-                        <TableCell className="font-medium">{loja.UNEM_ID || `Loja ${i + 1}`}</TableCell>
-                        <TableCell className="text-right">{formatBRL(parseCurrency(loja.ITFT_VLR_CONTABIL))}</TableCell>
-                        <TableCell className="text-right">{parseCurrency(loja.ITFT_QTDE).toLocaleString("pt-BR")}</TableCell>
-                        <TableCell className="text-right">{formatBRL(parseCurrency(loja.ITFT_VLR_CONTABIL_ANT))}</TableCell>
-                        <TableCell className="text-right">{parseCurrency(loja.ITFT_QTDE_ANT).toLocaleString("pt-BR")}</TableCell>
-                        <TableCell className="text-right">
-                          <span className={`inline-flex items-center gap-1 text-sm font-medium ${growth >= 0 ? "text-accent" : "text-destructive"}`}>
-                            {growth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                            {growth.toFixed(2)}%
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {/* Totalizador */}
-                  <TableRow className="border-t-2 border-border font-bold bg-muted/30">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-right">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL), 0))}</TableCell>
-                    <TableCell className="text-right">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE), 0).toLocaleString("pt-BR")}</TableCell>
-                    <TableCell className="text-right">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL_ANT), 0))}</TableCell>
-                    <TableCell className="text-right">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE_ANT), 0).toLocaleString("pt-BR")}</TableCell>
-                    <TableCell className="text-right">—</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Store className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Visão Multi-Lojas</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {resumoLojas.map((loja, i) => {
+              const growth = parseGrowth(loja.CRECIMENTO);
+              const vlr = parseCurrency(loja.ITFT_VLR_CONTABIL);
+              const vlrAnt = parseCurrency(loja.ITFT_VLR_CONTABIL_ANT);
+              const isLogada = loja.UNEM_ID === unemId;
+              const sigla = unidadesMap[loja.UNEM_ID] || loja.UNEM_ID || `Loja ${i + 1}`;
+
+              return (
+                <Card
+                  key={i}
+                  className={`border-border/50 relative overflow-hidden transition-shadow hover:shadow-lg ${isLogada ? "ring-2 ring-primary/60" : ""}`}
+                >
+                  {isLogada && (
+                    <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+                      LOGADA
+                    </div>
+                  )}
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Store className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="font-semibold text-foreground text-sm truncate">{sigla}</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Fat. Atual</span>
+                        <span className="text-sm font-bold text-foreground">{formatBRL(vlr)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Fat. Anterior</span>
+                        <span className="text-xs text-muted-foreground">{formatBRL(vlrAnt)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Qtd.</span>
+                        <span className="text-xs text-foreground">{parseCurrency(loja.ITFT_QTDE).toLocaleString("pt-BR")}</span>
+                      </div>
+                    </div>
+
+                    {/* Growth bar */}
+                    <div className="pt-1 border-t border-border/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Crescimento</span>
+                        <span className={`inline-flex items-center gap-0.5 text-xs font-bold ${growth >= 0 ? "text-accent" : "text-destructive"}`}>
+                          {growth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                          {growth.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${growth >= 0 ? "bg-primary" : "bg-destructive"}`}
+                          style={{ width: `${Math.min(Math.abs(growth), 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* Card Totalizador */}
+            <Card className="border-border/50 bg-muted/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="font-bold text-foreground text-sm">TOTAL</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Fat. Atual</span>
+                    <span className="text-sm font-bold text-foreground">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL), 0))}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Fat. Anterior</span>
+                    <span className="text-xs text-muted-foreground">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL_ANT), 0))}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Qtd. Total</span>
+                    <span className="text-xs text-foreground">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE), 0).toLocaleString("pt-BR")}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
 
       {/* Profile-specific sections */}
