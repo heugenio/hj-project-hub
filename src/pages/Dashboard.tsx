@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getComparativo, getComparativoResumo, type Comparativo, type ComparativoResumo } from "@/lib/api";
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
-  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard
+  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
