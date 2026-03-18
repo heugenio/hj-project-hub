@@ -43,29 +43,52 @@ export default function Dashboard() {
   const [comparativo, setComparativo] = useState<Comparativo[]>([]);
   const [resumo, setResumo] = useState<ComparativoResumo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
+  const [unidadesMap, setUnidadesMap] = useState<Record<string, string>>({});
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
+  const emprId = unemId.substring(0, 8);
 
   // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
-  const resumoId = perfil === "ADM" ? unemId.substring(0, 8) : unemId;
-  const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
+  const resumoId = perfil === "ADM" ? emprId : unemId;
 
   useEffect(() => {
     if (!unemId) return;
     setLoading(true);
-    Promise.all([
+
+    const fetches: Promise<unknown>[] = [
       getComparativo(unemId),
       getComparativoResumo(resumoId),
-    ])
-      .then(([comp, res]) => {
-        setComparativo(comp || []);
-        setResumoLojas(res || []);
-        setResumo(res?.[0] || null);
+    ];
+
+    // Para ADM, buscar unidades para mapear UNEM_ID → Sigla
+    if (perfil === "ADM" && emprId) {
+      fetches.push(getUnidadesEmpresariais(emprId));
+    }
+
+    Promise.all(fetches)
+      .then(([comp, res, unidades]) => {
+        setComparativo((comp as Comparativo[]) || []);
+        const lojas = (res as ComparativoResumo[]) || [];
+        setResumoLojas(lojas);
+
+        // Resumo da unidade logada
+        const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
+        setResumo(lojaLogada || lojas[0] || null);
+
+        // Mapear UNEM_ID → unem_Sigla
+        if (unidades && Array.isArray(unidades)) {
+          const map: Record<string, string> = {};
+          (unidades as UnidadeEmpresarial[]).forEach((u) => {
+            map[u.unem_Id] = u.unem_Sigla || u.unem_Fantasia || u.unem_Id;
+          });
+          setUnidadesMap(map);
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [unemId, resumoId]);
+  }, [unemId, resumoId, perfil, emprId]);
 
   if (loading) {
     return (
