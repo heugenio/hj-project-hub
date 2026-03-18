@@ -133,6 +133,63 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Multi-lojas — ADM only */}
+      {perfil === "ADM" && resumoLojas.length > 1 && (
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Store className="h-4 w-4 text-primary" />
+              Visão Multi-Lojas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Unidade</TableHead>
+                    <TableHead className="text-right">Faturamento Atual</TableHead>
+                    <TableHead className="text-right">Qtd. Atual</TableHead>
+                    <TableHead className="text-right">Faturamento Anterior</TableHead>
+                    <TableHead className="text-right">Qtd. Anterior</TableHead>
+                    <TableHead className="text-right">Crescimento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resumoLojas.map((loja, i) => {
+                    const growth = parseGrowth(loja.CRECIMENTO);
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{loja.UNEM_ID || `Loja ${i + 1}`}</TableCell>
+                        <TableCell className="text-right">{formatBRL(parseCurrency(loja.ITFT_VLR_CONTABIL))}</TableCell>
+                        <TableCell className="text-right">{parseCurrency(loja.ITFT_QTDE).toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="text-right">{formatBRL(parseCurrency(loja.ITFT_VLR_CONTABIL_ANT))}</TableCell>
+                        <TableCell className="text-right">{parseCurrency(loja.ITFT_QTDE_ANT).toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={`inline-flex items-center gap-1 text-sm font-medium ${growth >= 0 ? "text-accent" : "text-destructive"}`}>
+                            {growth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                            {growth.toFixed(2)}%
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {/* Totalizador */}
+                  <TableRow className="border-t-2 border-border font-bold bg-muted/30">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL), 0))}</TableCell>
+                    <TableCell className="text-right">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE), 0).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-right">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL_ANT), 0))}</TableCell>
+                    <TableCell className="text-right">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE_ANT), 0).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Profile-specific sections */}
       {(perfil === "ADM" || perfil === "Vendas") && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
