@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { getComparativo, getComparativoResumo, type Comparativo, type ComparativoResumo } from "@/lib/api";
+import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial } from "@/lib/api";
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
   ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store
