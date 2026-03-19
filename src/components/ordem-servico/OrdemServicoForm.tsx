@@ -50,8 +50,9 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
   const [tecnicoText, setTecnicoText] = useState('');
   const [tecnico, setTecnico] = useState<Tecnico | null>(null);
 
-  const [midiaText, setMidiaText] = useState('');
-  const [midia, setMidia] = useState<Midia | null>(null);
+  const [midias, setMidias] = useState<Midia[]>([]);
+  const [midiaId, setMidiaId] = useState('');
+  const [loadingMidias, setLoadingMidias] = useState(false);
 
   const [observacoes, setObservacoes] = useState('');
   const [checklist, setChecklist] = useState('');
@@ -65,6 +66,12 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
       .then(setTiposOS)
       .catch(() => {})
       .finally(() => setLoadingTipos(false));
+
+    setLoadingMidias(true);
+    getMidias({})
+      .then(setMidias)
+      .catch(() => {})
+      .finally(() => setLoadingMidias(false));
   }, []);
 
   const fetchVendedores = useCallback(async (query: string) => {
@@ -78,13 +85,6 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
     try {
       const r = await getTecnicos({ nome: query });
       return r.map((t) => ({ id: t.TCNC_ID, label: t.TCNC_NOME }));
-    } catch { return []; }
-  }, []);
-
-  const fetchMidias = useCallback(async (query: string) => {
-    try {
-      const r = await getMidias({ nome: query });
-      return r.map((m) => ({ id: m.MDIA_ID, label: m.MDIA_NOME }));
     } catch { return []; }
   }, []);
 
@@ -104,7 +104,7 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
         VEIC_ID: veiculo.VEIC_ID,
         VDDR_ID: vendedor?.VDDR_ID,
         TCNC_ID: tecnico?.TCNC_ID,
-        MDIA_ID: midia?.MDIA_ID,
+        MDIA_ID: midiaId || undefined,
         ORSV_OBSERVACOES: observacoes,
         ORSV_NR_CHECKLIST: checklist,
         ORSV_HODOMETRO: hodometro,
@@ -158,7 +158,19 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
         </div>
       </div>
 
-      {/* Cabeçalho da OS */}
+      {/* Cliente + Veículo FIRST */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ClienteSection cliente={cliente} onSelect={setCliente} />
+        <VeiculoSection
+          veiculo={veiculo}
+          clienteId={cliente?.PESS_ID || null}
+          onSelect={setVeiculo}
+          hodometro={hodometro}
+          onHodometroChange={setHodometro}
+        />
+      </div>
+
+      {/* Dados da OS (Tipo + Origem + Status) */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -182,8 +194,17 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Hodômetro (Km)</Label>
-              <Input value={hodometro} onChange={(e) => setHodometro(e.target.value)} className="h-9 text-sm" placeholder="Km atual do veículo" />
+              <Label className="text-xs">Origem do Cliente</Label>
+              <Select value={midiaId} onValueChange={setMidiaId}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder={loadingMidias ? 'Carregando...' : 'Selecione a mídia'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {midias.map((m) => (
+                    <SelectItem key={m.MDIA_ID} value={m.MDIA_ID}>{m.MDIA_NOME}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs">Status</Label>
@@ -193,17 +214,11 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
         </CardContent>
       </Card>
 
-      {/* Cliente + Veículo */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ClienteSection cliente={cliente} onSelect={setCliente} />
-        <VeiculoSection veiculo={veiculo} clienteId={cliente?.PESS_ID || null} onSelect={setVeiculo} />
-      </div>
-
       {/* Itens */}
       <ItensTable itens={itens} onChange={setItens} />
 
-      {/* Equipe + Origem + Resumo */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Equipe + Resumo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -231,24 +246,6 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
                 fetchOptions={fetchTecnicos}
               />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Radio className="h-4 w-4 text-primary" /> Origem do Cliente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Label className="text-xs">Mídia</Label>
-            <AutocompleteInput
-              placeholder="Buscar mídia..."
-              value={midiaText}
-              onChange={setMidiaText}
-              onSelect={(opt) => { setMidia({ MDIA_ID: opt.id, MDIA_NOME: opt.label }); setMidiaText(opt.label); }}
-              fetchOptions={fetchMidias}
-            />
           </CardContent>
         </Card>
 
