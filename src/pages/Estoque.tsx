@@ -82,10 +82,12 @@ export default function Estoque() {
   // Check if a column key is a UF total (like GO, DF — 2-letter state codes)
   const isUfColumn = (col: string) => /^[A-Z]{2}$/.test(col) && !/^\d/.test(col) && !col.startsWith("G0") && !col.startsWith("G1");
 
+  // Identify logged store column
+  const loggedSigla = auth?.unidade?.unem_Sigla || "";
+  const isLoggedCol = (col: string) => col === loggedSigla;
+
   const getColumnLabel = (col: string) => {
-    // UF total columns (GO, DF) keep as-is
     if (isUfColumn(col)) return col;
-    // Filial columns (G01, G02...) show the sigla directly
     return col;
   };
 
