@@ -302,6 +302,8 @@ export default function Dashboard() {
                     grupo: item.GRPO_NOME || "N/A",
                     atual: parseCurrency(item.ITFT_VLR_CONTABIL),
                     anterior: parseCurrency(item.ITFT_VLR_CONTABIL_ANT),
+                    qtdAtual: parseCurrency(item.ITFT_QTDE),
+                    qtdAnterior: parseCurrency(item.ITFT_QTDE_ANT),
                   }));
 
                   return (
@@ -319,7 +321,19 @@ export default function Dashboard() {
                               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis dataKey="grupo" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" angle={-20} textAnchor="end" height={60} />
                               <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                              <Tooltip formatter={(value: number) => formatBRL(value)} />
+                              <Tooltip
+                                content={({ active, payload, label }) => {
+                                  if (!active || !payload?.length) return null;
+                                  const d = payload[0]?.payload;
+                                  return (
+                                    <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm">
+                                      <p className="font-semibold text-foreground mb-1">{label}</p>
+                                      <p className="text-primary">Atual: {formatBRL(d?.atual || 0)} <span className="text-muted-foreground ml-1">(Qtd: {(d?.qtdAtual || 0).toLocaleString("pt-BR")})</span></p>
+                                      <p className="text-muted-foreground">Anterior: {formatBRL(d?.anterior || 0)} <span className="ml-1">(Qtd: {(d?.qtdAnterior || 0).toLocaleString("pt-BR")})</span></p>
+                                    </div>
+                                  );
+                                }}
+                              />
                               <Bar dataKey="atual" name="Período Atual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                               <Bar dataKey="anterior" name="Período Anterior" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
                             </BarChart>
