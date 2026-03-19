@@ -36,6 +36,12 @@ const reportItems = [
   { title: "Resumo de Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
 ];
 
+function formatCNPJ(cnpj: string): string {
+  const d = cnpj.replace(/\D/g, "");
+  if (d.length !== 14) return cnpj;
+  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`;
+}
+
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -302,10 +308,11 @@ export function AppLayout() {
             <Store className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-sm font-medium text-foreground truncate">
               {auth?.unidade?.unem_Fantasia || '—'}
+              {auth?.unidade?.unem_Sigla ? ` ${auth.unidade.unem_Sigla}` : ''}
             </span>
             {auth?.unidade?.unem_CNPJ && (
               <span className="text-xs text-muted-foreground hidden md:inline">
-                CNPJ: {auth.unidade.unem_CNPJ}
+                CNPJ: {formatCNPJ(auth.unidade.unem_CNPJ)}
               </span>
             )}
           </div>

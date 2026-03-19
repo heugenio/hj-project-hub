@@ -36,12 +36,6 @@ function parseGrowth(val: string | undefined): number {
   return parseFloat(val.replace(",", ".")) || 0;
 }
 
-function maskCNPJ(cnpj: string): string {
-  const digits = cnpj.replace(/\D/g, "");
-  if (digits.length !== 14) return cnpj;
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12, 14)}`;
-}
-
 type Perfil = "ADM" | "Vendas" | "FINANCEIRO" | string;
 
 export default function Dashboard() {
@@ -55,9 +49,6 @@ export default function Dashboard() {
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
   const emprId = unemId.substring(0, 8);
-  const unidadeFantasia = auth?.unidade?.unem_Fantasia || "";
-  const unidadeSigla = auth?.unidade?.unem_Sigla || "";
-  const unidadeCNPJ = auth?.unidade?.unem_CNPJ || "";
 
   // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
   const resumoId = perfil === "ADM" ? emprId : unemId;
@@ -134,21 +125,11 @@ export default function Dashboard() {
       value: parseCurrency(item.ITFT_VLR_CONTABIL),
     }));
 
-  // Título com fantasia/sigla e CNPJ mascarado
-  const tituloUnidade = unidadeFantasia || unidadeSigla || "—";
-  const cnpjFormatado = unidadeCNPJ ? maskCNPJ(unidadeCNPJ) : "";
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {tituloUnidade}
-            {unidadeSigla && unidadeFantasia ? ` ${unidadeSigla}` : ""}
-          </h1>
-          {cnpjFormatado && (
-            <p className="text-muted-foreground text-xs mt-0.5">CNPJ: {cnpjFormatado}</p>
-          )}
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Visão geral — Perfil: <Badge variant="secondary" className="ml-1">{perfil}</Badge>
           </p>
@@ -312,6 +293,8 @@ export default function Dashboard() {
                     grupo: item.GRPO_NOME || "N/A",
                     atual: parseCurrency(item.ITFT_VLR_CONTABIL),
                     anterior: parseCurrency(item.ITFT_VLR_CONTABIL_ANT),
+                    qtdAtual: parseCurrency(item.ITFT_QTDE),
+                    qtdAnterior: parseCurrency(item.ITFT_QTDE_ANT),
                   }));
 
                   return (
@@ -329,7 +312,19 @@ export default function Dashboard() {
                               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis dataKey="grupo" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" angle={-20} textAnchor="end" height={60} />
                               <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                              <Tooltip formatter={(value: number) => formatBRL(value)} />
+                              <Tooltip
+                                content={({ active, payload, label }) => {
+                                  if (!active || !payload?.length) return null;
+                                  const d = payload[0]?.payload;
+                                  return (
+                                    <div className="bg-popover border border-border rounded-lg shadow-lg p-3 text-sm">
+                                      <p className="font-semibold text-foreground mb-1">{label}</p>
+                                      <p className="text-primary">Atual: {formatBRL(d?.atual || 0)} <span className="text-muted-foreground ml-1">(Qtd: {(d?.qtdAtual || 0).toLocaleString("pt-BR")})</span></p>
+                                      <p className="text-muted-foreground">Anterior: {formatBRL(d?.anterior || 0)} <span className="ml-1">(Qtd: {(d?.qtdAnterior || 0).toLocaleString("pt-BR")})</span></p>
+                                    </div>
+                                  );
+                                }}
+                              />
                               <Bar dataKey="atual" name="Período Atual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                               <Bar dataKey="anterior" name="Período Anterior" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
                             </BarChart>
