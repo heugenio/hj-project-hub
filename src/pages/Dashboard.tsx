@@ -36,12 +36,6 @@ function parseGrowth(val: string | undefined): number {
   return parseFloat(val.replace(",", ".")) || 0;
 }
 
-function maskCNPJ(cnpj: string): string {
-  const digits = cnpj.replace(/\D/g, "");
-  if (digits.length !== 14) return cnpj;
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12, 14)}`;
-}
-
 type Perfil = "ADM" | "Vendas" | "FINANCEIRO" | string;
 
 export default function Dashboard() {
