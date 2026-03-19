@@ -82,10 +82,12 @@ export default function Estoque() {
   // Check if a column key is a UF total (like GO, DF — 2-letter state codes)
   const isUfColumn = (col: string) => /^[A-Z]{2}$/.test(col) && !/^\d/.test(col) && !col.startsWith("G0") && !col.startsWith("G1");
 
+  // Identify logged store column
+  const loggedSigla = auth?.unidade?.unem_Sigla || "";
+  const isLoggedCol = (col: string) => col === loggedSigla;
+
   const getColumnLabel = (col: string) => {
-    // UF total columns (GO, DF) keep as-is
     if (isUfColumn(col)) return col;
-    // Filial columns (G01, G02...) show the sigla directly
     return col;
   };
 
@@ -160,12 +162,15 @@ export default function Estoque() {
                     <th
                       key={col}
                       className={`text-right px-2 py-1.5 font-semibold whitespace-nowrap ${
-                        isUfColumn(col)
-                          ? "bg-primary/10 text-primary border-l border-r border-primary/20"
-                          : "text-muted-foreground"
+                        isLoggedCol(col)
+                          ? "bg-accent/30 text-accent-foreground border-l-2 border-r-2 border-accent"
+                          : isUfColumn(col)
+                            ? "bg-primary/10 text-primary border-l border-r border-primary/20"
+                            : "text-muted-foreground"
                       }`}
                     >
                       {getColumnLabel(col)}
+                      {isLoggedCol(col) && <span className="block text-[9px] font-normal text-accent-foreground/70">logada</span>}
                     </th>
                   ))}
                   <th className="text-right px-2 py-1.5 font-bold whitespace-nowrap bg-primary/15 text-primary border-l border-primary/20">
@@ -191,9 +196,11 @@ export default function Estoque() {
                         <td
                           key={col}
                           className={`text-right px-2 py-1 tabular-nums whitespace-nowrap ${
-                            isUfColumn(col)
-                              ? "bg-primary/5 font-semibold text-primary border-l border-r border-primary/10"
-                              : numVal > 0 ? "text-foreground" : "text-muted-foreground/50"
+                            isLoggedCol(col)
+                              ? "bg-accent/15 font-semibold text-foreground border-l-2 border-r-2 border-accent/40"
+                              : isUfColumn(col)
+                                ? "bg-primary/5 font-semibold text-primary border-l border-r border-primary/10"
+                                : numVal > 0 ? "text-foreground" : "text-muted-foreground/50"
                           }`}
                         >
                           {val}
