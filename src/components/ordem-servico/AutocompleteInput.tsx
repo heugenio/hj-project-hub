@@ -91,8 +91,10 @@ export function AutocompleteInput({
             <button
               key={opt.id}
               type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-accent/20 transition-colors border-b border-border/30 last:border-0"
-              onClick={() => {
+              className="w-full text-left px-3 py-2 text-sm hover:bg-accent/20 transition-colors border-b border-border/30 last:border-0 cursor-pointer"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 onSelect(opt);
                 setOpen(false);
               }}
