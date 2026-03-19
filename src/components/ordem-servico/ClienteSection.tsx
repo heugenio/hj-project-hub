@@ -67,13 +67,27 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       onSelect(result);
       setSearchText(result.PESS_NOME);
       setModalOpen(false);
+      setIsEditing(false);
       setForm({});
-      toast.success('Cliente cadastrado com sucesso!');
+      toast.success(isEditing ? 'Cliente atualizado com sucesso!' : 'Cliente cadastrado com sucesso!');
     } catch (e: any) {
       toast.error('Erro ao salvar cliente: ' + e.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditCliente = () => {
+    if (!cliente) return;
+    setForm({ ...cliente });
+    setIsEditing(true);
+    setModalOpen(true);
+  };
+
+  const handleOpenNew = () => {
+    setForm({});
+    setIsEditing(false);
+    setModalOpen(true);
   };
 
   return (
