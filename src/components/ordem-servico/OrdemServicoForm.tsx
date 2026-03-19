@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Wrench, Save, CheckCircle, XCircle, Printer, Send,
-  Loader2, FileText, Users, Radio, ClipboardList, MessageSquare, ArrowLeft
+  Loader2, FileText, Users, ClipboardList, MessageSquare, ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
