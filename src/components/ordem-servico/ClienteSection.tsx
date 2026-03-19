@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,11 +29,18 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Cliente>>({});
+  const clientesCacheRef = useRef<Record<string, Cliente>>({});
 
   const fetchClientes = useCallback(async (query: string) => {
     try {
       const isDoc = /^\d/.test(query.replace(/\D/g, ''));
       const results = await getClientes(isDoc ? { cpfcnpj: query } : { nome: query });
+      const nextCache = { ...clientesCacheRef.current };
+      results.forEach((c) => {
+        if (c.PESS_ID) nextCache[c.PESS_ID] = c;
+      });
+      clientesCacheRef.current = nextCache;
+
       return results.map((c) => ({
         id: c.PESS_ID,
         label: c.PESS_NOME,
@@ -44,13 +51,35 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     }
   }, []);
 
-  const handleSelectCliente = useCallback(async (opt: { id: string }) => {
+  const handleSelectCliente = useCallback(async (opt: { id: string; label?: string }) => {
     try {
-      const results = await getClientes({ id: opt.id });
-      if (results.length > 0) {
-        onSelect(results[0]);
-        setSearchText(results[0].PESS_NOME);
+      const cached = clientesCacheRef.current[opt.id];
+      if (cached) {
+        onSelect(cached);
+        setSearchText(cached.PESS_NOME);
+        return;
       }
+
+      const byId = await getClientes({ id: opt.id });
+      if (byId.length > 0) {
+        onSelect(byId[0]);
+        setSearchText(byId[0].PESS_NOME);
+        clientesCacheRef.current[byId[0].PESS_ID] = byId[0];
+        return;
+      }
+
+      if (opt.label) {
+        const byName = await getClientes({ nome: opt.label });
+        const fallback = byName.find((c) => c.PESS_ID === opt.id) ?? byName[0];
+        if (fallback) {
+          onSelect(fallback);
+          setSearchText(fallback.PESS_NOME);
+          clientesCacheRef.current[fallback.PESS_ID] = fallback;
+          return;
+        }
+      }
+
+      toast.error('Não foi possível selecionar este cliente.');
     } catch {
       toast.error('Erro ao carregar cliente');
     }
