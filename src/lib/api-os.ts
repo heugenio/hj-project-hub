@@ -1,0 +1,189 @@
+import { supabase } from '@/integrations/supabase/client';
+
+function getBaseUrl(): string {
+  return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
+}
+
+async function proxyGet<T>(endpoint: string): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('api-proxy', {
+    body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
+  });
+  if (error) throw new Error(`API error: ${error.message}`);
+  const text = typeof data === 'string' ? data : JSON.stringify(data);
+  return JSON.parse(text) as T;
+}
+
+async function proxyPost<T>(endpoint: string, payload: unknown): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('api-proxy', {
+    body: { baseUrl: getBaseUrl(), endpoint, method: 'POST', body: payload },
+  });
+  if (error) throw new Error(`API error: ${error.message}`);
+  const text = typeof data === 'string' ? data : JSON.stringify(data);
+  return JSON.parse(text) as T;
+}
+
+// ===== Types =====
+
+export interface TipoOS {
+  TPOS_ID: string;
+  TPOS_NOME: string;
+}
+
+export interface Cliente {
+  PESS_ID: string;
+  PESS_NOME: string;
+  PESS_CPFCNPJ: string;
+  PESS_FONE?: string;
+  PESS_EMAIL?: string;
+  PESS_ENDERECO?: string;
+  PESS_CIDADE?: string;
+  PESS_UF?: string;
+}
+
+export interface Veiculo {
+  VEIC_ID: string;
+  VEIC_PLACA: string;
+  VEIC_MARCA?: string;
+  VEIC_MODELO?: string;
+  VEIC_ANO?: string;
+  VEIC_COR?: string;
+  VEIC_KM?: string;
+  PESS_ID?: string;
+  MARC_VEIC_ID?: string;
+  MODL_VEIC_ID?: string;
+}
+
+export interface MarcaVeiculo {
+  MARC_VEIC_ID: string;
+  MARC_VEIC_NOME: string;
+}
+
+export interface ModeloVeiculo {
+  MODL_VEIC_ID: string;
+  MODL_VEIC_NOME: string;
+}
+
+export interface ItemOS {
+  ITOS_ID?: string;
+  ORSV_ID?: string;
+  ITOS_TIPO: 'P' | 'S'; // Produto | Serviço
+  ITOS_DESCRICAO: string;
+  ITOS_QTDE: number;
+  ITOS_VLR_UNITARIO: number;
+  ITOS_DESCONTO: number;
+  ITOS_VLR_TOTAL: number;
+  PROD_ID?: string;
+}
+
+export interface Vendedor {
+  VDDR_ID: string;
+  VDDR_NOME: string;
+}
+
+export interface Tecnico {
+  TCNC_ID: string;
+  TCNC_NOME: string;
+}
+
+export interface Midia {
+  MDIA_ID: string;
+  MDIA_NOME: string;
+}
+
+export interface OrdemServicoFull {
+  ORSV_ID?: string;
+  ORSV_NUMERO?: string;
+  ORSV_DATA?: string;
+  ORSV_STATUS?: string;
+  TPOS_ID?: string;
+  PESS_ID?: string;
+  VEIC_ID?: string;
+  VDDR_ID?: string;
+  TCNC_ID?: string;
+  MDIA_ID?: string;
+  ORSV_OBSERVACOES?: string;
+  ORSV_NR_CHECKLIST?: string;
+  ORSV_VLR_SUBTOTAL?: number;
+  ORSV_VLR_DESCONTO?: number;
+  ORSV_VLR_TOTAL?: number;
+  ORSV_HODOMETRO?: string;
+  UNEM_ID?: string;
+  itens?: ItemOS[];
+}
+
+// ===== API Calls =====
+
+export const getTiposOrdemServicos = () =>
+  proxyGet<TipoOS[]>('/getTiposOrdemServicos');
+
+export const getClientes = (params: { id?: string; nome?: string; cpfcnpj?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<Cliente[]>(`/getClientes?${query}`);
+};
+
+export const setCliente = (cliente: Partial<Cliente>) =>
+  proxyPost<Cliente>('/setClientes', cliente);
+
+export const getVeiculos = (params: { placa?: string; id?: string; pess_id?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<Veiculo[]>(`/getVeiculos?${query}`);
+};
+
+export const setVeiculo = (veiculo: Partial<Veiculo>) =>
+  proxyPost<Veiculo>('/setVeiculos', veiculo);
+
+export const getMarcasVeiculo = (nome?: string) => {
+  const q = nome ? `?nome=${encodeURIComponent(nome)}` : '';
+  return proxyGet<MarcaVeiculo[]>(`/getMarcaVeiculo${q}`);
+};
+
+export const setMarcaVeiculo = (marca: Partial<MarcaVeiculo>) =>
+  proxyPost<MarcaVeiculo>('/setMarcaVeiculo', marca);
+
+export const getModelosVeiculo = (idMarca: string, nome?: string) => {
+  let q = `?idMarca=${encodeURIComponent(idMarca)}`;
+  if (nome) q += `&nome=${encodeURIComponent(nome)}`;
+  return proxyGet<ModeloVeiculo[]>(`/getModelosVeiculo${q}`);
+};
+
+export const setModeloVeiculo = (modelo: Partial<ModeloVeiculo & { MARC_VEIC_ID: string }>) =>
+  proxyPost<ModeloVeiculo>('/setModelosVeiculo', modelo);
+
+export const getVendedores = (params: { id?: string; nome?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<Vendedor[]>(`/getVendedores?${query}`);
+};
+
+export const getTecnicos = (params: { id?: string; nome?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<Tecnico[]>(`/getTecnicos?${query}`);
+};
+
+export const getMidias = (params: { id?: string; nome?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<Midia[]>(`/getMidias?${query}`);
+};
+
+export const getItensOrdemServicos = (orsvId: string) =>
+  proxyGet<ItemOS[]>(`/getItensOrdemServicos?id=${encodeURIComponent(orsvId)}`);
+
+export const setItensOrdemServicos = (itens: Partial<ItemOS>[]) =>
+  proxyPost<unknown>('/setItensOrdemServicos', itens);
+
+export const setOrdemServico = (os: Partial<OrdemServicoFull>) =>
+  proxyPost<OrdemServicoFull>('/setOrdemServicos', os);

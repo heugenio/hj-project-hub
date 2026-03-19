@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { baseUrl, endpoint, method } = await req.json();
+    const { baseUrl, endpoint, method, body } = await req.json();
 
     if (!baseUrl || !endpoint || !endpoint.startsWith('/')) {
       return new Response(
@@ -21,10 +21,16 @@ Deno.serve(async (req) => {
     }
 
     const url = `${baseUrl}${endpoint}`;
-    const response = await fetch(url, {
+    const fetchOptions: RequestInit = {
       method: method || 'GET',
-      headers: { 'Authorization': BASIC_AUTH },
-    });
+      headers: {
+        'Authorization': BASIC_AUTH,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    };
+
+    const response = await fetch(url, fetchOptions);
 
     const contentType = response.headers.get('content-type') || '';
     const isImage = contentType.startsWith('image/');
