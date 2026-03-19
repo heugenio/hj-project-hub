@@ -302,10 +302,11 @@ export function AppLayout() {
             <Store className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-sm font-medium text-foreground truncate">
               {auth?.unidade?.unem_Fantasia || '—'}
+              {auth?.unidade?.unem_Sigla ? ` ${auth.unidade.unem_Sigla}` : ''}
             </span>
             {auth?.unidade?.unem_CNPJ && (
               <span className="text-xs text-muted-foreground hidden md:inline">
-                CNPJ: {auth.unidade.unem_CNPJ}
+                CNPJ: {formatCNPJ(auth.unidade.unem_CNPJ)}
               </span>
             )}
           </div>
