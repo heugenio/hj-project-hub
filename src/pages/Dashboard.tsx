@@ -36,6 +36,12 @@ function parseGrowth(val: string | undefined): number {
   return parseFloat(val.replace(",", ".")) || 0;
 }
 
+function maskCNPJ(cnpj: string): string {
+  const digits = cnpj.replace(/\D/g, "");
+  if (digits.length !== 14) return cnpj;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12, 14)}`;
+}
+
 type Perfil = "ADM" | "Vendas" | "FINANCEIRO" | string;
 
 export default function Dashboard() {
@@ -49,6 +55,9 @@ export default function Dashboard() {
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
   const emprId = unemId.substring(0, 8);
+  const unidadeFantasia = auth?.unidade?.unem_Fantasia || "";
+  const unidadeSigla = auth?.unidade?.unem_Sigla || "";
+  const unidadeCNPJ = auth?.unidade?.unem_CNPJ || "";
 
   // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
   const resumoId = perfil === "ADM" ? emprId : unemId;
@@ -104,12 +113,18 @@ export default function Dashboard() {
   const qtdAnterior = parseCurrency(resumo?.ITFT_QTDE_ANT);
   const crescimento = parseGrowth(resumo?.CRECIMENTO);
 
-  // Chart data from comparativo
-  const chartData = comparativo.map((item) => ({
-    grupo: item.GRPO_NOME || "N/A",
-    atual: parseCurrency(item.ITFT_VLR_CONTABIL),
-    anterior: parseCurrency(item.ITFT_VLR_CONTABIL_ANT),
-    crescimento: parseGrowth(item.CRECIMENTO),
+  // Separar comparativo por GRPO_TIPO e ordenar por valor
+  const tiposMap = new Map<string, Comparativo[]>();
+  comparativo.forEach((item) => {
+    const tipo = item.GRPO_TIPO || "Geral";
+    if (!tiposMap.has(tipo)) tiposMap.set(tipo, []);
+    tiposMap.get(tipo)!.push(item);
+  });
+
+  // Ordenar cada grupo por valor atual decrescente
+  const tiposEntries = Array.from(tiposMap.entries()).map(([tipo, items]) => ({
+    tipo,
+    items: [...items].sort((a, b) => parseCurrency(b.ITFT_VLR_CONTABIL) - parseCurrency(a.ITFT_VLR_CONTABIL)),
   }));
 
   const pieData = comparativo
@@ -119,11 +134,21 @@ export default function Dashboard() {
       value: parseCurrency(item.ITFT_VLR_CONTABIL),
     }));
 
+  // Título com fantasia/sigla e CNPJ mascarado
+  const tituloUnidade = unidadeFantasia || unidadeSigla || "—";
+  const cnpjFormatado = unidadeCNPJ ? maskCNPJ(unidadeCNPJ) : "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {tituloUnidade}
+            {unidadeSigla && unidadeFantasia ? ` ${unidadeSigla}` : ""}
+          </h1>
+          {cnpjFormatado && (
+            <p className="text-muted-foreground text-xs mt-0.5">CNPJ: {cnpjFormatado}</p>
+          )}
           <p className="text-muted-foreground text-sm mt-1">
             Visão geral — Perfil: <Badge variant="secondary" className="ml-1">{perfil}</Badge>
           </p>
@@ -168,6 +193,8 @@ export default function Dashboard() {
               const growth = parseGrowth(loja.CRECIMENTO);
               const vlr = parseCurrency(loja.ITFT_VLR_CONTABIL);
               const vlrAnt = parseCurrency(loja.ITFT_VLR_CONTABIL_ANT);
+              const qtd = parseCurrency(loja.ITFT_QTDE);
+              const qtdAnt = parseCurrency(loja.ITFT_QTDE_ANT);
               const isLogada = loja.UNEM_ID === unemId;
               const sigla = unidadesMap[loja.UNEM_ID] || loja.UNEM_ID || `Loja ${i + 1}`;
 
@@ -199,8 +226,12 @@ export default function Dashboard() {
                         <span className="text-xs text-muted-foreground">{formatBRL(vlrAnt)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground">Qtd.</span>
-                        <span className="text-xs text-foreground">{parseCurrency(loja.ITFT_QTDE).toLocaleString("pt-BR")}</span>
+                        <span className="text-xs text-muted-foreground">Qtd. Atual</span>
+                        <span className="text-xs text-foreground">{qtd.toLocaleString("pt-BR")}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
+                        <span className="text-xs text-muted-foreground">{qtdAnt.toLocaleString("pt-BR")}</span>
                       </div>
                     </div>
 
@@ -244,8 +275,12 @@ export default function Dashboard() {
                     <span className="text-xs text-muted-foreground">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL_ANT), 0))}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Qtd. Total</span>
+                    <span className="text-xs text-muted-foreground">Qtd. Atual</span>
                     <span className="text-xs text-foreground">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE), 0).toLocaleString("pt-BR")}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
+                    <span className="text-xs text-muted-foreground">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE_ANT), 0).toLocaleString("pt-BR")}</span>
                   </div>
                 </div>
               </CardContent>
@@ -254,69 +289,93 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Profile-specific sections */}
+      {/* Profile-specific sections — Chart split by GRPO_TIPO */}
       {(perfil === "ADM" || perfil === "Vendas") && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card className="lg:col-span-2 border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                Comparativo por Grupo (Atual vs Anterior)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {chartData.length === 0 ? (
+        <div className="space-y-4">
+          {tiposEntries.length === 0 ? (
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Comparativo por Grupo (Atual vs Anterior)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <p className="text-muted-foreground text-sm text-center py-10">Sem dados disponíveis</p>
-              ) : (
-                <div style={{ width: "100%", height: 320 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} barGap={4}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="grupo" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" angle={-20} textAnchor="end" height={60} />
-                      <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(value: number) => formatBRL(value)} />
-                      <Bar dataKey="atual" name="Período Atual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="anterior" name="Período Anterior" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 space-y-4">
+                {tiposEntries.map(({ tipo, items }) => {
+                  const chartData = items.map((item) => ({
+                    grupo: item.GRPO_NOME || "N/A",
+                    atual: parseCurrency(item.ITFT_VLR_CONTABIL),
+                    anterior: parseCurrency(item.ITFT_VLR_CONTABIL_ANT),
+                  }));
 
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base">Participação por Grupo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pieData.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-10">Sem dados</p>
-              ) : (
-                <>
-                  <div style={{ width: "100%", height: 220 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                          {pieData.map((_, i) => (
-                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => formatBRL(value)} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {pieData.map((item, i) => (
-                      <div key={item.name} className="flex items-center gap-2 text-xs">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                        <span className="text-muted-foreground truncate">{item.name}</span>
+                  return (
+                    <Card key={tipo} className="border-border/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4 text-primary" />
+                          Comparativo — {tipo}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div style={{ width: "100%", height: Math.max(200, items.length * 40 + 80) }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} barGap={4}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                              <XAxis dataKey="grupo" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" angle={-20} textAnchor="end" height={60} />
+                              <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                              <Tooltip formatter={(value: number) => formatBRL(value)} />
+                              <Bar dataKey="atual" name="Período Atual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="anterior" name="Período Anterior" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-base">Participação por Grupo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {pieData.length === 0 ? (
+                    <p className="text-muted-foreground text-sm text-center py-10">Sem dados</p>
+                  ) : (
+                    <>
+                      <div style={{ width: "100%", height: 220 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                              {pieData.map((_, i) => (
+                                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value: number) => formatBRL(value)} />
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {pieData.map((item, i) => (
+                          <div key={item.name} className="flex items-center gap-2 text-xs">
+                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                            <span className="text-muted-foreground truncate">{item.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       )}
 
