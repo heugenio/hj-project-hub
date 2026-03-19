@@ -26,6 +26,7 @@ function maskCpfCnpj(v: string): string {
 export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [searchText, setSearchText] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Cliente>>({});
 
