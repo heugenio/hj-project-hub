@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { AutocompleteInput } from './AutocompleteInput';
 import { getClientes, setCliente, type Cliente } from '@/lib/api-os';
-import { UserPlus, User, Phone, Mail, MapPin } from 'lucide-react';
+import { UserPlus, User, Phone, Mail, MapPin, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ClienteSectionProps {
