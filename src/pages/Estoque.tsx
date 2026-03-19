@@ -196,9 +196,11 @@ export default function Estoque() {
                         <td
                           key={col}
                           className={`text-right px-2 py-1 tabular-nums whitespace-nowrap ${
-                            isUfColumn(col)
-                              ? "bg-primary/5 font-semibold text-primary border-l border-r border-primary/10"
-                              : numVal > 0 ? "text-foreground" : "text-muted-foreground/50"
+                            isLoggedCol(col)
+                              ? "bg-accent/15 font-semibold text-foreground border-l-2 border-r-2 border-accent/40"
+                              : isUfColumn(col)
+                                ? "bg-primary/5 font-semibold text-primary border-l border-r border-primary/10"
+                                : numVal > 0 ? "text-foreground" : "text-muted-foreground/50"
                           }`}
                         >
                           {val}
