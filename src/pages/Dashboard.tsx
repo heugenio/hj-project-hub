@@ -55,7 +55,6 @@ export default function Dashboard() {
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
   const emprId = unemId.substring(0, 8);
-  const emprId = unemId.substring(0, 8);
 
   // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
   const resumoId = perfil === "ADM" ? emprId : unemId;
