@@ -15,6 +15,8 @@ interface VeiculoSectionProps {
   veiculo: Veiculo | null;
   clienteId: string | null;
   onSelect: (veiculo: Veiculo) => void;
+  hodometro: string;
+  onHodometroChange: (value: string) => void;
 }
 
 export function VeiculoSection({ veiculo, clienteId, onSelect }: VeiculoSectionProps) {
