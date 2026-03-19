@@ -36,6 +36,12 @@ const reportItems = [
   { title: "Resumo de Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
 ];
 
+function formatCNPJ(cnpj: string): string {
+  const d = cnpj.replace(/\D/g, "");
+  if (d.length !== 14) return cnpj;
+  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`;
+}
+
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
