@@ -162,12 +162,15 @@ export default function Estoque() {
                     <th
                       key={col}
                       className={`text-right px-2 py-1.5 font-semibold whitespace-nowrap ${
-                        isUfColumn(col)
-                          ? "bg-primary/10 text-primary border-l border-r border-primary/20"
-                          : "text-muted-foreground"
+                        isLoggedCol(col)
+                          ? "bg-accent/30 text-accent-foreground border-l-2 border-r-2 border-accent"
+                          : isUfColumn(col)
+                            ? "bg-primary/10 text-primary border-l border-r border-primary/20"
+                            : "text-muted-foreground"
                       }`}
                     >
                       {getColumnLabel(col)}
+                      {isLoggedCol(col) && <span className="block text-[9px] font-normal text-accent-foreground/70">logada</span>}
                     </th>
                   ))}
                   <th className="text-right px-2 py-1.5 font-bold whitespace-nowrap bg-primary/15 text-primary border-l border-primary/20">
