@@ -120,6 +120,13 @@ export function VeiculoSection({ veiculo, clienteId, onSelect, hodometro, onHodo
               <Plus className="h-4 w-4 mr-1" /> Novo
             </Button>
           </div>
+          <div>
+            <Label className="text-xs">Hodômetro (Km)</Label>
+            <div className="relative">
+              <Gauge className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input value={hodometro} onChange={(e) => onHodometroChange(e.target.value)} className="h-9 text-sm pl-8" placeholder="Km atual do veículo" />
+            </div>
+          </div>
           {veiculo && (
             <div className="p-3 rounded-lg bg-muted/50 border border-border/50 space-y-1.5">
               <div className="flex items-center justify-between">
