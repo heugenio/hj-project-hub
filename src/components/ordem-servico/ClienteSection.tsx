@@ -149,7 +149,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" /> Novo Cliente
+              <UserPlus className="h-5 w-5 text-primary" /> {isEditing ? 'Editar Cliente' : 'Novo Cliente'}
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3">
