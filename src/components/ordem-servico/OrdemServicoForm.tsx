@@ -179,7 +179,7 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Tipo de OS</Label>
               <Select value={tipoOS} onValueChange={setTipoOS}>
@@ -205,10 +205,6 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Status</Label>
-              <Input value={statusOS} readOnly className="h-9 text-sm bg-muted/50" />
             </div>
           </div>
         </CardContent>
