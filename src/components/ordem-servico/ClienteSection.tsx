@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { AutocompleteInput } from './AutocompleteInput';
 import { getClientes, setCliente, type Cliente } from '@/lib/api-os';
-import { UserPlus, User, Phone, Mail, MapPin } from 'lucide-react';
+import { UserPlus, User, Phone, Mail, MapPin, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ClienteSectionProps {
@@ -26,6 +26,7 @@ function maskCpfCnpj(v: string): string {
 export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [searchText, setSearchText] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Cliente>>({});
 
@@ -66,13 +67,27 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       onSelect(result);
       setSearchText(result.PESS_NOME);
       setModalOpen(false);
+      setIsEditing(false);
       setForm({});
-      toast.success('Cliente cadastrado com sucesso!');
+      toast.success(isEditing ? 'Cliente atualizado com sucesso!' : 'Cliente cadastrado com sucesso!');
     } catch (e: any) {
       toast.error('Erro ao salvar cliente: ' + e.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditCliente = () => {
+    if (!cliente) return;
+    setForm({ ...cliente });
+    setIsEditing(true);
+    setModalOpen(true);
+  };
+
+  const handleOpenNew = () => {
+    setForm({});
+    setIsEditing(false);
+    setModalOpen(true);
   };
 
   return (
@@ -94,27 +109,35 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
               fetchOptions={fetchClientes}
               className="flex-1"
             />
-            <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="shrink-0">
+            <Button size="sm" variant="outline" onClick={handleOpenNew} className="shrink-0">
               <UserPlus className="h-4 w-4 mr-1" /> Novo
             </Button>
           </div>
           {cliente && (
-            <div className="p-3 rounded-lg bg-muted/50 border border-border/50 space-y-1.5">
+            <div className="p-3 rounded-lg bg-muted/50 border border-border/50 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-sm text-foreground">{cliente.PESS_NOME}</span>
-                <Badge variant="secondary" className="text-xs font-mono">
-                  {maskCpfCnpj(cliente.PESS_CPFCNPJ || '')}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs font-mono">
+                    {maskCpfCnpj(cliente.PESS_CPFCNPJ || '')}
+                  </Badge>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleEditCliente} title="Editar cliente">
+                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-4 text-xs text-muted-foreground">
+              <div className="grid grid-cols-1 gap-1.5 text-xs text-muted-foreground">
                 {cliente.PESS_FONE && (
-                  <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{cliente.PESS_FONE}</span>
+                  <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{cliente.PESS_FONE}</span>
                 )}
                 {cliente.PESS_EMAIL && (
-                  <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{cliente.PESS_EMAIL}</span>
+                  <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" />{cliente.PESS_EMAIL}</span>
                 )}
-                {cliente.PESS_CIDADE && (
-                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{cliente.PESS_CIDADE}{cliente.PESS_UF ? `/${cliente.PESS_UF}` : ''}</span>
+                {(cliente.PESS_ENDERECO || cliente.PESS_CIDADE) && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    {[cliente.PESS_ENDERECO, cliente.PESS_CIDADE, cliente.PESS_UF].filter(Boolean).join(', ')}
+                  </span>
                 )}
               </div>
             </div>
@@ -126,7 +149,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" /> Novo Cliente
+              <UserPlus className="h-5 w-5 text-primary" /> {isEditing ? 'Editar Cliente' : 'Novo Cliente'}
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3">
