@@ -222,6 +222,7 @@ export const getConsultaEstoqueFiliais = (params: {
 export interface Comparativo {
   UNEM_ID: string;
   GRPO_NOME: string;
+  GRPO_TIPO?: string;
   ITFT_VLR_CONTABIL: string;
   ITFT_QTDE: string;
   ITFT_VLR_CONTABIL_ANT: string;
