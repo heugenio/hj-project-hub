@@ -19,7 +19,7 @@ interface VeiculoSectionProps {
   onHodometroChange: (value: string) => void;
 }
 
-export function VeiculoSection({ veiculo, clienteId, onSelect }: VeiculoSectionProps) {
+export function VeiculoSection({ veiculo, clienteId, onSelect, hodometro, onHodometroChange }: VeiculoSectionProps) {
   const [searchText, setSearchText] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
