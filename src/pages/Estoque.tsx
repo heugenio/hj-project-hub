@@ -83,11 +83,9 @@ export default function Estoque() {
   const isUfColumn = (col: string) => /^[A-Z]{2}$/.test(col) && !/^\d/.test(col) && !col.startsWith("G0") && !col.startsWith("G1");
 
   const getColumnLabel = (col: string) => {
-    // If it's in the ufMap, use the UF
-    if (ufMap[col]) return ufMap[col];
-    // If it looks like a UF already (GO, DF), keep it
+    // UF total columns (GO, DF) keep as-is
     if (isUfColumn(col)) return col;
-    // Otherwise show as-is (G01, G02...)
+    // Filial columns (G01, G02...) show the sigla directly
     return col;
   };
 
