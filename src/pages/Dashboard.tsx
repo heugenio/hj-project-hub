@@ -134,21 +134,11 @@ export default function Dashboard() {
       value: parseCurrency(item.ITFT_VLR_CONTABIL),
     }));
 
-  // Título com fantasia/sigla e CNPJ mascarado
-  const tituloUnidade = unidadeFantasia || unidadeSigla || "—";
-  const cnpjFormatado = unidadeCNPJ ? maskCNPJ(unidadeCNPJ) : "";
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {tituloUnidade}
-            {unidadeSigla && unidadeFantasia ? ` ${unidadeSigla}` : ""}
-          </h1>
-          {cnpjFormatado && (
-            <p className="text-muted-foreground text-xs mt-0.5">CNPJ: {cnpjFormatado}</p>
-          )}
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Visão geral — Perfil: <Badge variant="secondary" className="ml-1">{perfil}</Badge>
           </p>
