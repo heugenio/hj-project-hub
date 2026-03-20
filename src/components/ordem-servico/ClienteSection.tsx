@@ -117,9 +117,21 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     try {
       const data = await buscarCep(cep);
       if (data) {
+        // Separar tipo de logradouro do logradouro (ex: "Rua das Flores" -> tipo="Rua", logradouro="das Flores")
+        let tipoLog = '';
+        let logradouro = data.logradouro || '';
+        const tiposConhecidos = ['Rua', 'Avenida', 'Travessa', 'Alameda', 'Praça', 'Rodovia', 'Estrada', 'Viela', 'Largo'];
+        for (const tipo of tiposConhecidos) {
+          if (logradouro.startsWith(tipo + ' ')) {
+            tipoLog = tipo;
+            logradouro = logradouro.substring(tipo.length + 1);
+            break;
+          }
+        }
         setForm((f) => ({
           ...f,
-          ENDE_LOGRADOURO: data.logradouro || f.ENDE_LOGRADOURO,
+          ENDE_TIPO_LOGRADOURO: tipoLog || f.ENDE_TIPO_LOGRADOURO,
+          ENDE_LOGRADOURO: logradouro || f.ENDE_LOGRADOURO,
           ENDE_COMPLEMENTO: data.complemento || f.ENDE_COMPLEMENTO,
           BAIR_NOME: data.bairro || f.BAIR_NOME,
           MUNI_NOME: data.localidade || f.MUNI_NOME,
