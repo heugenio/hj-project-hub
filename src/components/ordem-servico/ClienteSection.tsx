@@ -428,8 +428,14 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-1.5 text-xs text-muted-foreground">
-                {cliente.PESS_FONE && (
-                  <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{cliente.PESS_FONE}</span>
+                {(cliente.PESS_FONE || cliente.PESS_FONE_CELULAR) && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    {[
+                      cliente.PESS_FONE && `Tel: ${cliente.PESS_FONE}`,
+                      cliente.PESS_FONE_CELULAR && `Cel: ${cliente.PESS_FONE_CELULAR}`,
+                    ].filter(Boolean).join(' | ')}
+                  </span>
                 )}
                 {cliente.PESS_EMAIL && (
                   <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" />{cliente.PESS_EMAIL}</span>
