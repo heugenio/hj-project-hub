@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AutocompleteInput } from './AutocompleteInput';
 import { getClientes, setCliente, getMunicipios, getBairros, type Cliente, type Municipio, type Bairro } from '@/lib/api-os';
-import { UserPlus, User, Phone, Mail, MapPin, Pencil, Search, Loader2, FileText, Home, Building2, Calendar } from 'lucide-react';
+import { UserPlus, User, Phone, Smartphone, Mail, MapPin, Pencil, Search, Loader2, FileText, Home, Building2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ClienteSectionProps {
@@ -165,7 +165,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [loadingBairros, setLoadingBairros] = useState(false);
   const clientesCacheRef = useRef<Record<string, Cliente>>({});
 
-  const tipoPessoa = form.PESS_TIPO || (form.PESS_CPFCNPJ ? detectTipoPessoa(form.PESS_CPFCNPJ) : 'F');
+  const tipoPessoa = form.PESS_FISICO_JURIDICO || form.PESS_TIPO || (form.PESS_CPFCNPJ ? detectTipoPessoa(form.PESS_CPFCNPJ) : 'F');
 
   // Load municipios when estado changes
   useEffect(() => {
@@ -236,7 +236,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
 
     // Auto-detect tipo pessoa
     const tipo = detectTipoPessoa(nums);
-    setForm((f) => ({ ...f, PESS_TIPO: tipo }));
+    setForm((f) => ({ ...f, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo }));
 
     setBuscandoCnpj(true);
     try {
@@ -250,7 +250,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       if (results.length > 0) {
         const c = results[0];
         const uf = c.ESTA_UF || (c.ESTA_NOME && c.ESTA_NOME.length === 2 ? c.ESTA_NOME : '');
-        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF, PESS_TIPO: tipo });
+        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo });
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
@@ -262,7 +262,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
         try {
           const webData = await buscarCnpjWeb(nums);
           if (webData) {
-            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums, PESS_TIPO: 'J' }));
+            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: 'J', PESS_TIPO: 'J' }));
             toast.success('Dados do CNPJ encontrados na web!');
             setBuscandoCnpj(false);
             return;
@@ -276,7 +276,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       if (nums.length === 11) {
         const cpfData = await buscarCpfWeb(nums);
         if (cpfData) {
-          setForm((f) => ({ ...f, ...cpfData, PESS_CPFCNPJ: nums, PESS_TIPO: 'F' }));
+          setForm((f) => ({ ...f, ...cpfData, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: 'F', PESS_TIPO: 'F' }));
           toast.success('Dados do CPF encontrados!');
           setBuscandoCnpj(false);
           return;
@@ -428,8 +428,14 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-1.5 text-xs text-muted-foreground">
-                {cliente.PESS_FONE && (
-                  <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{cliente.PESS_FONE}</span>
+                {(cliente.PESS_FONE || cliente.PESS_FONE_CELULAR) && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    {[
+                      cliente.PESS_FONE && `Tel: ${cliente.PESS_FONE}`,
+                      cliente.PESS_FONE_CELULAR && `Cel: ${cliente.PESS_FONE_CELULAR}`,
+                    ].filter(Boolean).join(' | ')}
+                  </span>
                 )}
                 {cliente.PESS_EMAIL && (
                   <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" />{cliente.PESS_EMAIL}</span>
@@ -474,7 +480,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                   <Label className="text-xs">Tipo</Label>
                   <Select
                     value={tipoPessoa}
-                    onValueChange={(v) => setForm((f) => ({ ...f, PESS_TIPO: v as 'F' | 'J' }))}
+                    onValueChange={(v) => setForm((f) => ({ ...f, PESS_FISICO_JURIDICO: v as 'F' | 'J', PESS_TIPO: v as 'F' | 'J' }))}
                   >
                     <SelectTrigger className="h-9 text-sm">
                       <SelectValue />
@@ -494,7 +500,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       onChange={(e) => {
                         const nums = e.target.value.replace(/\D/g, '').slice(0, 14);
                         const tipo = detectTipoPessoa(nums);
-                        setForm((f) => ({ ...f, PESS_CPFCNPJ: nums, PESS_TIPO: tipo }));
+                        setForm((f) => ({ ...f, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo }));
                       }}
                       onBlur={handleCpfCnpjBlur}
                       placeholder={tipoPessoa === 'J' ? '00.000.000/0000-00' : '000.000.000-00'}
@@ -574,13 +580,26 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       setForm((f) => ({ ...f, PESS_FONE: nums }));
                       setTelefoneError(nums && !validarTelefone(nums) ? 'Telefone inválido' : '');
                     }}
-                    placeholder="(00) 00000-0000"
+                    placeholder="(00) 0000-0000"
                     className={`h-9 text-sm ${telefoneError ? 'border-destructive' : ''}`}
                   />
                   {telefoneError && <span className="text-[10px] text-destructive">{telefoneError}</span>}
                 </div>
+                {/* Celular */}
+                <div className="col-span-2">
+                  <Label className="text-xs">Celular</Label>
+                  <Input
+                    value={maskTelefone(form.PESS_FONE_CELULAR || '')}
+                    onChange={(e) => {
+                      const nums = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      setForm((f) => ({ ...f, PESS_FONE_CELULAR: nums }));
+                    }}
+                    placeholder="(00) 00000-0000"
+                    className="h-9 text-sm"
+                  />
+                </div>
                 {/* Email */}
-                <div className={tipoPessoa === 'J' ? 'col-span-4' : 'col-span-3'}>
+                <div className={tipoPessoa === 'J' ? 'col-span-2' : 'col-span-2'}>
                   <Label className="text-xs">E-mail</Label>
                   <Input
                     value={form.PESS_EMAIL || ''}
