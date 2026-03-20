@@ -38,6 +38,11 @@ export interface Cliente {
   PESS_ENDERECO?: string;
   PESS_CIDADE?: string;
   PESS_UF?: string;
+  PESS_TIPO?: 'F' | 'J'; // Física ou Jurídica
+  PESS_RAZAO_SOCIAL?: string;
+  PESS_DATA_CADASTRO?: string;
+  PESS_DATA_NASCIMENTO?: string;
+  PESS_SEXO?: string;
   // Address fields
   ENDE_TIPO_LOGRADOURO?: string;
   ENDE_LOGRADOURO?: string;
