@@ -549,8 +549,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     onValueChange={(v) => {
                       const estado = ESTADOS_BR.find((e) => e.uf === v);
                       setForm((f) => ({ ...f, ESTA_UF: v, ESTA_NOME: estado?.nome || v, PESS_UF: v, MUNI_NOME: '', BAIR_NOME: '' }));
-                      setSelectedMunicipioId(null);
-                      setDistritos([]);
+                      setBairros([]);
                     }}
                   >
                     <SelectTrigger className="h-9 text-sm">
