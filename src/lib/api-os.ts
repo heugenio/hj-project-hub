@@ -38,6 +38,21 @@ export interface Cliente {
   PESS_ENDERECO?: string;
   PESS_CIDADE?: string;
   PESS_UF?: string;
+  // Address fields
+  ENDE_TIPO_LOGRADOURO?: string;
+  ENDE_LOGRADOURO?: string;
+  ENDE_NUMERO?: string;
+  ENDE_COMPLEMENTO?: string;
+  ENDE_CEP?: string;
+  ENDE_ZONA?: string;
+  ENDE_OBSERVACAO?: string;
+  ESTA_NOME?: string;
+  BAIR_NOME?: string;
+  MUNI_NOME?: string;
+  // Document fields
+  DOCS_IE?: string;
+  DOCS_RG?: string;
+  DOCS_ICMUNI?: string;
 }
 
 export interface Veiculo {
