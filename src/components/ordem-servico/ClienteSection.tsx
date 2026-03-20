@@ -686,6 +686,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       value={maskCep(form.ENDE_CEP || '')}
                       onChange={(e) => setForm((f) => ({ ...f, ENDE_CEP: e.target.value.replace(/\D/g, '').slice(0, 8) }))}
                       onBlur={handleCepBlur}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCepBlur(); } }}
                       placeholder="00000-000"
                       className="h-9 text-sm font-mono pr-8"
                     />
