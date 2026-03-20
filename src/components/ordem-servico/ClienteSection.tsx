@@ -277,6 +277,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
           ENDE_COMPLEMENTO: data.complemento || f.ENDE_COMPLEMENTO,
           BAIR_NOME: data.bairro || f.BAIR_NOME,
           MUNI_NOME: data.localidade || f.MUNI_NOME,
+          ESTA_UF: data.uf || f.ESTA_UF,
           ESTA_NOME: data.uf || f.ESTA_NOME,
           PESS_UF: data.uf || f.PESS_UF,
           PESS_CIDADE: data.localidade || f.PESS_CIDADE,
