@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AutocompleteInput } from './AutocompleteInput';
 import { getClientes, setCliente, getMunicipios, getBairros, type Cliente, type Municipio, type Bairro } from '@/lib/api-os';
-import { UserPlus, User, Phone, Mail, MapPin, Pencil, Search, Loader2, FileText, Home, Building2, Calendar } from 'lucide-react';
+import { UserPlus, User, Phone, Smartphone, Mail, MapPin, Pencil, Search, Loader2, FileText, Home, Building2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ClienteSectionProps {

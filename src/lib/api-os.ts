@@ -34,11 +34,13 @@ export interface Cliente {
   PESS_NOME: string;
   PESS_CPFCNPJ: string;
   PESS_FONE?: string;
+  PESS_FONE_CELULAR?: string;
   PESS_EMAIL?: string;
   PESS_ENDERECO?: string;
   PESS_CIDADE?: string;
   PESS_UF?: string;
-  PESS_TIPO?: 'F' | 'J'; // Física ou Jurídica
+  PESS_FISICO_JURIDICO?: 'F' | 'J';
+  PESS_TIPO?: 'F' | 'J';
   PESS_RAZAO_SOCIAL?: string;
   PESS_DATA_CADASTRO?: string;
   PESS_DATA_NASCIMENTO?: string;
