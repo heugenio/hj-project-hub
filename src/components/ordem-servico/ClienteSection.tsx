@@ -381,6 +381,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
           PESS_CIDADE: data.localidade || f.PESS_CIDADE,
         }));
         toast.success('CEP encontrado!');
+        setTimeout(() => tipoLogradouroRef.current?.focus(), 100);
       } else {
         toast.error('CEP não encontrado');
       }
