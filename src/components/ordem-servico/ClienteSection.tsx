@@ -569,17 +569,16 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     <Select
                       value={form.MUNI_NOME || ''}
                       onValueChange={(v) => {
-                        const mun = municipios.find((m) => m.nome === v);
                         setForm((f) => ({ ...f, MUNI_NOME: v, PESS_CIDADE: v, BAIR_NOME: '' }));
-                        setSelectedMunicipioId(mun?.id || null);
+                        setBairros([]);
                       }}
                     >
                       <SelectTrigger className="h-9 text-sm">
                         <SelectValue placeholder="Selecione o município" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
-                        {municipios.map((m) => (
-                          <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
+                        {municipios.map((m, i) => (
+                          <SelectItem key={m.MUNI_ID || i} value={m.MUNI_NOME}>{m.MUNI_NOME}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -587,16 +586,15 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     <Input
                       value={form.MUNI_NOME || ''}
                       onChange={(e) => setForm((f) => ({ ...f, MUNI_NOME: e.target.value, PESS_CIDADE: e.target.value }))}
-                      placeholder={form.ESTA_NOME ? 'Carregando...' : 'Selecione o estado primeiro'}
+                      placeholder={loadingMunicipios ? 'Carregando...' : 'Digite o município'}
                       className="h-9 text-sm"
-                      disabled={!form.ESTA_NOME}
                     />
                   )}
                 </div>
                 {/* Bairro (Select dependent on Município, fallback to input) */}
                 <div className="col-span-4">
-                  <Label className="text-xs">Bairro {loadingDistritos && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
-                  {distritos.length > 1 ? (
+                  <Label className="text-xs">Bairro {loadingBairros && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
+                  {bairros.length > 0 ? (
                     <Select
                       value={form.BAIR_NOME || ''}
                       onValueChange={(v) => setForm((f) => ({ ...f, BAIR_NOME: v }))}
@@ -605,8 +603,8 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                         <SelectValue placeholder="Selecione o bairro" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
-                        {distritos.map((d) => (
-                          <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                        {bairros.map((b, i) => (
+                          <SelectItem key={b.BAIR_ID || i} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -615,7 +613,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       value={form.BAIR_NOME || ''}
                       onChange={(e) => setForm((f) => ({ ...f, BAIR_NOME: e.target.value }))}
                       className="h-9 text-sm"
-                      placeholder="Bairro"
+                      placeholder="Digite o bairro"
                     />
                   )}
                 </div>
