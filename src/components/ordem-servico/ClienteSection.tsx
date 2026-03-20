@@ -262,7 +262,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
         try {
           const webData = await buscarCnpjWeb(nums);
           if (webData) {
-            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums, PESS_TIPO: 'J' }));
+            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: 'J', PESS_TIPO: 'J' }));
             toast.success('Dados do CNPJ encontrados na web!');
             setBuscandoCnpj(false);
             return;
