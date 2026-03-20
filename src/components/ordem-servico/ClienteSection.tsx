@@ -785,28 +785,31 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 {/* Bairro */}
                 <div className="col-span-4">
                   <Label className="text-xs">Bairro {loadingBairros && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
-                  {bairros.length > 0 ? (
-                    <Select
-                      value={form.BAIR_NOME || ''}
-                      onValueChange={(v) => setForm((f) => ({ ...f, BAIR_NOME: v }))}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Selecione o bairro" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {bairros.map((b, i) => (
-                          <SelectItem key={b.BAIR_ID || `bairro-${i}`} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      value={form.BAIR_NOME || ''}
-                      onChange={(e) => setForm((f) => ({ ...f, BAIR_NOME: e.target.value }))}
-                      className="h-9 text-sm"
-                      placeholder="Digite o bairro"
-                    />
-                  )}
+                  {(() => {
+                    const bairroInList = bairros.length > 0 && (!form.BAIR_NOME || bairros.some(b => b.BAIR_NOME === form.BAIR_NOME));
+                    return bairros.length > 0 && bairroInList ? (
+                      <Select
+                        value={form.BAIR_NOME || ''}
+                        onValueChange={(v) => setForm((f) => ({ ...f, BAIR_NOME: v }))}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione o bairro" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {bairros.map((b, i) => (
+                            <SelectItem key={b.BAIR_ID || `bairro-${i}`} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={form.BAIR_NOME || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, BAIR_NOME: e.target.value }))}
+                        className="h-9 text-sm"
+                        placeholder={loadingBairros ? 'Carregando...' : 'Digite o bairro'}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
             </div>
