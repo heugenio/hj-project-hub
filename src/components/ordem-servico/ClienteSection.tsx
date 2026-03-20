@@ -236,7 +236,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
 
     // Auto-detect tipo pessoa
     const tipo = detectTipoPessoa(nums);
-    setForm((f) => ({ ...f, PESS_TIPO: tipo }));
+    setForm((f) => ({ ...f, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo }));
 
     setBuscandoCnpj(true);
     try {
