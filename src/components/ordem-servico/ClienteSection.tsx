@@ -494,7 +494,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       onChange={(e) => {
                         const nums = e.target.value.replace(/\D/g, '').slice(0, 14);
                         const tipo = detectTipoPessoa(nums);
-                        setForm((f) => ({ ...f, PESS_CPFCNPJ: nums, PESS_TIPO: tipo }));
+                        setForm((f) => ({ ...f, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo }));
                       }}
                       onBlur={handleCpfCnpjBlur}
                       placeholder={tipoPessoa === 'J' ? '00.000.000/0000-00' : '000.000.000-00'}
