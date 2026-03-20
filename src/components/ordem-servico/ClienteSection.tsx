@@ -407,6 +407,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     }
     setSaving(true);
     try {
+      console.log('[setCliente] JSON enviado:', JSON.stringify(form, null, 2));
       const result = await setCliente(form);
       onSelect(result);
       setSearchText(result.PESS_NOME);
