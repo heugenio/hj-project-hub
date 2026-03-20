@@ -116,6 +116,7 @@ async function buscarCnpjWeb(cnpj: string) {
       ENDE_COMPLEMENTO: d.complemento || '',
       BAIR_NOME: d.bairro || '',
       MUNI_NOME: d.municipio || '',
+      ESTA_UF: d.uf || '',
       ESTA_NOME: d.uf || '',
       PESS_UF: d.uf || '',
       PESS_CIDADE: d.municipio || '',
@@ -142,12 +143,11 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
 
   // Load municipios when estado changes
   useEffect(() => {
-    const uf = form.ESTA_NOME;
+    const uf = form.ESTA_UF || form.ESTA_NOME;
     if (uf && uf.length === 2) {
       setLoadingMunicipios(true);
       fetchMunicipios(uf).then((m) => {
         setMunicipios(m);
-        // Try to find current municipio
         if (form.MUNI_NOME) {
           const found = m.find((x) => x.nome.toLowerCase() === form.MUNI_NOME!.toLowerCase());
           if (found) setSelectedMunicipioId(found.id);
@@ -158,7 +158,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       setMunicipios([]);
       setSelectedMunicipioId(null);
     }
-  }, [form.ESTA_NOME]);
+  }, [form.ESTA_UF, form.ESTA_NOME]);
 
   // Load distritos when municipio changes
   useEffect(() => {
@@ -214,10 +214,17 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     setBuscandoCnpj(true);
     try {
       // Try API first
-      const results = await getClientes({ cpfcnpj: nums });
+      let results: Cliente[] = [];
+      try {
+        results = await getClientes({ cpfcnpj: nums });
+      } catch {
+        // API may fail — continue to web search
+      }
       if (results.length > 0) {
         const c = results[0];
-        setForm({ ...c });
+        // Map ESTA_UF from ESTA_NOME if it looks like UF code
+        const uf = c.ESTA_UF || (c.ESTA_NOME && c.ESTA_NOME.length === 2 ? c.ESTA_NOME : '');
+        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF });
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
@@ -226,18 +233,22 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
 
       // If CNPJ (14 digits), try web
       if (nums.length === 14) {
-        const webData = await buscarCnpjWeb(nums);
-        if (webData) {
-          setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums }));
-          toast.success('Dados do CNPJ encontrados na web!');
-          setBuscandoCnpj(false);
-          return;
+        try {
+          const webData = await buscarCnpjWeb(nums);
+          if (webData) {
+            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums }));
+            toast.success('Dados do CNPJ encontrados na web!');
+            setBuscandoCnpj(false);
+            return;
+          }
+        } catch {
+          // Web search failed — continue
         }
       }
 
       toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
     } catch {
-      toast.error('Erro na busca');
+      toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
     } finally {
       setBuscandoCnpj(false);
     }
@@ -267,6 +278,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
           ENDE_COMPLEMENTO: data.complemento || f.ENDE_COMPLEMENTO,
           BAIR_NOME: data.bairro || f.BAIR_NOME,
           MUNI_NOME: data.localidade || f.MUNI_NOME,
+          ESTA_UF: data.uf || f.ESTA_UF,
           ESTA_NOME: data.uf || f.ESTA_NOME,
           PESS_UF: data.uf || f.PESS_UF,
           PESS_CIDADE: data.localidade || f.PESS_CIDADE,
@@ -540,9 +552,10 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 <div className="col-span-3">
                   <Label className="text-xs">Estado</Label>
                   <Select
-                    value={form.ESTA_NOME || ''}
+                    value={form.ESTA_UF || form.ESTA_NOME || ''}
                     onValueChange={(v) => {
-                      setForm((f) => ({ ...f, ESTA_NOME: v, PESS_UF: v, MUNI_NOME: '', BAIR_NOME: '' }));
+                      const estado = ESTADOS_BR.find((e) => e.uf === v);
+                      setForm((f) => ({ ...f, ESTA_UF: v, ESTA_NOME: estado?.nome || v, PESS_UF: v, MUNI_NOME: '', BAIR_NOME: '' }));
                       setSelectedMunicipioId(null);
                       setDistritos([]);
                     }}
