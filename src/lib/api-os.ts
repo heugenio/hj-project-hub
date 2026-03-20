@@ -47,6 +47,7 @@ export interface Cliente {
   ENDE_ZONA?: string;
   ENDE_OBSERVACAO?: string;
   ESTA_NOME?: string;
+  ESTA_UF?: string;
   BAIR_NOME?: string;
   MUNI_NOME?: string;
   // Document fields
