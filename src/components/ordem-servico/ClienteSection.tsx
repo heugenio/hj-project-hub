@@ -116,6 +116,7 @@ async function buscarCnpjWeb(cnpj: string) {
       ENDE_COMPLEMENTO: d.complemento || '',
       BAIR_NOME: d.bairro || '',
       MUNI_NOME: d.municipio || '',
+      ESTA_UF: d.uf || '',
       ESTA_NOME: d.uf || '',
       PESS_UF: d.uf || '',
       PESS_CIDADE: d.municipio || '',
