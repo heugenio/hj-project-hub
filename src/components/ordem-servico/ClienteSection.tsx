@@ -310,6 +310,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
+        setTimeout(() => nomeInputRef.current?.focus(), 100);
         return;
       }
 
