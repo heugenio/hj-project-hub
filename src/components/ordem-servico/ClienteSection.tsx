@@ -343,6 +343,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       }
 
       toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
+      setTimeout(() => nomeInputRef.current?.focus(), 100);
     } catch {
       toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
     } finally {
