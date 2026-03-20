@@ -756,31 +756,34 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 {/* Município */}
                 <div className="col-span-5">
                   <Label className="text-xs">Município {loadingMunicipios && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
-                  {municipios.length > 0 ? (
-                    <Select
-                      value={form.MUNI_NOME || ''}
-                      onValueChange={(v) => {
-                        setForm((f) => ({ ...f, MUNI_NOME: v, PESS_CIDADE: v, BAIR_NOME: '' }));
-                        setBairros([]);
-                      }}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Selecione o município" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {municipios.map((m, i) => (
-                          <SelectItem key={m.MUNI_ID || i} value={m.MUNI_NOME}>{m.MUNI_NOME}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      value={form.MUNI_NOME || ''}
-                      onChange={(e) => setForm((f) => ({ ...f, MUNI_NOME: e.target.value, PESS_CIDADE: e.target.value }))}
-                      placeholder={loadingMunicipios ? 'Carregando...' : 'Digite o município'}
-                      className="h-9 text-sm"
-                    />
-                  )}
+                  {(() => {
+                    const muniInList = municipios.length > 0 && (!form.MUNI_NOME || municipios.some(m => m.MUNI_NOME === form.MUNI_NOME));
+                    return municipios.length > 0 && muniInList ? (
+                      <Select
+                        value={form.MUNI_NOME || ''}
+                        onValueChange={(v) => {
+                          setForm((f) => ({ ...f, MUNI_NOME: v, PESS_CIDADE: v, BAIR_NOME: '' }));
+                          setBairros([]);
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione o município" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {municipios.map((m, i) => (
+                            <SelectItem key={m.MUNI_ID || i} value={m.MUNI_NOME}>{m.MUNI_NOME}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={form.MUNI_NOME || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, MUNI_NOME: e.target.value, PESS_CIDADE: e.target.value }))}
+                        placeholder={loadingMunicipios ? 'Carregando...' : 'Digite o município'}
+                        className="h-9 text-sm"
+                      />
+                    );
+                  })()}
                 </div>
                 {/* Bairro */}
                 <div className="col-span-4">
