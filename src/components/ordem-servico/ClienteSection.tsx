@@ -210,6 +210,8 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [loadingMunicipios, setLoadingMunicipios] = useState(false);
   const [loadingBairros, setLoadingBairros] = useState(false);
   const clientesCacheRef = useRef<Record<string, Cliente>>({});
+  const nomeInputRef = useRef<HTMLInputElement>(null);
+  const tipoLogradouroRef = useRef<HTMLButtonElement>(null);
 
   const tipoPessoa = form.PESS_FISICO_JURIDICO || form.PESS_TIPO || (form.PESS_CPFCNPJ ? detectTipoPessoa(form.PESS_CPFCNPJ) : 'F');
 
@@ -308,6 +310,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
+        setTimeout(() => nomeInputRef.current?.focus(), 100);
         return;
       }
 
@@ -319,6 +322,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
             setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: 'J', PESS_TIPO: 'J' }));
             toast.success('Dados do CNPJ encontrados na web!');
             setBuscandoCnpj(false);
+            setTimeout(() => nomeInputRef.current?.focus(), 100);
             return;
           }
         } catch {
@@ -333,11 +337,13 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
           setForm((f) => ({ ...f, ...cpfData, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: 'F', PESS_TIPO: 'F' }));
           toast.success('Dados do CPF encontrados via IA!');
           setBuscandoCnpj(false);
+          setTimeout(() => nomeInputRef.current?.focus(), 100);
           return;
         }
       }
 
       toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
+      setTimeout(() => nomeInputRef.current?.focus(), 100);
     } catch {
       toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
     } finally {
@@ -375,6 +381,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
           PESS_CIDADE: data.localidade || f.PESS_CIDADE,
         }));
         toast.success('CEP encontrado!');
+        setTimeout(() => tipoLogradouroRef.current?.focus(), 100);
       } else {
         toast.error('CEP não encontrado');
       }
@@ -400,6 +407,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     }
     setSaving(true);
     try {
+      console.log('[setCliente] JSON enviado:', JSON.stringify(form, null, 2));
       const result = await setCliente(form);
       onSelect(result);
       setSearchText(result.PESS_NOME);
@@ -571,7 +579,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 {/* Nome */}
                 <div className="col-span-3">
                   <Label className="text-xs">{tipoPessoa === 'J' ? 'Nome Fantasia *' : 'Nome *'}</Label>
-                  <Input value={form.PESS_NOME || ''} onChange={updateField('PESS_NOME')} className="h-9 text-sm" />
+                  <Input ref={nomeInputRef} value={form.PESS_NOME || ''} onChange={updateField('PESS_NOME')} className="h-9 text-sm" />
                 </div>
 
                 {/* Conditional fields based on tipo pessoa */}
@@ -704,7 +712,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     value={form.ENDE_TIPO_LOGRADOURO || ''}
                     onValueChange={(v) => setForm((f) => ({ ...f, ENDE_TIPO_LOGRADOURO: v }))}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger ref={tipoLogradouroRef} className="h-9 text-sm">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
