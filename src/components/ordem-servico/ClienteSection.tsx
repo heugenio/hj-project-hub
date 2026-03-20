@@ -213,10 +213,17 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     setBuscandoCnpj(true);
     try {
       // Try API first
-      const results = await getClientes({ cpfcnpj: nums });
+      let results: Cliente[] = [];
+      try {
+        results = await getClientes({ cpfcnpj: nums });
+      } catch {
+        // API may fail — continue to web search
+      }
       if (results.length > 0) {
         const c = results[0];
-        setForm({ ...c });
+        // Map ESTA_UF from ESTA_NOME if it looks like UF code
+        const uf = c.ESTA_UF || (c.ESTA_NOME && c.ESTA_NOME.length === 2 ? c.ESTA_NOME : '');
+        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF });
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
@@ -225,18 +232,22 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
 
       // If CNPJ (14 digits), try web
       if (nums.length === 14) {
-        const webData = await buscarCnpjWeb(nums);
-        if (webData) {
-          setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums }));
-          toast.success('Dados do CNPJ encontrados na web!');
-          setBuscandoCnpj(false);
-          return;
+        try {
+          const webData = await buscarCnpjWeb(nums);
+          if (webData) {
+            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums }));
+            toast.success('Dados do CNPJ encontrados na web!');
+            setBuscandoCnpj(false);
+            return;
+          }
+        } catch {
+          // Web search failed — continue
         }
       }
 
       toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
     } catch {
-      toast.error('Erro na busca');
+      toast.info('CPF/CNPJ não encontrado. Preencha os dados manualmente.');
     } finally {
       setBuscandoCnpj(false);
     }
