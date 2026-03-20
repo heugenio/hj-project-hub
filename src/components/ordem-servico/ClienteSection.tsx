@@ -165,7 +165,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [loadingBairros, setLoadingBairros] = useState(false);
   const clientesCacheRef = useRef<Record<string, Cliente>>({});
 
-  const tipoPessoa = form.PESS_TIPO || (form.PESS_CPFCNPJ ? detectTipoPessoa(form.PESS_CPFCNPJ) : 'F');
+  const tipoPessoa = form.PESS_FISICO_JURIDICO || form.PESS_TIPO || (form.PESS_CPFCNPJ ? detectTipoPessoa(form.PESS_CPFCNPJ) : 'F');
 
   // Load municipios when estado changes
   useEffect(() => {
