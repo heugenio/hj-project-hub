@@ -574,13 +574,26 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       setForm((f) => ({ ...f, PESS_FONE: nums }));
                       setTelefoneError(nums && !validarTelefone(nums) ? 'Telefone inválido' : '');
                     }}
-                    placeholder="(00) 00000-0000"
+                    placeholder="(00) 0000-0000"
                     className={`h-9 text-sm ${telefoneError ? 'border-destructive' : ''}`}
                   />
                   {telefoneError && <span className="text-[10px] text-destructive">{telefoneError}</span>}
                 </div>
+                {/* Celular */}
+                <div className="col-span-2">
+                  <Label className="text-xs">Celular</Label>
+                  <Input
+                    value={maskTelefone(form.PESS_FONE_CELULAR || '')}
+                    onChange={(e) => {
+                      const nums = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      setForm((f) => ({ ...f, PESS_FONE_CELULAR: nums }));
+                    }}
+                    placeholder="(00) 00000-0000"
+                    className="h-9 text-sm"
+                  />
+                </div>
                 {/* Email */}
-                <div className={tipoPessoa === 'J' ? 'col-span-4' : 'col-span-3'}>
+                <div className={tipoPessoa === 'J' ? 'col-span-2' : 'col-span-2'}>
                   <Label className="text-xs">E-mail</Label>
                   <Input
                     value={form.PESS_EMAIL || ''}
