@@ -557,6 +557,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                         setForm((f) => ({ ...f, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo }));
                       }}
                       onBlur={handleCpfCnpjBlur}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCpfCnpjBlur(); } }}
                       placeholder={tipoPessoa === 'J' ? '00.000.000/0000-00' : '000.000.000-00'}
                       className="h-9 text-sm font-mono pr-8"
                     />
