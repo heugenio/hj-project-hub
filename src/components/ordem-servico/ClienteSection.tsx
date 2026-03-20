@@ -132,11 +132,10 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [form, setForm] = useState<Partial<Cliente>>({});
   const [emailError, setEmailError] = useState('');
   const [telefoneError, setTelefoneError] = useState('');
-  const [municipios, setMunicipios] = useState<{ id: number; nome: string }[]>([]);
-  const [distritos, setDistritos] = useState<{ id: number; nome: string }[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [bairros, setBairros] = useState<Bairro[]>([]);
   const [loadingMunicipios, setLoadingMunicipios] = useState(false);
-  const [loadingDistritos, setLoadingDistritos] = useState(false);
-  const [selectedMunicipioId, setSelectedMunicipioId] = useState<number | null>(null);
+  const [loadingBairros, setLoadingBairros] = useState(false);
   const clientesCacheRef = useRef<Record<string, Cliente>>({});
 
   // Load municipios when estado changes
@@ -144,32 +143,29 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     const uf = form.ESTA_UF || form.ESTA_NOME;
     if (uf && uf.length === 2) {
       setLoadingMunicipios(true);
-      fetchMunicipios(uf).then((m) => {
+      fetchMunicipiosApi(uf).then((m) => {
         setMunicipios(m);
-        if (form.MUNI_NOME) {
-          const found = m.find((x) => x.nome.toLowerCase() === form.MUNI_NOME!.toLowerCase());
-          if (found) setSelectedMunicipioId(found.id);
-        }
         setLoadingMunicipios(false);
       });
     } else {
       setMunicipios([]);
-      setSelectedMunicipioId(null);
     }
   }, [form.ESTA_UF, form.ESTA_NOME]);
 
-  // Load distritos when municipio changes
+  // Load bairros when municipio changes
   useEffect(() => {
-    if (selectedMunicipioId) {
-      setLoadingDistritos(true);
-      fetchDistritos(selectedMunicipioId).then((d) => {
-        setDistritos(d);
-        setLoadingDistritos(false);
+    const uf = form.ESTA_UF || form.ESTA_NOME;
+    const muni = form.MUNI_NOME;
+    if (uf && uf.length === 2 && muni) {
+      setLoadingBairros(true);
+      fetchBairrosApi(uf, muni).then((b) => {
+        setBairros(b);
+        setLoadingBairros(false);
       });
     } else {
-      setDistritos([]);
+      setBairros([]);
     }
-  }, [selectedMunicipioId]);
+  }, [form.ESTA_UF, form.ESTA_NOME, form.MUNI_NOME]);
 
   const fetchClientesSearch = useCallback(async (query: string) => {
     try {
