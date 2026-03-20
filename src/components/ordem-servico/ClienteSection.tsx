@@ -131,12 +131,37 @@ async function buscarCnpjWeb(cnpj: string) {
   } catch { return null; }
 }
 
-// ===== BrasilAPI for CPF lookup (public data only) =====
-async function buscarCpfWeb(cpf: string) {
+// ===== AI-powered CPF lookup via edge function =====
+async function buscarCpfWeb(cpf: string): Promise<Partial<Cliente> | null> {
   const nums = cpf.replace(/\D/g, '');
   if (nums.length !== 11) return null;
-  // BrasilAPI doesn't have CPF lookup — no public gov API available for CPF data
-  return null;
+  try {
+    const { data, error } = await supabase.functions.invoke('cpf-lookup', {
+      body: { cpf: nums },
+    });
+    if (error) {
+      console.error('CPF lookup error:', error);
+      return null;
+    }
+    if (!data || data.encontrado === false) return null;
+
+    const result: Partial<Cliente> = { PESS_FISICO_JURIDICO: 'F', PESS_TIPO: 'F' };
+    if (data.nome) result.PESS_NOME = data.nome;
+    if (data.data_nascimento) result.PESS_DATA_NASCIMENTO = data.data_nascimento;
+    if (data.sexo) result.PESS_SEXO = data.sexo;
+    if (data.telefone) result.PESS_FONE = data.telefone.replace(/\D/g, '');
+    if (data.celular) result.PESS_FONE_CELULAR = data.celular.replace(/\D/g, '');
+    if (data.email) result.PESS_EMAIL = data.email;
+    if (data.cep) result.ENDE_CEP = data.cep.replace(/\D/g, '');
+    if (data.logradouro) result.ENDE_LOGRADOURO = data.logradouro;
+    if (data.numero) result.ENDE_NUMERO = data.numero;
+    if (data.bairro) result.BAIR_NOME = data.bairro;
+    if (data.cidade) { result.MUNI_NOME = data.cidade; result.PESS_CIDADE = data.cidade; }
+    if (data.uf) { result.ESTA_UF = data.uf; result.ESTA_NOME = data.uf; result.PESS_UF = data.uf; }
+    return result;
+  } catch {
+    return null;
+  }
 }
 
 // ===== Deduplicate bairros by BAIR_NOME =====
