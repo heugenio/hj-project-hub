@@ -322,6 +322,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
             setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: 'J', PESS_TIPO: 'J' }));
             toast.success('Dados do CNPJ encontrados na web!');
             setBuscandoCnpj(false);
+            setTimeout(() => nomeInputRef.current?.focus(), 100);
             return;
           }
         } catch {
