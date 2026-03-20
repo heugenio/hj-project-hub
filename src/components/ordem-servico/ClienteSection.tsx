@@ -303,7 +303,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
         const cpfData = await buscarCpfWeb(nums);
         if (cpfData) {
           setForm((f) => ({ ...f, ...cpfData, PESS_CPFCNPJ: nums, PESS_FISICO_JURIDICO: 'F', PESS_TIPO: 'F' }));
-          toast.success('Dados do CPF encontrados!');
+          toast.success('Dados do CPF encontrados via IA!');
           setBuscandoCnpj(false);
           return;
         }
