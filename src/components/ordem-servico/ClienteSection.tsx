@@ -56,6 +56,26 @@ function detectTipoPessoa(cpfcnpj: string): 'F' | 'J' {
   return nums.length > 11 ? 'J' : 'F';
 }
 
+// Parse "Física"/"Jurídica" or "F"/"J" to normalized 'F' | 'J'
+function normalizeTipoPessoa(value?: string): 'F' | 'J' | undefined {
+  if (!value) return undefined;
+  const v = value.trim().toUpperCase();
+  if (v === 'F' || v.startsWith('FIS') || v.startsWith('FÍS')) return 'F';
+  if (v === 'J' || v.startsWith('JUR')) return 'J';
+  return undefined;
+}
+
+// Parse DD/MM/YYYY to YYYY-MM-DD for input[type=date]
+function parseDateBR(dateStr?: string): string {
+  if (!dateStr) return '';
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  // DD/MM/YYYY
+  const match = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+  return dateStr;
+}
+
 const TIPOS_LOGRADOURO = ['Rua', 'Avenida', 'Travessa', 'Alameda', 'Praça', 'Rodovia', 'Estrada', 'Viela', 'Largo', 'Outro'];
 
 const ESTADOS_BR = [
