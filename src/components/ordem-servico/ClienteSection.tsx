@@ -578,7 +578,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 {/* Nome */}
                 <div className="col-span-3">
                   <Label className="text-xs">{tipoPessoa === 'J' ? 'Nome Fantasia *' : 'Nome *'}</Label>
-                  <Input value={form.PESS_NOME || ''} onChange={updateField('PESS_NOME')} className="h-9 text-sm" />
+                  <Input ref={nomeInputRef} value={form.PESS_NOME || ''} onChange={updateField('PESS_NOME')} className="h-9 text-sm" />
                 </div>
 
                 {/* Conditional fields based on tipo pessoa */}
