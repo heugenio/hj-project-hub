@@ -296,7 +296,15 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       if (results.length > 0) {
         const c = results[0];
         const uf = c.ESTA_UF || (c.ESTA_NOME && c.ESTA_NOME.length === 2 ? c.ESTA_NOME : '');
-        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo });
+        const tipoNorm = normalizeTipoPessoa(c.PESS_FISICO_JURIDICO) || tipo;
+        setForm({
+          ...c,
+          ESTA_UF: uf || c.ESTA_UF,
+          PESS_FISICO_JURIDICO: tipoNorm,
+          PESS_TIPO: tipoNorm,
+          PESS_DATA_NASCIMENTO: parseDateBR(c.PESS_DATA_NASCIMENTO),
+          PESS_DATA_CADASTRO: parseDateBR(c.PESS_DATA_CADASTRO),
+        });
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
