@@ -18,8 +18,15 @@ async function proxyPost<T>(endpoint: string, payload: unknown): Promise<T> {
     body: { baseUrl: getBaseUrl(), endpoint, method: 'POST', body: payload },
   });
   if (error) throw new Error(`API error: ${error.message}`);
-  const text = typeof data === 'string' ? data : JSON.stringify(data);
-  return JSON.parse(text) as T;
+  // Handle non-JSON string responses (e.g. plain text error messages from backend)
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data) as T;
+    } catch {
+      throw new Error(data);
+    }
+  }
+  return data as T;
 }
 
 // ===== Types =====
