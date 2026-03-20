@@ -210,6 +210,8 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [loadingMunicipios, setLoadingMunicipios] = useState(false);
   const [loadingBairros, setLoadingBairros] = useState(false);
   const clientesCacheRef = useRef<Record<string, Cliente>>({});
+  const nomeInputRef = useRef<HTMLInputElement>(null);
+  const tipoLogradouroRef = useRef<HTMLButtonElement>(null);
 
   const tipoPessoa = form.PESS_FISICO_JURIDICO || form.PESS_TIPO || (form.PESS_CPFCNPJ ? detectTipoPessoa(form.PESS_CPFCNPJ) : 'F');
 
