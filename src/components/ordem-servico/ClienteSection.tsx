@@ -142,12 +142,11 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
 
   // Load municipios when estado changes
   useEffect(() => {
-    const uf = form.ESTA_NOME;
+    const uf = form.ESTA_UF || form.ESTA_NOME;
     if (uf && uf.length === 2) {
       setLoadingMunicipios(true);
       fetchMunicipios(uf).then((m) => {
         setMunicipios(m);
-        // Try to find current municipio
         if (form.MUNI_NOME) {
           const found = m.find((x) => x.nome.toLowerCase() === form.MUNI_NOME!.toLowerCase());
           if (found) setSelectedMunicipioId(found.id);
@@ -158,7 +157,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       setMunicipios([]);
       setSelectedMunicipioId(null);
     }
-  }, [form.ESTA_NOME]);
+  }, [form.ESTA_UF, form.ESTA_NOME]);
 
   // Load distritos when municipio changes
   useEffect(() => {
