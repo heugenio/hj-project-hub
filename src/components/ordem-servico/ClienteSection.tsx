@@ -552,9 +552,10 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 <div className="col-span-3">
                   <Label className="text-xs">Estado</Label>
                   <Select
-                    value={form.ESTA_NOME || ''}
+                    value={form.ESTA_UF || form.ESTA_NOME || ''}
                     onValueChange={(v) => {
-                      setForm((f) => ({ ...f, ESTA_NOME: v, PESS_UF: v, MUNI_NOME: '', BAIR_NOME: '' }));
+                      const estado = ESTADOS_BR.find((e) => e.uf === v);
+                      setForm((f) => ({ ...f, ESTA_UF: v, ESTA_NOME: estado?.nome || v, PESS_UF: v, MUNI_NOME: '', BAIR_NOME: '' }));
                       setSelectedMunicipioId(null);
                       setDistritos([]);
                     }}
