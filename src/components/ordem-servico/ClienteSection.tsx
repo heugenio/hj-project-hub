@@ -474,7 +474,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                   <Label className="text-xs">Tipo</Label>
                   <Select
                     value={tipoPessoa}
-                    onValueChange={(v) => setForm((f) => ({ ...f, PESS_TIPO: v as 'F' | 'J' }))}
+                    onValueChange={(v) => setForm((f) => ({ ...f, PESS_FISICO_JURIDICO: v as 'F' | 'J', PESS_TIPO: v as 'F' | 'J' }))}
                   >
                     <SelectTrigger className="h-9 text-sm">
                       <SelectValue />
