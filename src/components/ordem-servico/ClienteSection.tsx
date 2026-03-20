@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AutocompleteInput } from './AutocompleteInput';
-import { getClientes, setCliente, type Cliente } from '@/lib/api-os';
+import { getClientes, setCliente, getMunicipios, getBairros, type Cliente, type Municipio, type Bairro } from '@/lib/api-os';
 import { UserPlus, User, Phone, Mail, MapPin, Pencil, Search, Loader2, FileText, Home } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -80,21 +80,19 @@ async function buscarCep(cep: string) {
   } catch { return null; }
 }
 
-// ===== IBGE API for Municipios =====
-async function fetchMunicipios(uf: string): Promise<{ id: number; nome: string }[]> {
+// ===== Own API for Municipios =====
+async function fetchMunicipiosApi(uf: string): Promise<Municipio[]> {
   if (!uf || uf.length !== 2) return [];
   try {
-    const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
-    return await res.json();
+    return await getMunicipios({ uf });
   } catch { return []; }
 }
 
-// ===== IBGE API for Distritos (bairros approximation) =====
-async function fetchDistritos(municipioId: number): Promise<{ id: number; nome: string }[]> {
-  if (!municipioId) return [];
+// ===== Own API for Bairros =====
+async function fetchBairrosApi(uf: string, nomeMuni: string): Promise<Bairro[]> {
+  if (!uf || !nomeMuni) return [];
   try {
-    const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${municipioId}/distritos?orderBy=nome`);
-    return await res.json();
+    return await getBairros({ uf, nome_muni: nomeMuni });
   } catch { return []; }
 }
 
@@ -134,11 +132,10 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [form, setForm] = useState<Partial<Cliente>>({});
   const [emailError, setEmailError] = useState('');
   const [telefoneError, setTelefoneError] = useState('');
-  const [municipios, setMunicipios] = useState<{ id: number; nome: string }[]>([]);
-  const [distritos, setDistritos] = useState<{ id: number; nome: string }[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [bairros, setBairros] = useState<Bairro[]>([]);
   const [loadingMunicipios, setLoadingMunicipios] = useState(false);
-  const [loadingDistritos, setLoadingDistritos] = useState(false);
-  const [selectedMunicipioId, setSelectedMunicipioId] = useState<number | null>(null);
+  const [loadingBairros, setLoadingBairros] = useState(false);
   const clientesCacheRef = useRef<Record<string, Cliente>>({});
 
   // Load municipios when estado changes
@@ -146,32 +143,29 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     const uf = form.ESTA_UF || form.ESTA_NOME;
     if (uf && uf.length === 2) {
       setLoadingMunicipios(true);
-      fetchMunicipios(uf).then((m) => {
+      fetchMunicipiosApi(uf).then((m) => {
         setMunicipios(m);
-        if (form.MUNI_NOME) {
-          const found = m.find((x) => x.nome.toLowerCase() === form.MUNI_NOME!.toLowerCase());
-          if (found) setSelectedMunicipioId(found.id);
-        }
         setLoadingMunicipios(false);
       });
     } else {
       setMunicipios([]);
-      setSelectedMunicipioId(null);
     }
   }, [form.ESTA_UF, form.ESTA_NOME]);
 
-  // Load distritos when municipio changes
+  // Load bairros when municipio changes
   useEffect(() => {
-    if (selectedMunicipioId) {
-      setLoadingDistritos(true);
-      fetchDistritos(selectedMunicipioId).then((d) => {
-        setDistritos(d);
-        setLoadingDistritos(false);
+    const uf = form.ESTA_UF || form.ESTA_NOME;
+    const muni = form.MUNI_NOME;
+    if (uf && uf.length === 2 && muni) {
+      setLoadingBairros(true);
+      fetchBairrosApi(uf, muni).then((b) => {
+        setBairros(b);
+        setLoadingBairros(false);
       });
     } else {
-      setDistritos([]);
+      setBairros([]);
     }
-  }, [selectedMunicipioId]);
+  }, [form.ESTA_UF, form.ESTA_NOME, form.MUNI_NOME]);
 
   const fetchClientesSearch = useCallback(async (query: string) => {
     try {
@@ -336,8 +330,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     setEmailError('');
     setTelefoneError('');
     setMunicipios([]);
-    setDistritos([]);
-    setSelectedMunicipioId(null);
+    setBairros([]);
     setModalOpen(true);
   };
 
@@ -556,8 +549,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     onValueChange={(v) => {
                       const estado = ESTADOS_BR.find((e) => e.uf === v);
                       setForm((f) => ({ ...f, ESTA_UF: v, ESTA_NOME: estado?.nome || v, PESS_UF: v, MUNI_NOME: '', BAIR_NOME: '' }));
-                      setSelectedMunicipioId(null);
-                      setDistritos([]);
+                      setBairros([]);
                     }}
                   >
                     <SelectTrigger className="h-9 text-sm">
@@ -577,17 +569,16 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     <Select
                       value={form.MUNI_NOME || ''}
                       onValueChange={(v) => {
-                        const mun = municipios.find((m) => m.nome === v);
                         setForm((f) => ({ ...f, MUNI_NOME: v, PESS_CIDADE: v, BAIR_NOME: '' }));
-                        setSelectedMunicipioId(mun?.id || null);
+                        setBairros([]);
                       }}
                     >
                       <SelectTrigger className="h-9 text-sm">
                         <SelectValue placeholder="Selecione o município" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
-                        {municipios.map((m) => (
-                          <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
+                        {municipios.map((m, i) => (
+                          <SelectItem key={m.MUNI_ID || i} value={m.MUNI_NOME}>{m.MUNI_NOME}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -595,16 +586,15 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     <Input
                       value={form.MUNI_NOME || ''}
                       onChange={(e) => setForm((f) => ({ ...f, MUNI_NOME: e.target.value, PESS_CIDADE: e.target.value }))}
-                      placeholder={form.ESTA_NOME ? 'Carregando...' : 'Selecione o estado primeiro'}
+                      placeholder={loadingMunicipios ? 'Carregando...' : 'Digite o município'}
                       className="h-9 text-sm"
-                      disabled={!form.ESTA_NOME}
                     />
                   )}
                 </div>
                 {/* Bairro (Select dependent on Município, fallback to input) */}
                 <div className="col-span-4">
-                  <Label className="text-xs">Bairro {loadingDistritos && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
-                  {distritos.length > 1 ? (
+                  <Label className="text-xs">Bairro {loadingBairros && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
+                  {bairros.length > 0 ? (
                     <Select
                       value={form.BAIR_NOME || ''}
                       onValueChange={(v) => setForm((f) => ({ ...f, BAIR_NOME: v }))}
@@ -613,8 +603,8 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                         <SelectValue placeholder="Selecione o bairro" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
-                        {distritos.map((d) => (
-                          <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                        {bairros.map((b, i) => (
+                          <SelectItem key={b.BAIR_ID || i} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -623,7 +613,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       value={form.BAIR_NOME || ''}
                       onChange={(e) => setForm((f) => ({ ...f, BAIR_NOME: e.target.value }))}
                       className="h-9 text-sm"
-                      placeholder="Bairro"
+                      placeholder="Digite o bairro"
                     />
                   )}
                 </div>

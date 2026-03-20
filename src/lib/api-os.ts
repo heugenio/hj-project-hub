@@ -127,6 +127,34 @@ export interface OrdemServicoFull {
   itens?: ItemOS[];
 }
 
+// ===== Municipios & Bairros =====
+
+export interface Municipio {
+  MUNI_ID?: string;
+  MUNI_NOME: string;
+}
+
+export interface Bairro {
+  BAIR_ID?: string;
+  BAIR_NOME: string;
+}
+
+export const getMunicipios = (params: { uf: string; nome_muni?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<Municipio[]>(`/getMunicipios?${query}`);
+};
+
+export const getBairros = (params: { uf: string; nome_muni: string; nome?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<Bairro[]>(`/getBairros?${query}`);
+};
+
 // ===== API Calls =====
 
 export const getTiposOrdemServicos = () =>
