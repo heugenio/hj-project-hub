@@ -330,8 +330,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     setEmailError('');
     setTelefoneError('');
     setMunicipios([]);
-    setDistritos([]);
-    setSelectedMunicipioId(null);
+    setBairros([]);
     setModalOpen(true);
   };
 
