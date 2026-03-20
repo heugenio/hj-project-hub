@@ -56,6 +56,26 @@ function detectTipoPessoa(cpfcnpj: string): 'F' | 'J' {
   return nums.length > 11 ? 'J' : 'F';
 }
 
+// Parse "Física"/"Jurídica" or "F"/"J" to normalized 'F' | 'J'
+function normalizeTipoPessoa(value?: string): 'F' | 'J' | undefined {
+  if (!value) return undefined;
+  const v = value.trim().toUpperCase();
+  if (v === 'F' || v.startsWith('FIS') || v.startsWith('FÍS')) return 'F';
+  if (v === 'J' || v.startsWith('JUR')) return 'J';
+  return undefined;
+}
+
+// Parse DD/MM/YYYY to YYYY-MM-DD for input[type=date]
+function parseDateBR(dateStr?: string): string {
+  if (!dateStr) return '';
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  // DD/MM/YYYY
+  const match = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+  return dateStr;
+}
+
 const TIPOS_LOGRADOURO = ['Rua', 'Avenida', 'Travessa', 'Alameda', 'Praça', 'Rodovia', 'Estrada', 'Viela', 'Largo', 'Outro'];
 
 const ESTADOS_BR = [
@@ -276,7 +296,15 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       if (results.length > 0) {
         const c = results[0];
         const uf = c.ESTA_UF || (c.ESTA_NOME && c.ESTA_NOME.length === 2 ? c.ESTA_NOME : '');
-        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo });
+        const tipoNorm = normalizeTipoPessoa(c.PESS_FISICO_JURIDICO) || tipo;
+        setForm({
+          ...c,
+          ESTA_UF: uf || c.ESTA_UF,
+          PESS_FISICO_JURIDICO: tipoNorm,
+          PESS_TIPO: tipoNorm,
+          PESS_DATA_NASCIMENTO: parseDateBR(c.PESS_DATA_NASCIMENTO),
+          PESS_DATA_CADASTRO: parseDateBR(c.PESS_DATA_CADASTRO),
+        });
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
@@ -728,57 +756,63 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                 {/* Município */}
                 <div className="col-span-5">
                   <Label className="text-xs">Município {loadingMunicipios && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
-                  {municipios.length > 0 ? (
-                    <Select
-                      value={form.MUNI_NOME || ''}
-                      onValueChange={(v) => {
-                        setForm((f) => ({ ...f, MUNI_NOME: v, PESS_CIDADE: v, BAIR_NOME: '' }));
-                        setBairros([]);
-                      }}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Selecione o município" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {municipios.map((m, i) => (
-                          <SelectItem key={m.MUNI_ID || i} value={m.MUNI_NOME}>{m.MUNI_NOME}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      value={form.MUNI_NOME || ''}
-                      onChange={(e) => setForm((f) => ({ ...f, MUNI_NOME: e.target.value, PESS_CIDADE: e.target.value }))}
-                      placeholder={loadingMunicipios ? 'Carregando...' : 'Digite o município'}
-                      className="h-9 text-sm"
-                    />
-                  )}
+                  {(() => {
+                    const muniInList = municipios.length > 0 && (!form.MUNI_NOME || municipios.some(m => m.MUNI_NOME === form.MUNI_NOME));
+                    return municipios.length > 0 && muniInList ? (
+                      <Select
+                        value={form.MUNI_NOME || ''}
+                        onValueChange={(v) => {
+                          setForm((f) => ({ ...f, MUNI_NOME: v, PESS_CIDADE: v, BAIR_NOME: '' }));
+                          setBairros([]);
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione o município" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {municipios.map((m, i) => (
+                            <SelectItem key={m.MUNI_ID || i} value={m.MUNI_NOME}>{m.MUNI_NOME}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={form.MUNI_NOME || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, MUNI_NOME: e.target.value, PESS_CIDADE: e.target.value }))}
+                        placeholder={loadingMunicipios ? 'Carregando...' : 'Digite o município'}
+                        className="h-9 text-sm"
+                      />
+                    );
+                  })()}
                 </div>
                 {/* Bairro */}
                 <div className="col-span-4">
                   <Label className="text-xs">Bairro {loadingBairros && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
-                  {bairros.length > 0 ? (
-                    <Select
-                      value={form.BAIR_NOME || ''}
-                      onValueChange={(v) => setForm((f) => ({ ...f, BAIR_NOME: v }))}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Selecione o bairro" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {bairros.map((b, i) => (
-                          <SelectItem key={b.BAIR_ID || `bairro-${i}`} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      value={form.BAIR_NOME || ''}
-                      onChange={(e) => setForm((f) => ({ ...f, BAIR_NOME: e.target.value }))}
-                      className="h-9 text-sm"
-                      placeholder="Digite o bairro"
-                    />
-                  )}
+                  {(() => {
+                    const bairroInList = bairros.length > 0 && (!form.BAIR_NOME || bairros.some(b => b.BAIR_NOME === form.BAIR_NOME));
+                    return bairros.length > 0 && bairroInList ? (
+                      <Select
+                        value={form.BAIR_NOME || ''}
+                        onValueChange={(v) => setForm((f) => ({ ...f, BAIR_NOME: v }))}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione o bairro" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {bairros.map((b, i) => (
+                            <SelectItem key={b.BAIR_ID || `bairro-${i}`} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={form.BAIR_NOME || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, BAIR_NOME: e.target.value }))}
+                        className="h-9 text-sm"
+                        placeholder={loadingBairros ? 'Carregando...' : 'Digite o bairro'}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
             </div>
