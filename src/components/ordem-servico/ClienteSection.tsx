@@ -711,7 +711,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     value={form.ENDE_TIPO_LOGRADOURO || ''}
                     onValueChange={(v) => setForm((f) => ({ ...f, ENDE_TIPO_LOGRADOURO: v }))}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger ref={tipoLogradouroRef} className="h-9 text-sm">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
