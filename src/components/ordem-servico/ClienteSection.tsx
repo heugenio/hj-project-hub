@@ -80,21 +80,19 @@ async function buscarCep(cep: string) {
   } catch { return null; }
 }
 
-// ===== IBGE API for Municipios =====
-async function fetchMunicipios(uf: string): Promise<{ id: number; nome: string }[]> {
+// ===== Own API for Municipios =====
+async function fetchMunicipiosApi(uf: string): Promise<Municipio[]> {
   if (!uf || uf.length !== 2) return [];
   try {
-    const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
-    return await res.json();
+    return await getMunicipios({ uf });
   } catch { return []; }
 }
 
-// ===== IBGE API for Distritos (bairros approximation) =====
-async function fetchDistritos(municipioId: number): Promise<{ id: number; nome: string }[]> {
-  if (!municipioId) return [];
+// ===== Own API for Bairros =====
+async function fetchBairrosApi(uf: string, nomeMuni: string): Promise<Bairro[]> {
+  if (!uf || !nomeMuni) return [];
   try {
-    const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${municipioId}/distritos?orderBy=nome`);
-    return await res.json();
+    return await getBairros({ uf, nome_muni: nomeMuni });
   } catch { return []; }
 }
 
