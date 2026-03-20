@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AutocompleteInput } from './AutocompleteInput';
 import { getClientes, setCliente, getMunicipios, getBairros, type Cliente, type Municipio, type Bairro } from '@/lib/api-os';
-import { UserPlus, User, Phone, Mail, MapPin, Pencil, Search, Loader2, FileText, Home } from 'lucide-react';
+import { UserPlus, User, Phone, Mail, MapPin, Pencil, Search, Loader2, FileText, Home, Building2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ClienteSectionProps {
@@ -48,6 +48,11 @@ function validarTelefone(tel: string): boolean {
   if (!tel) return true;
   const nums = tel.replace(/\D/g, '');
   return nums.length >= 10 && nums.length <= 11;
+}
+
+function detectTipoPessoa(cpfcnpj: string): 'F' | 'J' {
+  const nums = cpfcnpj.replace(/\D/g, '');
+  return nums.length > 11 ? 'J' : 'F';
 }
 
 const TIPOS_LOGRADOURO = ['Rua', 'Avenida', 'Travessa', 'Alameda', 'Praça', 'Rodovia', 'Estrada', 'Viela', 'Largo', 'Outro'];
@@ -96,7 +101,7 @@ async function fetchBairrosApi(uf: string, nomeMuni: string): Promise<Bairro[]> 
   } catch { return []; }
 }
 
-// ===== ReceitaWS for CNPJ lookup =====
+// ===== BrasilAPI for CNPJ lookup =====
 async function buscarCnpjWeb(cnpj: string) {
   const nums = cnpj.replace(/\D/g, '');
   if (nums.length !== 14) return null;
@@ -105,9 +110,12 @@ async function buscarCnpjWeb(cnpj: string) {
     if (!res.ok) return null;
     const d = await res.json();
     return {
-      PESS_NOME: d.razao_social || d.nome_fantasia || '',
+      PESS_TIPO: 'J' as const,
+      PESS_NOME: d.nome_fantasia || d.razao_social || '',
+      PESS_RAZAO_SOCIAL: d.razao_social || '',
       PESS_FONE: d.ddd_telefone_1 ? `(${d.ddd_telefone_1.substring(0,2)}) ${d.ddd_telefone_1.substring(2)}` : '',
       PESS_EMAIL: d.email || '',
+      PESS_DATA_CADASTRO: d.data_inicio_atividade || '',
       ENDE_CEP: d.cep?.replace(/\D/g, '') || '',
       ENDE_LOGRADOURO: d.logradouro || '',
       ENDE_NUMERO: d.numero || '',
@@ -120,6 +128,25 @@ async function buscarCnpjWeb(cnpj: string) {
       PESS_CIDADE: d.municipio || '',
     } as Partial<Cliente>;
   } catch { return null; }
+}
+
+// ===== BrasilAPI for CPF lookup (public data only) =====
+async function buscarCpfWeb(cpf: string) {
+  const nums = cpf.replace(/\D/g, '');
+  if (nums.length !== 11) return null;
+  // BrasilAPI doesn't have CPF lookup — no public gov API available for CPF data
+  return null;
+}
+
+// ===== Deduplicate bairros by BAIR_NOME =====
+function deduplicateBairros(list: Bairro[]): Bairro[] {
+  const seen = new Set<string>();
+  return list.filter((b) => {
+    const key = b.BAIR_NOME.toUpperCase().trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
@@ -137,6 +164,8 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
   const [loadingMunicipios, setLoadingMunicipios] = useState(false);
   const [loadingBairros, setLoadingBairros] = useState(false);
   const clientesCacheRef = useRef<Record<string, Cliente>>({});
+
+  const tipoPessoa = form.PESS_TIPO || (form.PESS_CPFCNPJ ? detectTipoPessoa(form.PESS_CPFCNPJ) : 'F');
 
   // Load municipios when estado changes
   useEffect(() => {
@@ -159,7 +188,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     if (uf && uf.length === 2 && muni) {
       setLoadingBairros(true);
       fetchBairrosApi(uf, muni).then((b) => {
-        setBairros(b);
+        setBairros(deduplicateBairros(b));
         setLoadingBairros(false);
       });
     } else {
@@ -205,9 +234,13 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     const nums = form.PESS_CPFCNPJ?.replace(/\D/g, '') || '';
     if (nums.length < 11) return;
 
+    // Auto-detect tipo pessoa
+    const tipo = detectTipoPessoa(nums);
+    setForm((f) => ({ ...f, PESS_TIPO: tipo }));
+
     setBuscandoCnpj(true);
     try {
-      // Try API first
+      // Try local API first
       let results: Cliente[] = [];
       try {
         results = await getClientes({ cpfcnpj: nums });
@@ -216,27 +249,37 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       }
       if (results.length > 0) {
         const c = results[0];
-        // Map ESTA_UF from ESTA_NOME if it looks like UF code
         const uf = c.ESTA_UF || (c.ESTA_NOME && c.ESTA_NOME.length === 2 ? c.ESTA_NOME : '');
-        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF });
+        setForm({ ...c, ESTA_UF: uf || c.ESTA_UF, PESS_TIPO: tipo });
         setIsEditing(true);
         toast.success('Cliente encontrado!');
         setBuscandoCnpj(false);
         return;
       }
 
-      // If CNPJ (14 digits), try web
+      // If CNPJ (14 digits), try BrasilAPI
       if (nums.length === 14) {
         try {
           const webData = await buscarCnpjWeb(nums);
           if (webData) {
-            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums }));
+            setForm((f) => ({ ...f, ...webData, PESS_CPFCNPJ: nums, PESS_TIPO: 'J' }));
             toast.success('Dados do CNPJ encontrados na web!');
             setBuscandoCnpj(false);
             return;
           }
         } catch {
           // Web search failed — continue
+        }
+      }
+
+      // If CPF (11 digits), try web
+      if (nums.length === 11) {
+        const cpfData = await buscarCpfWeb(nums);
+        if (cpfData) {
+          setForm((f) => ({ ...f, ...cpfData, PESS_CPFCNPJ: nums, PESS_TIPO: 'F' }));
+          toast.success('Dados do CPF encontrados!');
+          setBuscandoCnpj(false);
+          return;
         }
       }
 
@@ -420,21 +463,41 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Card: Dados Pessoais — CPF/CNPJ first */}
+            {/* Card: Dados Pessoais */}
             <div className="rounded-lg border border-border bg-card p-4 space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" /> Dados Pessoais
               </h3>
               <div className="grid grid-cols-6 gap-3">
-                {/* CPF/CNPJ first */}
+                {/* Tipo Pessoa */}
+                <div className="col-span-1">
+                  <Label className="text-xs">Tipo</Label>
+                  <Select
+                    value={tipoPessoa}
+                    onValueChange={(v) => setForm((f) => ({ ...f, PESS_TIPO: v as 'F' | 'J' }))}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="F">Física</SelectItem>
+                      <SelectItem value="J">Jurídica</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* CPF/CNPJ */}
                 <div className="col-span-2">
-                  <Label className="text-xs">CPF/CNPJ *</Label>
+                  <Label className="text-xs">{tipoPessoa === 'J' ? 'CNPJ *' : 'CPF *'}</Label>
                   <div className="relative">
                     <Input
                       value={maskCpfCnpj(form.PESS_CPFCNPJ || '')}
-                      onChange={(e) => setForm((f) => ({ ...f, PESS_CPFCNPJ: e.target.value.replace(/\D/g, '').slice(0, 14) }))}
+                      onChange={(e) => {
+                        const nums = e.target.value.replace(/\D/g, '').slice(0, 14);
+                        const tipo = detectTipoPessoa(nums);
+                        setForm((f) => ({ ...f, PESS_CPFCNPJ: nums, PESS_TIPO: tipo }));
+                      }}
                       onBlur={handleCpfCnpjBlur}
-                      placeholder="Digite CPF ou CNPJ"
+                      placeholder={tipoPessoa === 'J' ? '00.000.000/0000-00' : '000.000.000-00'}
                       className="h-9 text-sm font-mono pr-8"
                     />
                     {buscandoCnpj ? (
@@ -444,10 +507,64 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     )}
                   </div>
                 </div>
-                <div className="col-span-4">
-                  <Label className="text-xs">Nome *</Label>
+                {/* Nome */}
+                <div className="col-span-3">
+                  <Label className="text-xs">{tipoPessoa === 'J' ? 'Nome Fantasia *' : 'Nome *'}</Label>
                   <Input value={form.PESS_NOME || ''} onChange={updateField('PESS_NOME')} className="h-9 text-sm" />
                 </div>
+
+                {/* Conditional fields based on tipo pessoa */}
+                {tipoPessoa === 'J' ? (
+                  <>
+                    {/* Razão Social */}
+                    <div className="col-span-3">
+                      <Label className="text-xs">Razão Social</Label>
+                      <Input value={form.PESS_RAZAO_SOCIAL || ''} onChange={updateField('PESS_RAZAO_SOCIAL')} className="h-9 text-sm" />
+                    </div>
+                    {/* Data Cadastro */}
+                    <div className="col-span-1">
+                      <Label className="text-xs">Data Cadastro</Label>
+                      <Input
+                        type="date"
+                        value={form.PESS_DATA_CADASTRO || ''}
+                        onChange={updateField('PESS_DATA_CADASTRO')}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Data Nascimento */}
+                    <div className="col-span-2">
+                      <Label className="text-xs">Data de Nascimento</Label>
+                      <Input
+                        type="date"
+                        value={form.PESS_DATA_NASCIMENTO || ''}
+                        onChange={updateField('PESS_DATA_NASCIMENTO')}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    {/* Sexo */}
+                    <div className="col-span-1">
+                      <Label className="text-xs">Sexo</Label>
+                      <Select
+                        value={form.PESS_SEXO || ''}
+                        onValueChange={(v) => setForm((f) => ({ ...f, PESS_SEXO: v }))}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Sel." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="M">Masculino</SelectItem>
+                          <SelectItem value="F">Feminino</SelectItem>
+                          <SelectItem value="O">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
+                {/* Telefone */}
                 <div className="col-span-2">
                   <Label className="text-xs">Telefone</Label>
                   <Input
@@ -462,7 +579,8 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                   />
                   {telefoneError && <span className="text-[10px] text-destructive">{telefoneError}</span>}
                 </div>
-                <div className="col-span-4">
+                {/* Email */}
+                <div className={tipoPessoa === 'J' ? 'col-span-4' : 'col-span-3'}>
                   <Label className="text-xs">E-mail</Label>
                   <Input
                     value={form.PESS_EMAIL || ''}
@@ -526,22 +644,22 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                   <Label className="text-xs">Logradouro</Label>
                   <Input value={form.ENDE_LOGRADOURO || ''} onChange={updateField('ENDE_LOGRADOURO')} className="h-9 text-sm" />
                 </div>
-                {/* Número (smaller) */}
+                {/* Número */}
                 <div className="col-span-2">
                   <Label className="text-xs">Número</Label>
                   <Input value={form.ENDE_NUMERO || ''} onChange={updateField('ENDE_NUMERO')} className="h-9 text-sm" />
                 </div>
-                {/* Complemento (larger) */}
+                {/* Complemento */}
                 <div className="col-span-5">
                   <Label className="text-xs">Complemento</Label>
                   <Input value={form.ENDE_COMPLEMENTO || ''} onChange={updateField('ENDE_COMPLEMENTO')} className="h-9 text-sm" />
                 </div>
-                {/* Observação (larger) */}
+                {/* Observação */}
                 <div className="col-span-5">
                   <Label className="text-xs">Observação</Label>
                   <Input value={form.ENDE_OBSERVACAO || ''} onChange={updateField('ENDE_OBSERVACAO')} className="h-9 text-sm" />
                 </div>
-                {/* Estado (Select) */}
+                {/* Estado */}
                 <div className="col-span-3">
                   <Label className="text-xs">Estado</Label>
                   <Select
@@ -562,7 +680,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Município (Select dependent on Estado) */}
+                {/* Município */}
                 <div className="col-span-5">
                   <Label className="text-xs">Município {loadingMunicipios && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
                   {municipios.length > 0 ? (
@@ -591,7 +709,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                     />
                   )}
                 </div>
-                {/* Bairro (Select dependent on Município, fallback to input) */}
+                {/* Bairro */}
                 <div className="col-span-4">
                   <Label className="text-xs">Bairro {loadingBairros && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}</Label>
                   {bairros.length > 0 ? (
@@ -604,7 +722,7 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
                         {bairros.map((b, i) => (
-                          <SelectItem key={b.BAIR_ID || i} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
+                          <SelectItem key={b.BAIR_ID || `bairro-${i}`} value={b.BAIR_NOME}>{b.BAIR_NOME}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -620,34 +738,40 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
               </div>
             </div>
 
-            {/* Card: Documentos */}
+            {/* Card: Documentos — conditional based on tipo pessoa */}
             <div className="rounded-lg border border-border bg-card p-4 space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5" /> Documentos
               </h3>
               <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label className="text-xs">RG</Label>
-                  <Input value={form.DOCS_RG || ''} onChange={updateField('DOCS_RG')} className="h-9 text-sm" placeholder="Nº RG" />
-                </div>
-                <div>
-                  <Label className="text-xs">Inscrição Estadual</Label>
-                  <Input
-                    value={form.DOCS_IE || ''}
-                    onChange={(e) => setForm((f) => ({ ...f, DOCS_IE: e.target.value.replace(/[^0-9./-]/g, '') }))}
-                    className="h-9 text-sm font-mono"
-                    placeholder="Nº IE"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Inscrição Municipal</Label>
-                  <Input
-                    value={form.DOCS_ICMUNI || ''}
-                    onChange={(e) => setForm((f) => ({ ...f, DOCS_ICMUNI: e.target.value.replace(/[^0-9./-]/g, '') }))}
-                    className="h-9 text-sm font-mono"
-                    placeholder="Nº IM"
-                  />
-                </div>
+                {tipoPessoa === 'F' && (
+                  <div>
+                    <Label className="text-xs">RG</Label>
+                    <Input value={form.DOCS_RG || ''} onChange={updateField('DOCS_RG')} className="h-9 text-sm" placeholder="Nº RG" />
+                  </div>
+                )}
+                {tipoPessoa === 'J' && (
+                  <>
+                    <div>
+                      <Label className="text-xs">Inscrição Estadual</Label>
+                      <Input
+                        value={form.DOCS_IE || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, DOCS_IE: e.target.value.replace(/[^0-9./-]/g, '') }))}
+                        className="h-9 text-sm font-mono"
+                        placeholder="Nº IE"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Inscrição Municipal</Label>
+                      <Input
+                        value={form.DOCS_ICMUNI || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, DOCS_ICMUNI: e.target.value.replace(/[^0-9./-]/g, '') }))}
+                        className="h-9 text-sm font-mono"
+                        placeholder="Nº IM"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
