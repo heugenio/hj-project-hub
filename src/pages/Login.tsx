@@ -16,7 +16,7 @@ import {
   getEmpresas,
   getUnidadesEmpresariais,
   getUsuarios,
-  getLogo,
+  getBanner,
   type Corporacao,
   type Empresa,
   type UnidadeEmpresarial,
