@@ -58,7 +58,7 @@ export default function Login() {
 
   useEffect(() => {
     setLogoLoading(true);
-    getLogo()
+    getBanner()
       .then(setLogoUrl)
       .catch(() => {})
       .finally(() => setLogoLoading(false));
