@@ -84,8 +84,9 @@ export function VeiculoSection({ veiculo, clienteId, onSelect, hodometro, onHodo
     try {
       const payload = { ...form, PESS_ID: clienteId || undefined };
       const result = await setVeiculo(payload);
-      onSelect(result);
-      setSearchText(result.VEIC_PLACA);
+      const savedVeiculo = (result && (result as any).success) ? (payload as unknown as Veiculo) : result;
+      onSelect(savedVeiculo);
+      setSearchText(savedVeiculo.VEIC_PLACA || form.VEIC_PLACA || '');
       setModalOpen(false);
       setForm({});
       toast.success('Veículo cadastrado com sucesso!');

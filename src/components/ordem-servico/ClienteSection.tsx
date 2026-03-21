@@ -412,8 +412,10 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
       const payload = { ...form, UNEM_ID: auth?.unidade?.unem_Id || '' };
       console.log('[setCliente] JSON enviado:', JSON.stringify(payload, null, 2));
       const result = await setCliente(payload);
-      onSelect(result);
-      setSearchText(result.PESS_NOME);
+      // Backend may return { success: true } for HTML 200 OK responses
+      const savedCliente = (result && (result as any).success) ? (payload as unknown as Cliente) : result;
+      onSelect(savedCliente);
+      setSearchText(savedCliente.PESS_NOME || form.PESS_NOME || '');
       setModalOpen(false);
       setIsEditing(false);
       setForm({});
