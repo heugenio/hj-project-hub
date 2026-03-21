@@ -127,35 +127,64 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — Logo */}
-      <div className="hidden lg:flex w-1/2 relative items-center justify-center overflow-hidden" style={{ background: "hsl(var(--sidebar-background))" }}>
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: "radial-gradient(circle at 25% 25%, hsl(var(--sidebar-primary)) 0%, transparent 50%), radial-gradient(circle at 75% 75%, hsl(var(--sidebar-primary)) 0%, transparent 50%)",
+      {/* Left panel — Banner */}
+      <div className="hidden lg:flex w-[55%] relative items-center justify-center overflow-hidden">
+        {/* Background gradient */}
+        <div className="absolute inset-0" style={{
+          background: "linear-gradient(135deg, hsl(222 47% 11%) 0%, hsl(217 33% 17%) 50%, hsl(215 28% 22%) 100%)",
         }} />
-        <div className="relative z-10 flex flex-col items-center justify-center gap-8 px-12 h-full">
-          <div className="flex-1 flex items-center justify-center">
+        {/* Geometric accent */}
+        <div className="absolute inset-0 opacity-[0.07]" style={{
+          backgroundImage: `
+            radial-gradient(circle at 20% 80%, hsl(var(--primary)) 0%, transparent 40%),
+            radial-gradient(circle at 80% 20%, hsl(var(--primary)) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, hsl(var(--primary)) 0%, transparent 60%)
+          `,
+        }} />
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }} />
+        
+        <div className="relative z-10 flex flex-col items-center justify-center h-full w-full px-8">
+          <div className="flex-1 flex items-center justify-center w-full">
             {logoLoading ? (
               <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin" style={{ color: "hsl(var(--sidebar-foreground) / 0.4)" }} />
-                <p className="text-sm" style={{ color: "hsl(var(--sidebar-foreground) / 0.5)" }}>Carregando...</p>
+                <Loader2 className="h-14 w-14 animate-spin text-white/30" />
+                <p className="text-sm text-white/40 tracking-wide">Carregando...</p>
               </div>
             ) : logoUrl ? (
-              <img src={logoUrl} alt="Banner da Empresa" className="max-h-[70vh] max-w-[90%] w-full object-contain drop-shadow-2xl" />
+              <div className="relative">
+                {/* Glow behind banner */}
+                <div className="absolute inset-0 blur-3xl opacity-20 scale-110" style={{
+                  background: "hsl(var(--primary))",
+                  borderRadius: "50%",
+                }} />
+                <img
+                  src={logoUrl}
+                  alt="Banner da Empresa"
+                  className="relative z-10 max-h-[75vh] max-w-[92%] w-auto object-contain"
+                  style={{ filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))" }}
+                />
+              </div>
             ) : (
-              <div className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold" style={{
-                background: "hsl(var(--sidebar-primary))",
-                color: "hsl(var(--sidebar-primary-foreground))",
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}>
-                HJ
+              <div className="flex flex-col items-center gap-6">
+                <div className="w-28 h-28 rounded-3xl flex items-center justify-center text-5xl font-bold shadow-2xl" style={{
+                  background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+                  color: "hsl(var(--primary-foreground))",
+                  fontFamily: "'Space Grotesk', sans-serif",
+                }}>
+                  HJ
+                </div>
+                <p className="text-white/50 text-sm tracking-widest uppercase">Sistema de Gestão</p>
               </div>
             )}
           </div>
           {/* Footer credits */}
-          <div className="pb-6 flex flex-col items-center gap-2">
-            <img src={hjSystemsLogo} alt="HJ-Systems" className="h-8 object-contain opacity-60" />
-            <p className="text-xs" style={{ color: "hsl(var(--sidebar-foreground) / 0.4)" }}>
+          <div className="pb-8 flex flex-col items-center gap-3">
+            <img src={hjSystemsLogo} alt="HJ-Systems" className="h-7 object-contain opacity-50 brightness-200" />
+            <p className="text-[11px] text-white/30 tracking-widest uppercase">
               Gestão de Negócios
             </p>
           </div>
