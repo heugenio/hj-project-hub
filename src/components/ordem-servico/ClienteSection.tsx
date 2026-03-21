@@ -409,8 +409,9 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     }
     setSaving(true);
     try {
-      console.log('[setCliente] JSON enviado:', JSON.stringify(form, null, 2));
-      const result = await setCliente(form);
+      const payload = { ...form, UNEM_ID: auth?.unidade?.unem_Id || '' };
+      console.log('[setCliente] JSON enviado:', JSON.stringify(payload, null, 2));
+      const result = await setCliente(payload);
       onSelect(result);
       setSearchText(result.PESS_NOME);
       setModalOpen(false);
