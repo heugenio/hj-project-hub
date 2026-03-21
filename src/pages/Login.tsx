@@ -183,8 +183,8 @@ export default function Login() {
           </div>
           {/* Footer credits */}
           <div className="pb-8 flex flex-col items-center gap-3">
-            <img src={hjSystemsLogo} alt="HJ-Systems" className="h-7 object-contain opacity-50 brightness-200" />
-            <p className="text-[11px] text-white/30 tracking-widest uppercase">
+            <img src={hjSystemsLogo} alt="HJ-Systems" className="h-7 object-contain invert opacity-70" />
+            <p className="text-[11px] text-white/40 tracking-widest uppercase">
               Gestão de Negócios
             </p>
           </div>
