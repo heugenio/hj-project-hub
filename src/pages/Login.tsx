@@ -141,7 +141,7 @@ export default function Login() {
                 <p className="text-sm" style={{ color: "hsl(var(--sidebar-foreground) / 0.5)" }}>Carregando...</p>
               </div>
             ) : logoUrl ? (
-              <img src={logoUrl} alt="Logo da Empresa" className="max-h-64 max-w-[85%] object-contain drop-shadow-2xl" />
+              <img src={logoUrl} alt="Banner da Empresa" className="max-h-[70vh] max-w-[90%] w-full object-contain drop-shadow-2xl" />
             ) : (
               <div className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold" style={{
                 background: "hsl(var(--sidebar-primary))",
