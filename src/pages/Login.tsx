@@ -16,7 +16,7 @@ import {
   getEmpresas,
   getUnidadesEmpresariais,
   getUsuarios,
-  getLogo,
+  getBanner,
   type Corporacao,
   type Empresa,
   type UnidadeEmpresarial,
@@ -58,7 +58,7 @@ export default function Login() {
 
   useEffect(() => {
     setLogoLoading(true);
-    getLogo()
+    getBanner()
       .then(setLogoUrl)
       .catch(() => {})
       .finally(() => setLogoLoading(false));
