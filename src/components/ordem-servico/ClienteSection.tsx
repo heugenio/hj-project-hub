@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -196,6 +197,7 @@ function deduplicateBairros(list: Bairro[]): Bairro[] {
 }
 
 export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
+  const { auth } = useAuth();
   const [searchText, setSearchText] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -407,8 +409,9 @@ export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
     }
     setSaving(true);
     try {
-      console.log('[setCliente] JSON enviado:', JSON.stringify(form, null, 2));
-      const result = await setCliente(form);
+      const payload = { ...form, UNEM_ID: auth?.unidade?.unem_Id || '' };
+      console.log('[setCliente] JSON enviado:', JSON.stringify(payload, null, 2));
+      const result = await setCliente(payload);
       onSelect(result);
       setSearchText(result.PESS_NOME);
       setModalOpen(false);
