@@ -197,6 +197,7 @@ function deduplicateBairros(list: Bairro[]): Bairro[] {
 }
 
 export function ClienteSection({ cliente, onSelect }: ClienteSectionProps) {
+  const { auth } = useAuth();
   const [searchText, setSearchText] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
