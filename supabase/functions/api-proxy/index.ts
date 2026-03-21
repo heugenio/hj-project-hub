@@ -55,11 +55,21 @@ Deno.serve(async (req) => {
     }
 
     const text = await response.text();
+    
+    // If the response looks like HTML (not JSON), wrap it as an error
+    const trimmed = text.trim();
+    if (trimmed.startsWith('<') && !trimmed.startsWith('[') && !trimmed.startsWith('{')) {
+      return new Response(
+        JSON.stringify({ error: `Backend returned HTML instead of JSON: ${trimmed.substring(0, 200)}` }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     return new Response(text, {
       status: response.status,
       headers: {
         ...corsHeaders,
-        'Content-Type': contentType || 'text/plain',
+        'Content-Type': 'application/json',
       },
     });
   } catch (error) {
