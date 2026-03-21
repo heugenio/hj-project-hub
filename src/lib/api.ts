@@ -35,6 +35,13 @@ export async function getLogo(): Promise<string> {
   return `data:${mimeType};base64,${base64}`;
 }
 
+export async function getBanner(): Promise<string> {
+  const result = await proxyFetchRaw('/getBanner');
+  const base64 = result.base64 as string;
+  const mimeType = (result.mimeType as string) || 'image/png';
+  return `data:${mimeType};base64,${base64}`;
+}
+
 // Types
 export interface Corporacao {
   cprc_id: string;
