@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   Wrench, Save, CheckCircle, XCircle, Printer, Send,
-  Loader2, FileText, Users, ClipboardList, MessageSquare, ArrowLeft
+  Loader2, FileText, Users, ClipboardList, MessageSquare, ArrowLeft, Car, User
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,9 +21,10 @@ import { ResumoFinanceiro } from './ResumoFinanceiro';
 import { AutocompleteInput } from './AutocompleteInput';
 import {
   getTiposOrdemServicos, getVendedores, getTecnicos, getMidias,
-  setOrdemServico as saveOS,
+  setOrdemServico as saveOS, getPessoasVeiculos,
   type Cliente, type Veiculo, type ItemOS, type TipoOS,
-  type Vendedor, type Tecnico, type Midia, type OrdemServicoFull
+  type Vendedor, type Tecnico, type Midia, type OrdemServicoFull,
+  type PessoaVeiculo
 } from '@/lib/api-os';
 
 const formatCurrency = (v: number) =>
@@ -41,8 +43,8 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
   const [statusOS, setStatusOS] = useState('Aberto');
   const [hodometro, setHodometro] = useState('');
 
-  const [cliente, setCliente] = useState<Cliente | null>(null);
-  const [veiculo, setVeiculo] = useState<Veiculo | null>(null);
+  const [cliente, setClienteState] = useState<Cliente | null>(null);
+  const [veiculo, setVeiculoState] = useState<Veiculo | null>(null);
   const [itens, setItens] = useState<ItemOS[]>([]);
 
   const [vendedorText, setVendedorText] = useState('');
@@ -60,6 +62,16 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
   const [saving, setSaving] = useState(false);
   const [loadingTipos, setLoadingTipos] = useState(false);
 
+  // Cross-link selection dialog state
+  const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
+  const [selectionDialogType, setSelectionDialogType] = useState<'veiculo' | 'cliente'>('veiculo');
+  const [selectionDialogItems, setSelectionDialogItems] = useState<PessoaVeiculo[]>([]);
+  const [loadingCrossLink, setLoadingCrossLink] = useState(false);
+
+  // Refs to prevent re-triggering cross-link
+  const skipVeiculoCrossLinkRef = useRef(false);
+  const skipClienteCrossLinkRef = useRef(false);
+
   useEffect(() => {
     setLoadingTipos(true);
     getTiposOrdemServicos()
@@ -73,6 +85,108 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
       .catch(() => {})
       .finally(() => setLoadingMidias(false));
   }, []);
+
+  // When cliente is selected and no veiculo → fetch vehicles
+  const handleClienteSelect = useCallback(async (c: Cliente) => {
+    setClienteState(c);
+
+    if (skipClienteCrossLinkRef.current) {
+      skipClienteCrossLinkRef.current = false;
+      return;
+    }
+
+    // Only auto-fetch if no veiculo is selected yet
+    if (veiculo) return;
+
+    setLoadingCrossLink(true);
+    try {
+      const results = await getPessoasVeiculos({ pess_id: c.PESS_ID });
+      if (results.length === 1 && results[0].VEIC_ID) {
+        skipVeiculoCrossLinkRef.current = true;
+        setVeiculoState({
+          VEIC_ID: results[0].VEIC_ID,
+          VEIC_PLACA: results[0].VEIC_PLACA || '',
+          VEIC_MARCA: results[0].VEIC_MARCA,
+          VEIC_MODELO: results[0].VEIC_MODELO,
+          VEIC_ANO: results[0].VEIC_ANO,
+          VEIC_COR: results[0].VEIC_COR,
+          VEIC_KM: results[0].VEIC_KM,
+          PESS_ID: c.PESS_ID,
+        });
+        toast.info('Veículo do cliente selecionado automaticamente');
+      } else if (results.length > 1) {
+        setSelectionDialogType('veiculo');
+        setSelectionDialogItems(results);
+        setSelectionDialogOpen(true);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingCrossLink(false);
+    }
+  }, [veiculo]);
+
+  // When veiculo is selected and no cliente → fetch owners
+  const handleVeiculoSelect = useCallback(async (v: Veiculo) => {
+    setVeiculoState(v);
+
+    if (skipVeiculoCrossLinkRef.current) {
+      skipVeiculoCrossLinkRef.current = false;
+      return;
+    }
+
+    // Only auto-fetch if no cliente is selected yet
+    if (cliente) return;
+
+    setLoadingCrossLink(true);
+    try {
+      const results = await getPessoasVeiculos({ veic_id: v.VEIC_ID });
+      if (results.length === 1 && results[0].PESS_ID) {
+        skipClienteCrossLinkRef.current = true;
+        setClienteState({
+          PESS_ID: results[0].PESS_ID,
+          PESS_NOME: results[0].PESS_NOME || '',
+          PESS_CPFCNPJ: results[0].PESS_CPFCNPJ || '',
+        });
+        toast.info('Cliente do veículo selecionado automaticamente');
+      } else if (results.length > 1) {
+        setSelectionDialogType('cliente');
+        setSelectionDialogItems(results);
+        setSelectionDialogOpen(true);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingCrossLink(false);
+    }
+  }, [cliente]);
+
+  const handleCrossLinkSelect = (item: PessoaVeiculo) => {
+    if (selectionDialogType === 'veiculo' && item.VEIC_ID) {
+      skipVeiculoCrossLinkRef.current = true;
+      setVeiculoState({
+        VEIC_ID: item.VEIC_ID,
+        VEIC_PLACA: item.VEIC_PLACA || '',
+        VEIC_MARCA: item.VEIC_MARCA,
+        VEIC_MODELO: item.VEIC_MODELO,
+        VEIC_ANO: item.VEIC_ANO,
+        VEIC_COR: item.VEIC_COR,
+        VEIC_KM: item.VEIC_KM,
+        PESS_ID: item.PESS_ID,
+      });
+      toast.success('Veículo selecionado');
+    } else if (selectionDialogType === 'cliente' && item.PESS_ID) {
+      skipClienteCrossLinkRef.current = true;
+      setClienteState({
+        PESS_ID: item.PESS_ID,
+        PESS_NOME: item.PESS_NOME || '',
+        PESS_CPFCNPJ: item.PESS_CPFCNPJ || '',
+      });
+      toast.success('Cliente selecionado');
+    }
+    setSelectionDialogOpen(false);
+    setSelectionDialogItems([]);
+  };
 
   const fetchVendedores = useCallback(async (query: string) => {
     try {
@@ -160,15 +274,23 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
 
       {/* Cliente + Veículo FIRST */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ClienteSection cliente={cliente} onSelect={setCliente} />
+        <ClienteSection cliente={cliente} onSelect={handleClienteSelect} />
         <VeiculoSection
           veiculo={veiculo}
           clienteId={cliente?.PESS_ID || null}
-          onSelect={setVeiculo}
+          onSelect={handleVeiculoSelect}
           hodometro={hodometro}
           onHodometroChange={setHodometro}
         />
       </div>
+
+      {/* Loading cross-link indicator */}
+      {loadingCrossLink && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground px-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Buscando vínculos...
+        </div>
+      )}
 
       {/* Dados da OS (Tipo + Origem + Status) */}
       <Card>
@@ -294,6 +416,59 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
           </Button>
         </div>
       </div>
+
+      {/* Cross-link Selection Dialog */}
+      <Dialog open={selectionDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setSelectionDialogOpen(false);
+          setSelectionDialogItems([]);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectionDialogType === 'veiculo' ? (
+                <><Car className="h-5 w-5 text-primary" /> Selecione o Veículo</>
+              ) : (
+                <><User className="h-5 w-5 text-primary" /> Selecione o Cliente</>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {selectionDialogItems.map((item, idx) => (
+              <button
+                key={idx}
+                className="w-full text-left p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => handleCrossLinkSelect(item)}
+              >
+                {selectionDialogType === 'veiculo' ? (
+                  <div>
+                    <span className="font-mono font-semibold text-sm text-foreground">{item.VEIC_PLACA}</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {[item.VEIC_MARCA, item.VEIC_MODELO, item.VEIC_ANO, item.VEIC_COR].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="font-semibold text-sm text-foreground">{item.PESS_NOME}</span>
+                    {item.PESS_CPFCNPJ && (
+                      <span className="text-xs text-muted-foreground ml-2">{item.PESS_CPFCNPJ}</span>
+                    )}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => {
+              setSelectionDialogOpen(false);
+              setSelectionDialogItems([]);
+            }}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
