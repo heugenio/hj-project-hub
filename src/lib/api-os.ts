@@ -245,3 +245,26 @@ export const setItensOrdemServicos = (itens: Partial<ItemOS>[]) =>
 
 export const setOrdemServico = (os: Partial<OrdemServicoFull>) =>
   proxyPost<OrdemServicoFull>('/setOrdemServicos', os);
+
+// ===== Pessoa-Veículo relationship =====
+
+export interface PessoaVeiculo {
+  PESS_ID?: string;
+  PESS_NOME?: string;
+  PESS_CPFCNPJ?: string;
+  VEIC_ID?: string;
+  VEIC_PLACA?: string;
+  VEIC_MARCA?: string;
+  VEIC_MODELO?: string;
+  VEIC_ANO?: string;
+  VEIC_COR?: string;
+  VEIC_KM?: string;
+}
+
+export const getPessoasVeiculos = (params: { pess_id?: string; veic_id?: string }) => {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<PessoaVeiculo[]>(`/getPessoasVeiculos?${query}`);
+};
