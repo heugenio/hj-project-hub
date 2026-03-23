@@ -34,6 +34,9 @@ function calcTotal(item: ItemOS): number {
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const formatNumber = (v: number) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchDialogIndex, setSearchDialogIndex] = useState<number | null>(null);
