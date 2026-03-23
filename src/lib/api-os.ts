@@ -34,6 +34,7 @@ async function proxyPost<T>(endpoint: string, payload: unknown): Promise<T> {
 export interface TipoOS {
   TPOS_ID: string;
   TPOS_NOME: string;
+  TPOS_PADRAO?: string;
 }
 
 export interface Cliente {
