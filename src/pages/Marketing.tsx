@@ -20,17 +20,32 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 // Types
+interface ContatoApi {
+  PESS_MARCAR?: string;
+  PESS_NOME?: string;
+  PESS_RAZAO_SOCIAL?: string;
+  PESS_SEXO?: string;
+  PESS_FISICO_JURIDICO?: string;
+  PESS_DATA_NASCIMENTO?: string;
+  TELE_DDD?: string;
+  TELE_NUMERO?: string;
+  DCFS_DATA_NOTA?: string;
+  UNEM_FANTASIA?: string;
+  UNEM_FONE?: string;
+  UNEM_ENDERECO?: string;
+  UNEM_ID?: string;
+  UNEM_MSG_ASSINATURA?: string;
+}
+
 interface Contato {
-  PESS_NOME: string;
-  PESS_FONE: string;
-  PESS_EMAIL?: string;
-  PESS_CPFCNPJ?: string;
-  PESS_CIDADE?: string;
-  PESS_UF?: string;
-  ULTIMA_COMPRA?: string;
-  PRODUTO?: string;
-  VLR_TOTAL?: string;
-  selected?: boolean;
+  tratamento: string;
+  nome: string;
+  telefone: string;
+  ultimaCompra: string;
+  loja: string;
+  lojaUrl: string;
+  raw: ContatoApi;
+  selected: boolean;
 }
 
 interface MensagemWhts {
@@ -51,10 +66,10 @@ const campanhaConfig: { tipo: CampanhaTipo; label: string; icon: React.ReactNode
 ];
 
 const variaveisDisponiveis = [
-  { var: "{NOME_CLIENTE}", desc: "Nome do cliente" },
-  { var: "{PRODUTO}", desc: "Produto comprado" },
+  { var: "{NOME_CLIENTE}", desc: "Sr/Sra + Nome do cliente" },
   { var: "{DATA_ULTIMA_COMPRA}", desc: "Data da última compra" },
-  { var: "{VALOR_TOTAL}", desc: "Valor total" },
+  { var: "{NOME_LOJA}", desc: "Nome fantasia da loja" },
+  { var: "{URL_LOJA}", desc: "URL/assinatura da loja" },
 ];
 
 function getBaseUrl(): string {
@@ -203,16 +218,35 @@ export default function Marketing() {
 
       if (error) throw new Error(error.message);
       
-      let list: Contato[] = [];
+      let rawList: ContatoApi[] = [];
       if (typeof data === 'string') {
-        list = JSON.parse(data);
+        rawList = JSON.parse(data);
       } else if (Array.isArray(data)) {
-        list = data;
+        rawList = data;
       }
 
-      setContatos(list.map(c => ({ ...c, selected: false })));
+      const mapped: Contato[] = rawList.map(r => {
+        const isFisica = (r.PESS_FISICO_JURIDICO || '').toUpperCase().includes('FISIC');
+        const sexo = (r.PESS_SEXO || '').toUpperCase();
+        const tratamento = isFisica ? (sexo === 'F' ? 'Sra' : 'Sr') : '';
+        const ddd = (r.TELE_DDD || '').replace(/\D/g, '');
+        const numero = (r.TELE_NUMERO || '').replace(/\D/g, '');
+        const telefone = ddd && numero ? `${ddd}-${numero}` : numero || '';
+        return {
+          tratamento,
+          nome: r.PESS_NOME || r.PESS_RAZAO_SOCIAL || '',
+          telefone,
+          ultimaCompra: r.DCFS_DATA_NOTA || '',
+          loja: r.UNEM_FANTASIA || '',
+          lojaUrl: r.UNEM_MSG_ASSINATURA || '',
+          raw: r,
+          selected: false,
+        };
+      });
+
+      setContatos(mapped);
       setSelectAll(false);
-      toast.success(`${list.length} contato(s) encontrado(s)`);
+      toast.success(`${mapped.length} contato(s) encontrado(s)`);
     } catch (err: any) {
       console.error('Erro ao gerar lista:', err);
       toast.error('Erro ao buscar contatos: ' + err.message);
@@ -235,10 +269,10 @@ export default function Marketing() {
 
   // Preview message with simulated data
   const previewMsg = mensagem
-    .replace("{NOME_CLIENTE}", "João Silva")
-    .replace("{PRODUTO}", "Pneu 205/55 R16")
+    .replace("{NOME_CLIENTE}", "Sr João Silva")
     .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
-    .replace("{VALOR_TOTAL}", "R$ 1.250,00");
+    .replace("{NOME_LOJA}", "Auto Peças Centro")
+    .replace("{URL_LOJA}", "https://loja.exemplo.com");
 
   // Send messages
   const enviarMensagens = async () => {
@@ -253,13 +287,16 @@ export default function Marketing() {
 
     for (const contato of selecionados) {
       try {
+        const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
         const texto = mensagem
-          .replace("{NOME_CLIENTE}", contato.PESS_NOME || "")
-          .replace("{PRODUTO}", contato.PRODUTO || "")
-          .replace("{DATA_ULTIMA_COMPRA}", contato.ULTIMA_COMPRA || "")
-          .replace("{VALOR_TOTAL}", contato.VLR_TOTAL || "");
+          .replace("{NOME_CLIENTE}", nomeComTratamento)
+          .replace("{PRODUTO}", "")
+          .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
+          .replace("{VALOR_TOTAL}", "")
+          .replace("{NOME_LOJA}", contato.loja || "")
+          .replace("{URL_LOJA}", contato.lojaUrl || "");
 
-        const phone = (contato.PESS_FONE || "").replace(/\D/g, "");
+        const phone = contato.telefone.replace(/\D/g, "");
         if (!phone) { erros++; continue; }
 
         const payload: any = {
@@ -499,10 +536,10 @@ export default function Marketing() {
                     <TableHeader>
                       <TableRow className="bg-muted/40">
                         <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead className="text-[10px]">Nome</TableHead>
-                        <TableHead className="text-[10px]">Contato</TableHead>
+                        <TableHead className="text-[10px]">Cliente</TableHead>
+                        <TableHead className="text-[10px]">Telefone</TableHead>
                         <TableHead className="text-[10px]">Última Compra</TableHead>
-                        <TableHead className="text-[10px]">Produto</TableHead>
+                        <TableHead className="text-[10px]">Loja</TableHead>
                         <TableHead className="w-10 text-center">
                           <Checkbox checked={selectAll} onCheckedChange={toggleSelectAll} className="h-3.5 w-3.5" />
                         </TableHead>
@@ -512,12 +549,13 @@ export default function Marketing() {
                       {contatos.map((c, idx) => (
                         <TableRow key={idx} className={`text-xs transition-colors ${c.selected ? "bg-primary/5" : "hover:bg-muted/30"}`}>
                           <TableCell className="text-center text-muted-foreground text-[10px]">{idx + 1}</TableCell>
-                          <TableCell className="font-medium text-[11px]">{c.PESS_NOME}</TableCell>
-                          <TableCell className="text-[10px] text-muted-foreground">
-                            {canal === "email" ? c.PESS_EMAIL || "—" : c.PESS_FONE || "—"}
+                          <TableCell className="font-medium text-[11px]">
+                            {c.tratamento && <span className="text-muted-foreground mr-1">{c.tratamento}</span>}
+                            {c.nome}
                           </TableCell>
-                          <TableCell className="text-[10px]">{c.ULTIMA_COMPRA || "—"}</TableCell>
-                          <TableCell className="text-[10px]">{c.PRODUTO || "—"}</TableCell>
+                          <TableCell className="text-[10px] text-muted-foreground">{c.telefone || "—"}</TableCell>
+                          <TableCell className="text-[10px]">{c.ultimaCompra || "—"}</TableCell>
+                          <TableCell className="text-[10px]">{c.loja || "—"}</TableCell>
                           <TableCell className="text-center">
                             <Checkbox checked={c.selected} onCheckedChange={() => toggleContato(idx)} className="h-3.5 w-3.5" />
                           </TableCell>
