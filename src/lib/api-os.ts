@@ -103,6 +103,7 @@ export interface ItemOS {
   ITOS_VLR_UNITARIO: number;
   ITOS_DESCONTO: number;
   ITOS_VLR_TOTAL: number;
+  ITOS_SALDO_ESTOQUE?: number;
   PROD_ID?: string;
 }
 
