@@ -16,6 +16,7 @@ import {
   BarChart3,
   LogOut,
   Store,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,10 @@ const estoqueItems = [
 const reportItems = [
   { title: "Demonstrativo de Vendas", url: "/relatorios/vendas", icon: TrendingUp },
   { title: "Resumo de Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
+];
+
+const marketingItems = [
+  { title: "Campanhas", url: "/marketing/campanhas", icon: Megaphone },
 ];
 
 function formatCNPJ(cnpj: string): string {
@@ -233,6 +238,16 @@ export function AppLayout() {
               )}
             </>
           )}
+        </div>
+
+        {/* Marketing group */}
+        <div className="mt-3">
+          <p className={cn("text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mb-2", collapsed && !mobile ? "text-center" : "px-2")}>
+            {collapsed && !mobile ? "•" : "Marketing"}
+          </p>
+          {marketingItems.map((item) => (
+            <NavLink key={item.url} item={item} mobile={mobile} />
+          ))}
         </div>
       </nav>
 
