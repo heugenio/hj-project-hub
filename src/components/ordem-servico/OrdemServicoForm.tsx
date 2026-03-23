@@ -75,7 +75,11 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
   useEffect(() => {
     setLoadingTipos(true);
     getTiposOrdemServicos()
-      .then(setTiposOS)
+      .then((tipos) => {
+        setTiposOS(tipos);
+        const padrao = tipos.find((t) => t.TPOS_PADRAO === 'Sim');
+        if (padrao) setTipoOS(padrao.TPOS_ID);
+      })
       .catch(() => {})
       .finally(() => setLoadingTipos(false));
 
