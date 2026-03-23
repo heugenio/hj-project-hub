@@ -337,7 +337,7 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
       </Card>
 
       {/* Itens */}
-      <ItensTable itens={itens} onChange={setItens} />
+      <ItensTable itens={itens} onChange={setItens} unemId={auth?.unidade?.unem_Id} />
 
       {/* Equipe + Resumo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
