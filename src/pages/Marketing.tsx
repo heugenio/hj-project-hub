@@ -673,7 +673,7 @@ export default function Marketing() {
                   <p className="text-xs mt-1">Use os filtros acima e clique em "Gerar Lista"</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[400px]">
+                <ScrollArea className="h-[400px]">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
