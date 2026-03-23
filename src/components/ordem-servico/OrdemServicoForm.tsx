@@ -77,7 +77,7 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
     getTiposOrdemServicos()
       .then((tipos) => {
         setTiposOS(tipos);
-        const padrao = tipos.find((t) => t.TPOS_PADRAO === 'Sim');
+        const padrao = tipos.find((t) => (t.TPOS_PADRAO || '').toUpperCase() === 'SIM');
         if (padrao) setTipoOS(padrao.TPOS_ID);
       })
       .catch(() => {})
