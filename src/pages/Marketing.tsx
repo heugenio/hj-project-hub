@@ -93,11 +93,9 @@ export default function Marketing() {
   // Map campaign type to API MSWA_TIPO value
   const getMswaTipo = (tipo: CampanhaTipo): string => {
     const map: Record<CampanhaTipo, string> = {
-      Recompra: "VENDAS",
       Rodizio: "RODIZIO",
       Aniversario: "ANIVERSARIO",
       Promocao: "MARKETING",
-      Inativos: "VENDAS",
       Personalizada: "MARKETING",
     };
     return map[tipo];
