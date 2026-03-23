@@ -329,14 +329,15 @@ export default function Marketing() {
     .replace(/\\n/g, "\n");
 
   // Check if message was already sent
-  const checkJaEnviada = async (tipo: string, fone: string, data: string): Promise<boolean> => {
+  const checkJaEnviada = async (tipo: string, fone: string): Promise<boolean> => {
     try {
-      const params = new URLSearchParams({ MSWE_TIPO: tipo, MSWE_FONE: fone, MSWE_DATA: data });
+      const now = new Date();
+      const dataBr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+      const params = new URLSearchParams({ MSWE_TIPO: tipo, MSWE_FONE: fone, MSWE_DATA: dataBr });
       const { data: result, error } = await supabase.functions.invoke('api-proxy', {
         body: { baseUrl: getBaseUrl(), endpoint: `/getMsgWths?${params.toString()}`, method: 'GET' },
       });
       if (error) return false;
-      // If API returns data, message was already sent
       if (Array.isArray(result) && result.length > 0) return true;
       if (result && typeof result === 'object' && !Array.isArray(result) && result.MSWE_ID) return true;
       return false;
@@ -353,7 +354,7 @@ export default function Marketing() {
       if (storedUnidade) { try { unemId = JSON.parse(storedUnidade).unem_Id || JSON.parse(storedUnidade).UNEM_ID || ''; } catch {} }
 
       const now = new Date();
-      const dataEnvio = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      const dataEnvio = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
       await supabase.functions.invoke('api-proxy', {
         body: {
@@ -395,8 +396,7 @@ export default function Marketing() {
         if (!phone) { erros++; continue; }
 
         // Check if already sent
-        const hoje = formatDate(new Date());
-        const jaEnviada = await checkJaEnviada(msweTipo, phone, hoje);
+        const jaEnviada = await checkJaEnviada(msweTipo, phone);
         if (jaEnviada) {
           pulados++;
           continue;
