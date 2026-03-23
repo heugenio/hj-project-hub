@@ -104,6 +104,7 @@ export default function Marketing() {
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
+  const [enviarUnemId, setEnviarUnemId] = useState(true);
 
   const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
   const [loadingGrupos, setLoadingGrupos] = useState(false);
@@ -238,7 +239,7 @@ export default function Marketing() {
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
       if (filtroGrupo && filtroGrupo !== '__all__') params.set('Grupo', filtroGrupo);
       if (filtroProduto) params.set('Produto', filtroProduto);
-      params.set('UNEM_ID', unemId);
+      if (enviarUnemId) params.set('UNEM_ID', unemId);
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
 
@@ -283,7 +284,7 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto, enviarUnemId]);
 
   // Save message template
   const salvarMensagem = async () => {
@@ -544,11 +545,15 @@ export default function Marketing() {
                   </Select>
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
+              <div className="flex items-center gap-4 mt-4">
                 <Button size="sm" onClick={gerarLista} disabled={loading} className="gap-1.5">
                   {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                   Gerar Lista
                 </Button>
+                <div className="flex items-center gap-1.5">
+                  <Checkbox id="enviarUnemId" checked={enviarUnemId} onCheckedChange={(v) => setEnviarUnemId(!!v)} />
+                  <Label htmlFor="enviarUnemId" className="text-[9px] text-muted-foreground cursor-pointer">Filtrar por Unidade (UNEM_ID)</Label>
+                </div>
               </div>
             </CardContent>
           </Card>
