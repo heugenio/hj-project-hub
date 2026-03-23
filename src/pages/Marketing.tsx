@@ -68,7 +68,8 @@ const campanhaConfig: { tipo: CampanhaTipo; label: string; icon: React.ReactNode
 const variaveisDisponiveis = [
   { var: "{NOME_CLIENTE}", desc: "Sr/Sra + Nome do cliente" },
   { var: "{DATA_ULTIMA_COMPRA}", desc: "Data da última compra" },
-  { var: "{NOME_LOJA}", desc: "Nome fantasia da loja" },
+  { var: "{EMPR}", desc: "Nome da loja" },
+  { var: "{NOME_LOJA}", desc: "Nome fantasia da loja que vendeu" },
   { var: "{URL_LOJA}", desc: "URL/assinatura da loja" },
 ];
 
