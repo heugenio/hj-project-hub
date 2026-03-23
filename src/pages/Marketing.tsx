@@ -218,16 +218,35 @@ export default function Marketing() {
 
       if (error) throw new Error(error.message);
       
-      let list: Contato[] = [];
+      let rawList: ContatoApi[] = [];
       if (typeof data === 'string') {
-        list = JSON.parse(data);
+        rawList = JSON.parse(data);
       } else if (Array.isArray(data)) {
-        list = data;
+        rawList = data;
       }
 
-      setContatos(list.map(c => ({ ...c, selected: false })));
+      const mapped: Contato[] = rawList.map(r => {
+        const isFisica = (r.PESS_FISICO_JURIDICO || '').toUpperCase().includes('FISIC');
+        const sexo = (r.PESS_SEXO || '').toUpperCase();
+        const tratamento = isFisica ? (sexo === 'F' ? 'Sra' : 'Sr') : '';
+        const ddd = (r.TELE_DDD || '').replace(/\D/g, '');
+        const numero = (r.TELE_NUMERO || '').replace(/\D/g, '');
+        const telefone = ddd && numero ? `${ddd}-${numero}` : numero || '';
+        return {
+          tratamento,
+          nome: r.PESS_NOME || r.PESS_RAZAO_SOCIAL || '',
+          telefone,
+          ultimaCompra: r.DCFS_DATA_NOTA || '',
+          loja: r.UNEM_FANTASIA || '',
+          lojaUrl: r.UNEM_MSG_ASSINATURA || '',
+          raw: r,
+          selected: false,
+        };
+      });
+
+      setContatos(mapped);
       setSelectAll(false);
-      toast.success(`${list.length} contato(s) encontrado(s)`);
+      toast.success(`${mapped.length} contato(s) encontrado(s)`);
     } catch (err: any) {
       console.error('Erro ao gerar lista:', err);
       toast.error('Erro ao buscar contatos: ' + err.message);
