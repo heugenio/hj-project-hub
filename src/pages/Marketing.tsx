@@ -328,6 +328,54 @@ export default function Marketing() {
     .replace("{URL_LOJA}", "https://loja.exemplo.com")
     .replace(/\\n/g, "\n");
 
+  // Check if message was already sent
+  const checkJaEnviada = async (tipo: string, fone: string, data: string): Promise<boolean> => {
+    try {
+      const params = new URLSearchParams({ MSWE_TIPO: tipo, MSWE_FONE: fone, MSWE_DATA: data });
+      const { data: result, error } = await supabase.functions.invoke('api-proxy', {
+        body: { baseUrl: getBaseUrl(), endpoint: `/getMsgWths?${params.toString()}`, method: 'GET' },
+      });
+      if (error) return false;
+      // If API returns data, message was already sent
+      if (Array.isArray(result) && result.length > 0) return true;
+      if (result && typeof result === 'object' && !Array.isArray(result) && result.MSWE_ID) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  // Register sent message in API
+  const registrarEnvio = async (texto: string, tipo: string, fone: string, enviada: string) => {
+    try {
+      const storedUnidade = localStorage.getItem('hj_unidade');
+      let unemId = '';
+      if (storedUnidade) { try { unemId = JSON.parse(storedUnidade).unem_Id || JSON.parse(storedUnidade).UNEM_ID || ''; } catch {} }
+
+      const now = new Date();
+      const dataEnvio = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+      await supabase.functions.invoke('api-proxy', {
+        body: {
+          baseUrl: getBaseUrl(),
+          endpoint: '/setMsgWths',
+          method: 'POST',
+          body: {
+            MSWE_ID: '',
+            MSWE_MENSAGEM: texto,
+            MSWE_TIPO: tipo,
+            MSWE_FONE: fone,
+            MSWE_DATA: dataEnvio,
+            MSWE_ENVIADA: enviada,
+            UNEM_ID: unemId,
+          },
+        },
+      });
+    } catch (err) {
+      console.error('Erro ao registrar envio:', err);
+    }
+  };
+
   // Send messages
   const enviarMensagens = async () => {
     const selecionados = contatos.filter(c => c.selected);
@@ -338,9 +386,22 @@ export default function Marketing() {
     setSending(true);
     let enviados = 0;
     let erros = 0;
+    let pulados = 0;
+    const msweTipo = getMswaTipo(campanhaAtiva);
 
     for (const contato of selecionados) {
       try {
+        const phone = contato.telefone.replace(/\D/g, "");
+        if (!phone) { erros++; continue; }
+
+        // Check if already sent
+        const hoje = formatDate(new Date());
+        const jaEnviada = await checkJaEnviada(msweTipo, phone, hoje);
+        if (jaEnviada) {
+          pulados++;
+          continue;
+        }
+
         const storedUnidade = localStorage.getItem('hj_unidade');
         let emprNome = '';
         if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
@@ -353,13 +414,7 @@ export default function Marketing() {
           .replace("{URL_LOJA}", contato.lojaUrl || "")
           .replace(/\\n/g, "\n");
 
-        const phone = contato.telefone.replace(/\D/g, "");
-        if (!phone) { erros++; continue; }
-
-        const payload: any = {
-          number: phone,
-          canal,
-        };
+        const payload: any = { number: phone, canal };
 
         if (imagemUrl) {
           payload.type = "media";
@@ -377,7 +432,12 @@ export default function Marketing() {
           body: payload,
         });
 
-        if (error) throw error;
+        if (error) {
+          await registrarEnvio(texto, msweTipo, phone, "Nao");
+          throw error;
+        }
+
+        await registrarEnvio(texto, msweTipo, phone, "Sim");
         enviados++;
       } catch (err: any) {
         console.error('Erro envio:', err);
@@ -385,7 +445,10 @@ export default function Marketing() {
       }
     }
 
-    toast.success(`${enviados} mensagem(ns) enviada(s)${erros > 0 ? `, ${erros} erro(s)` : ""}`);
+    let msg = `${enviados} mensagem(ns) enviada(s)`;
+    if (pulados > 0) msg += `, ${pulados} já enviada(s)`;
+    if (erros > 0) msg += `, ${erros} erro(s)`;
+    toast.success(msg);
     setSending(false);
   };
 
