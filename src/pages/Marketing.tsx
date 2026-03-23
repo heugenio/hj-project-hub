@@ -594,7 +594,7 @@ export default function Marketing() {
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__logada__" className="text-xs">Loja Logada</SelectItem>
+                      
                       <SelectItem value="__todas__" className="text-xs">Todas as Unidades</SelectItem>
                       {unidades.map(u => (
                         <SelectItem key={u.unem_Id} value={u.unem_Id} className="text-xs">{u.unem_Fantasia}</SelectItem>
