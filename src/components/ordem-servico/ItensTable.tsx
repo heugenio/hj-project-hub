@@ -135,8 +135,8 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+        <CardContent className="p-0 overflow-visible">
+          <div className="overflow-x-auto overflow-y-visible">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
