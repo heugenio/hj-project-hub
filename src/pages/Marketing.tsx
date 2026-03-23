@@ -104,7 +104,16 @@ export default function Marketing() {
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
-  const [filtroUnemId, setFiltroUnemId] = useState<string>("__logada__");
+  const [filtroUnemId, setFiltroUnemId] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('hj_unidade');
+      if (stored) {
+        const u = JSON.parse(stored);
+        return u.unem_Id || u.UNEM_ID || '__todas__';
+      }
+    } catch {}
+    return '__todas__';
+  });
   const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string }[]>([]);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
@@ -266,11 +275,7 @@ export default function Marketing() {
       if (filtroGrupo && filtroGrupo !== '__all__') params.set('Grupo', filtroGrupo);
       if (filtroProduto) params.set('Produto', filtroProduto);
       if (filtroUnemId && filtroUnemId !== '__todas__') {
-        if (filtroUnemId === '__logada__') {
-          params.set('UNEM_ID', unemId);
-        } else {
-          params.set('UNEM_ID', filtroUnemId);
-        }
+        params.set('UNEM_ID', filtroUnemId);
       }
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
@@ -589,7 +594,7 @@ export default function Marketing() {
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__logada__" className="text-xs">Loja Logada</SelectItem>
+                      
                       <SelectItem value="__todas__" className="text-xs">Todas as Unidades</SelectItem>
                       {unidades.map(u => (
                         <SelectItem key={u.unem_Id} value={u.unem_Id} className="text-xs">{u.unem_Fantasia}</SelectItem>
