@@ -582,9 +582,20 @@ export default function Marketing() {
                   {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                   Gerar Lista
                 </Button>
-                <div className="flex items-center gap-1.5">
-                  <Checkbox id="enviarUnemId" checked={enviarUnemId} onCheckedChange={(v) => setEnviarUnemId(!!v)} />
-                  <Label htmlFor="enviarUnemId" className="text-[9px] text-muted-foreground cursor-pointer">Filtrar por Unidade (UNEM_ID)</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[9px] text-muted-foreground whitespace-nowrap">Unidade:</Label>
+                  <Select value={filtroUnemId} onValueChange={setFiltroUnemId}>
+                    <SelectTrigger className="h-7 text-[10px] w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__logada__" className="text-xs">Loja Logada</SelectItem>
+                      <SelectItem value="__todas__" className="text-xs">Todas as Unidades</SelectItem>
+                      {unidades.map(u => (
+                        <SelectItem key={u.unem_Id} value={u.unem_Id} className="text-xs">{u.unem_Fantasia}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
