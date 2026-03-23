@@ -488,21 +488,39 @@ export default function Marketing() {
               />
 
               {/* Image upload */}
-              <div className="flex items-center gap-3">
+              <div className="space-y-2">
                 <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <ImageIcon className="h-3.5 w-3.5" /> URL da Imagem (opcional):
+                  <ImageIcon className="h-3.5 w-3.5" /> Imagem de Marketing (opcional):
                 </Label>
-                <Input
-                  value={imagemUrl}
-                  onChange={e => setImagemUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="h-7 text-xs flex-1 normal-case"
-                />
-                {imagemUrl && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setImagemUrl("")}>
-                    <X className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    {uploadingImage ? "Enviando..." : "Upload Imagem"}
                   </Button>
-                )}
+                  {imagemUrl && (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <img src={imagemUrl} alt="Preview" className="h-8 w-8 rounded object-cover border border-border" />
+                      <span className="text-[10px] text-muted-foreground truncate flex-1">{imagemUrl.split('/').pop()}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setImagemUrl("")}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
