@@ -104,7 +104,9 @@ export default function Marketing() {
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
-  const [enviarUnemId, setEnviarUnemId] = useState(true);
+  const [filtroUnemId, setFiltroUnemId] = useState<string>("__logada__");
+  const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string }[]>([]);
+  const [loadingUnidades, setLoadingUnidades] = useState(false);
 
   const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
   const [loadingGrupos, setLoadingGrupos] = useState(false);
