@@ -115,7 +115,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
 
   return (
     <>
-      <Card data-autocomplete-scope>
+      <Card data-autocomplete-scope="itens-os">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
