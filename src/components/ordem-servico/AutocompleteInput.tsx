@@ -36,6 +36,7 @@ export function AutocompleteInput({
   const [options, setOptions] = useState<AutocompleteOption[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const justSelected = useRef(false);
   const debouncedValue = useDebounce(value, 400);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
