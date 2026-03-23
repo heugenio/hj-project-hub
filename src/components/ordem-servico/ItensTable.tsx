@@ -75,13 +75,25 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
     onChange(updated);
   };
 
-  const fetchProdutos = useCallback(async (query: string) => {
+  const fetchProdutosPorNome = useCallback(async (query: string) => {
     if (!unemId || query.length < 2) return [];
     try {
       const data = await getConsultaEstoque({ unem_id: unemId, prod_nome: query });
       return data.map((p) => ({
         id: p.pROD_CODIGO || p.prod_Codigo || p.Codigo || '',
-        label: p.pROD_NOME || p.prod_Nome || p.Nome || '',
+        label: `${p.pROD_CODIGO || p.prod_Codigo || ''} - ${p.pROD_NOME || p.prod_Nome || p.Nome || ''}`,
+        data: p,
+      }));
+    } catch { return []; }
+  }, [unemId]);
+
+  const fetchProdutosPorCodigo = useCallback(async (query: string) => {
+    if (!unemId || query.length < 2) return [];
+    try {
+      const data = await getConsultaEstoque({ unem_id: unemId, prod_codigo: query });
+      return data.map((p) => ({
+        id: p.pROD_CODIGO || p.prod_Codigo || p.Codigo || '',
+        label: `${p.pROD_CODIGO || p.prod_Codigo || ''} - ${p.pROD_NOME || p.prod_Nome || p.Nome || ''}`,
         data: p,
       }));
     } catch { return []; }
@@ -149,13 +161,23 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                 {itens.map((item, idx) => (
                   <TableRow key={idx} className="group">
                     <TableCell className="p-1.5">
-                      <Input
-                        value={item.PROD_ID || ''}
-                        readOnly
-                        className="h-8 text-xs font-mono bg-muted/30"
-                        placeholder="—"
-                        tabIndex={-1}
-                      />
+                      {unemId ? (
+                        <AutocompleteInput
+                          placeholder="Código..."
+                          value={item.PROD_ID || ''}
+                          onChange={(v) => updateItem(idx, 'PROD_ID' as keyof ItemOS, v)}
+                          onSelect={(opt) => applyProduct(idx, opt.data)}
+                          fetchOptions={fetchProdutosPorCodigo}
+                          className="h-8 text-xs font-mono"
+                        />
+                      ) : (
+                        <Input
+                          value={item.PROD_ID || ''}
+                          onChange={(e) => updateItem(idx, 'PROD_ID' as keyof ItemOS, e.target.value)}
+                          className="h-8 text-xs font-mono"
+                          placeholder="Código..."
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="p-1.5">
                       <div className="flex items-center gap-1">
@@ -167,7 +189,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                                 value={item.ITOS_DESCRICAO}
                                 onChange={(v) => updateItem(idx, 'ITOS_DESCRICAO', v)}
                                 onSelect={(opt) => applyProduct(idx, opt.data)}
-                                fetchOptions={fetchProdutos}
+                                fetchOptions={fetchProdutosPorNome}
                                 className="h-8 text-xs"
                               />
                             </div>
