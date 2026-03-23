@@ -455,6 +455,7 @@ export default function Marketing() {
     if (erros > 0) msg += `, ${erros} erro(s)`;
     toast.success(msg);
     setSending(false);
+    setSendProgress({ current: 0, total: 0 });
   };
 
   // Insert variable into message
