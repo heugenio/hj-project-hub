@@ -325,7 +325,8 @@ export default function Marketing() {
     .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
     .replace("{EMPR}", "Auto Peças Centro")
     .replace("{NOME_LOJA}", "Filial Sul")
-    .replace("{URL_LOJA}", "https://loja.exemplo.com");
+    .replace("{URL_LOJA}", "https://loja.exemplo.com")
+    .replace(/\\n/g, "\n");
 
   // Send messages
   const enviarMensagens = async () => {
