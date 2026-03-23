@@ -458,7 +458,7 @@ export default function Marketing() {
                 </div>
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Produto</Label>
-                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-7 text-[10px]" />
+                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-7 text-[9px]" />
                 </div>
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Grupo de Produto</Label>
