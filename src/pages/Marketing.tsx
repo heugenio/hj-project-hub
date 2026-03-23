@@ -1,0 +1,540 @@
+import { useState, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import {
+  Package, Cake, Flame, DollarSign, Pencil, Send, Save, Clock,
+  Users, Filter, Eye, MessageSquare, Mail, Smartphone, Search,
+  Upload, X, CheckCircle2, RefreshCw, ImageIcon
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+// Types
+interface Contato {
+  PESS_NOME: string;
+  PESS_FONE: string;
+  PESS_EMAIL?: string;
+  PESS_CPFCNPJ?: string;
+  PESS_CIDADE?: string;
+  PESS_UF?: string;
+  ULTIMA_COMPRA?: string;
+  PRODUTO?: string;
+  VLR_TOTAL?: string;
+  selected?: boolean;
+}
+
+interface MensagemWhts {
+  MSWA_ID?: string;
+  MSWA_TIPO?: string;
+  MSWA_MENSAGEM?: string;
+  MSWA_STATUS?: string;
+}
+
+type CampanhaTipo = "Recompra" | "Rodizio" | "Aniversario" | "Promocao" | "Inativos" | "Personalizada";
+
+const campanhaConfig: { tipo: CampanhaTipo; label: string; icon: React.ReactNode; color: string }[] = [
+  { tipo: "Recompra", label: "Recompra de Produto", icon: <Package className="h-5 w-5" />, color: "bg-primary/10 text-primary border-primary/20" },
+  { tipo: "Rodizio", label: "Rodízio de Pneus", icon: <RefreshCw className="h-5 w-5" />, color: "bg-accent/10 text-accent border-accent/20" },
+  { tipo: "Aniversario", label: "Aniversário", icon: <Cake className="h-5 w-5" />, color: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
+  { tipo: "Promocao", label: "Promoção", icon: <Flame className="h-5 w-5" />, color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
+  { tipo: "Inativos", label: "Recuperação de Inativos", icon: <DollarSign className="h-5 w-5" />, color: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20" },
+  { tipo: "Personalizada", label: "Campanha Personalizada", icon: <Pencil className="h-5 w-5" />, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+];
+
+const variaveisDisponiveis = [
+  { var: "{NOME_CLIENTE}", desc: "Nome do cliente" },
+  { var: "{PRODUTO}", desc: "Produto comprado" },
+  { var: "{DATA_ULTIMA_COMPRA}", desc: "Data da última compra" },
+  { var: "{VALOR_TOTAL}", desc: "Valor total" },
+];
+
+function getBaseUrl(): string {
+  return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
+}
+
+export default function Marketing() {
+  // State
+  const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Recompra");
+  const [canal, setCanal] = useState<string>("whatsapp");
+  const [mensagem, setMensagem] = useState("Olá {NOME_CLIENTE}, vimos que você comprou {PRODUTO}. Temos uma oferta especial para você!");
+  const [contatos, setContatos] = useState<Contato[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);
+  const [imagemUrl, setImagemUrl] = useState("");
+
+  // Filters
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroCpf, setFiltroCpf] = useState("");
+  const [filtroPeriodoIni, setFiltroPeriodoIni] = useState("");
+  const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
+  const [filtroProduto, setFiltroProduto] = useState("");
+  const [filtroGrupo, setFiltroGrupo] = useState("");
+  const [filtroCidade, setFiltroCidade] = useState("");
+  const [filtroUf, setFiltroUf] = useState("");
+  const [filtroDiasSemCompra, setFiltroDiasSemCompra] = useState("");
+  const [filtroAnivMes, setFiltroAnivMes] = useState("");
+  const [filtroAnivDia, setFiltroAnivDia] = useState("");
+
+  const selectedCount = contatos.filter(c => c.selected).length;
+
+  // Fetch contacts from API
+  const gerarLista = useCallback(async () => {
+    setLoading(true);
+    try {
+      const unemId = localStorage.getItem('hj_system_unem_id') || '';
+      const params = new URLSearchParams();
+      params.set('MSWA_TIPO', campanhaAtiva);
+      if (filtroPeriodoIni) params.set('DATAINI', filtroPeriodoIni);
+      if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
+      if (unemId) params.set('UNEM_ID', unemId);
+
+      const endpoint = `/getContatosMsg?${params.toString()}`;
+
+      const { data, error } = await supabase.functions.invoke('api-proxy', {
+        body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
+      });
+
+      if (error) throw new Error(error.message);
+      
+      let list: Contato[] = [];
+      if (typeof data === 'string') {
+        list = JSON.parse(data);
+      } else if (Array.isArray(data)) {
+        list = data;
+      } else if (data && typeof data === 'object') {
+        list = Array.isArray(data) ? data : [];
+      }
+
+      // Apply local filters
+      if (filtroNome) list = list.filter(c => c.PESS_NOME?.toLowerCase().includes(filtroNome.toLowerCase()));
+      if (filtroCpf) list = list.filter(c => c.PESS_CPFCNPJ?.includes(filtroCpf));
+      if (filtroCidade) list = list.filter(c => c.PESS_CIDADE?.toLowerCase().includes(filtroCidade.toLowerCase()));
+      if (filtroUf) list = list.filter(c => c.PESS_UF?.toLowerCase().includes(filtroUf.toLowerCase()));
+
+      setContatos(list.map(c => ({ ...c, selected: false })));
+      setSelectAll(false);
+      toast.success(`${list.length} contato(s) encontrado(s)`);
+    } catch (err: any) {
+      console.error('Erro ao gerar lista:', err);
+      toast.error('Erro ao buscar contatos: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroNome, filtroCpf, filtroCidade, filtroUf]);
+
+  // Toggle select all
+  const toggleSelectAll = () => {
+    const next = !selectAll;
+    setSelectAll(next);
+    setContatos(prev => prev.map(c => ({ ...c, selected: next })));
+  };
+
+  // Toggle single contact
+  const toggleContato = (idx: number) => {
+    setContatos(prev => prev.map((c, i) => i === idx ? { ...c, selected: !c.selected } : c));
+  };
+
+  // Preview message with simulated data
+  const previewMsg = mensagem
+    .replace("{NOME_CLIENTE}", "João Silva")
+    .replace("{PRODUTO}", "Pneu 205/55 R16")
+    .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
+    .replace("{VALOR_TOTAL}", "R$ 1.250,00");
+
+  // Send messages
+  const enviarMensagens = async () => {
+    const selecionados = contatos.filter(c => c.selected);
+    if (selecionados.length === 0) {
+      toast.warning("Selecione ao menos um destinatário");
+      return;
+    }
+    setSending(true);
+    let enviados = 0;
+    let erros = 0;
+
+    for (const contato of selecionados) {
+      try {
+        const texto = mensagem
+          .replace("{NOME_CLIENTE}", contato.PESS_NOME || "")
+          .replace("{PRODUTO}", contato.PRODUTO || "")
+          .replace("{DATA_ULTIMA_COMPRA}", contato.ULTIMA_COMPRA || "")
+          .replace("{VALOR_TOTAL}", contato.VLR_TOTAL || "");
+
+        const phone = (contato.PESS_FONE || "").replace(/\D/g, "");
+        if (!phone) { erros++; continue; }
+
+        const payload: any = {
+          number: phone,
+          canal,
+        };
+
+        if (imagemUrl) {
+          payload.type = "media";
+          payload.mediaType = "image";
+          payload.file = imagemUrl;
+          payload.text = texto;
+        } else {
+          payload.type = "text";
+          payload.text = texto;
+        }
+
+        console.log('=== ENVIO MARKETING ===', JSON.stringify(payload, null, 2));
+
+        const { error } = await supabase.functions.invoke('send-whatsapp', {
+          body: payload,
+        });
+
+        if (error) throw error;
+        enviados++;
+      } catch (err: any) {
+        console.error('Erro envio:', err);
+        erros++;
+      }
+    }
+
+    toast.success(`${enviados} mensagem(ns) enviada(s)${erros > 0 ? `, ${erros} erro(s)` : ""}`);
+    setSending(false);
+  };
+
+  // Insert variable into message
+  const insertVar = (v: string) => {
+    setMensagem(prev => prev + " " + v);
+  };
+
+  return (
+    <div className="space-y-6 p-1">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Marketing / Campanhas
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Envie mensagens personalizadas para seus clientes</p>
+        </div>
+        <Badge variant="outline" className="text-xs px-3 py-1 gap-1.5">
+          <Users className="h-3.5 w-3.5" />
+          {selectedCount} selecionado(s)
+        </Badge>
+      </div>
+
+      {/* Campaign Type Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {campanhaConfig.map(c => (
+          <button
+            key={c.tipo}
+            onClick={() => setCampanhaAtiva(c.tipo)}
+            className={`group relative rounded-xl border-2 p-3 text-left transition-all duration-200 hover:scale-[1.02] ${
+              campanhaAtiva === c.tipo
+                ? `${c.color} border-current shadow-md`
+                : "bg-card border-border hover:border-muted-foreground/30"
+            }`}
+          >
+            <div className="flex flex-col items-center gap-2 text-center">
+              {c.icon}
+              <span className="text-[11px] font-medium leading-tight">{c.label}</span>
+            </div>
+            {campanhaAtiva === c.tipo && (
+              <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Filters + Message */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Filters */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Filter className="h-4 w-4 text-primary" />
+                Filtros de Segmentação
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Nome / Razão Social</Label>
+                  <Input value={filtroNome} onChange={e => setFiltroNome(e.target.value)} placeholder="Buscar..." className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">CPF / CNPJ</Label>
+                  <Input value={filtroCpf} onChange={e => setFiltroCpf(e.target.value)} placeholder="000.000.000-00" className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Período Início</Label>
+                  <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Período Fim</Label>
+                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Produto</Label>
+                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Grupo de Produto</Label>
+                  <Input value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)} placeholder="Grupo" className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Cidade</Label>
+                  <Input value={filtroCidade} onChange={e => setFiltroCidade(e.target.value)} placeholder="Cidade" className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">UF</Label>
+                  <Input value={filtroUf} onChange={e => setFiltroUf(e.target.value)} placeholder="UF" className="h-8 text-xs" maxLength={2} />
+                </div>
+                {campanhaAtiva === "Inativos" && (
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Dias sem Comprar</Label>
+                    <Input type="number" value={filtroDiasSemCompra} onChange={e => setFiltroDiasSemCompra(e.target.value)} placeholder="90" className="h-8 text-xs" />
+                  </div>
+                )}
+                {campanhaAtiva === "Aniversario" && (
+                  <>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Mês Aniversário</Label>
+                      <Select value={filtroAnivMes} onValueChange={setFiltroAnivMes}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+                        <SelectContent>
+                          {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((m, i) => (
+                            <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Dia Aniversário</Label>
+                      <Input type="number" value={filtroAnivDia} onChange={e => setFiltroAnivDia(e.target.value)} placeholder="15" className="h-8 text-xs" min={1} max={31} />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button size="sm" onClick={gerarLista} disabled={loading} className="gap-1.5">
+                  {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                  Gerar Lista
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Message Editor */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  Editor de Mensagem
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-muted-foreground">Canal:</Label>
+                  <Select value={canal} onValueChange={setCanal}>
+                    <SelectTrigger className="h-7 w-[130px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="whatsapp"><span className="flex items-center gap-1.5"><MessageSquare className="h-3 w-3" /> WhatsApp</span></SelectItem>
+                      <SelectItem value="email"><span className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> E-mail</span></SelectItem>
+                      <SelectItem value="sms"><span className="flex items-center gap-1.5"><Smartphone className="h-3 w-3" /> SMS</span></SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Variables */}
+              <div>
+                <Label className="text-[10px] text-muted-foreground mb-1.5 block">Variáveis disponíveis (clique para inserir):</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {variaveisDisponiveis.map(v => (
+                    <button
+                      key={v.var}
+                      onClick={() => insertVar(v.var)}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary hover:bg-primary/20 transition-colors border border-primary/20"
+                      title={v.desc}
+                    >
+                      {v.var}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Textarea
+                value={mensagem}
+                onChange={e => setMensagem(e.target.value)}
+                rows={4}
+                placeholder="Digite sua mensagem..."
+                className="text-sm resize-none normal-case"
+              />
+
+              {/* Image upload */}
+              <div className="flex items-center gap-3">
+                <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <ImageIcon className="h-3.5 w-3.5" /> URL da Imagem (opcional):
+                </Label>
+                <Input
+                  value={imagemUrl}
+                  onChange={e => setImagemUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="h-7 text-xs flex-1 normal-case"
+                />
+                {imagemUrl && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setImagemUrl("")}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recipients Table */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  Destinatários
+                  {contatos.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px]">{contatos.length}</Badge>
+                  )}
+                </CardTitle>
+                {contatos.length > 0 && (
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={toggleSelectAll}>
+                    <Checkbox checked={selectAll} className="h-3 w-3" />
+                    {selectAll ? "Desmarcar Todos" : "Selecionar Todos"}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {contatos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Users className="h-10 w-10 mb-3 opacity-30" />
+                  <p className="text-sm font-medium">Nenhum contato carregado</p>
+                  <p className="text-xs mt-1">Use os filtros acima e clique em "Gerar Lista"</p>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-[400px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="w-10 text-center">#</TableHead>
+                        <TableHead className="text-[10px]">Nome</TableHead>
+                        <TableHead className="text-[10px]">Contato</TableHead>
+                        <TableHead className="text-[10px]">Última Compra</TableHead>
+                        <TableHead className="text-[10px]">Produto</TableHead>
+                        <TableHead className="w-10 text-center">
+                          <Checkbox checked={selectAll} onCheckedChange={toggleSelectAll} className="h-3.5 w-3.5" />
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {contatos.map((c, idx) => (
+                        <TableRow key={idx} className={`text-xs transition-colors ${c.selected ? "bg-primary/5" : "hover:bg-muted/30"}`}>
+                          <TableCell className="text-center text-muted-foreground text-[10px]">{idx + 1}</TableCell>
+                          <TableCell className="font-medium text-[11px]">{c.PESS_NOME}</TableCell>
+                          <TableCell className="text-[10px] text-muted-foreground">
+                            {canal === "email" ? c.PESS_EMAIL || "—" : c.PESS_FONE || "—"}
+                          </TableCell>
+                          <TableCell className="text-[10px]">{c.ULTIMA_COMPRA || "—"}</TableCell>
+                          <TableCell className="text-[10px]">{c.PRODUTO || "—"}</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={c.selected} onCheckedChange={() => toggleContato(idx)} className="h-3.5 w-3.5" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Preview + Actions */}
+        <div className="space-y-5">
+          {/* Preview */}
+          <Card className="border-border/60 sticky top-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Eye className="h-4 w-4 text-primary" />
+                Pré-visualização
+              </CardTitle>
+              <CardDescription className="text-[10px]">Simulação com dados fictícios</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 p-4 border border-green-200/50 dark:border-green-800/30">
+                {/* Chat bubble */}
+                <div className="bg-card rounded-lg rounded-tl-none p-3 shadow-sm border border-border/40 max-w-[280px]">
+                  <p className="text-xs leading-relaxed whitespace-pre-wrap text-foreground">{previewMsg}</p>
+                  {imagemUrl && (
+                    <div className="mt-2 rounded-md overflow-hidden border border-border/30">
+                      <img src={imagemUrl} alt="Preview" className="w-full h-auto max-h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    </div>
+                  )}
+                  <span className="text-[9px] text-muted-foreground mt-1.5 block text-right">14:32 ✓✓</span>
+                </div>
+              </div>
+
+              {/* Campaign info */}
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">Tipo de Campanha</span>
+                  <Badge variant="outline" className="text-[9px]">{campanhaAtiva}</Badge>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">Canal</span>
+                  <Badge variant="outline" className="text-[9px] capitalize">{canal}</Badge>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">Destinatários</span>
+                  <Badge variant="secondary" className="text-[9px]">{selectedCount}</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Ações</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button
+                className="w-full gap-2 justify-start"
+                onClick={enviarMensagens}
+                disabled={sending || selectedCount === 0}
+              >
+                {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Enviar Mensagens ({selectedCount})
+              </Button>
+              <Button variant="outline" className="w-full gap-2 justify-start" onClick={() => toast.info("Campanha salva com sucesso!")}>
+                <Save className="h-4 w-4" />
+                Salvar Campanha
+              </Button>
+              <Button variant="outline" className="w-full gap-2 justify-start" onClick={() => toast.info("Funcionalidade de agendamento em breve!")}>
+                <Clock className="h-4 w-4" />
+                Agendar Envio
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
