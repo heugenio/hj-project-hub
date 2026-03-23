@@ -57,15 +57,15 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
   };
 
   const applyProduct = (index: number, produto: ConsultaEstoqueItem) => {
-    const preco = parseFloat(produto.PCPR_PRECO || produto.prod_Preco_Venda || '0') || 0;
-    const saldo = parseFloat(produto.SEST_QTD_SALDO || produto.sest_Saldo || '0') || 0;
+    const preco = parseFloat(produto.pCPR_PRECO || produto.PCPR_PRECO || produto.prod_Preco_Venda || '0') || 0;
+    const saldo = parseFloat(produto.sEST_QTD_SALDO || produto.SEST_QTD_SALDO || produto.sest_Saldo || '0') || 0;
     const updated = itens.map((item, i) => {
       if (i !== index) return item;
       const newItem: ItemOS = {
         ...item,
         ITOS_TIPO: 'P',
-        ITOS_DESCRICAO: produto.prod_Nome || produto.Nome || '',
-        PROD_ID: produto.prod_Codigo || produto.Codigo || '',
+        ITOS_DESCRICAO: produto.pROD_NOME || produto.prod_Nome || produto.Nome || '',
+        PROD_ID: produto.pROD_CODIGO || produto.prod_Codigo || produto.Codigo || '',
         ITOS_VLR_UNITARIO: preco,
         ITOS_SALDO_ESTOQUE: saldo,
       };
