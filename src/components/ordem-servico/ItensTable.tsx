@@ -80,8 +80,8 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
     try {
       const data = await getConsultaEstoque({ unem_id: unemId, prod_nome: query });
       return data.map((p) => ({
-        id: p.prod_Codigo || p.Codigo || '',
-        label: p.prod_Nome || p.Nome || '',
+        id: p.pROD_CODIGO || p.prod_Codigo || p.Codigo || '',
+        label: p.pROD_NOME || p.prod_Nome || p.Nome || '',
         data: p,
       }));
     } catch { return []; }
