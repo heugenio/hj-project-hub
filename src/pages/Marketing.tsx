@@ -265,7 +265,13 @@ export default function Marketing() {
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
       if (filtroGrupo && filtroGrupo !== '__all__') params.set('Grupo', filtroGrupo);
       if (filtroProduto) params.set('Produto', filtroProduto);
-      if (enviarUnemId) params.set('UNEM_ID', unemId);
+      if (filtroUnemId && filtroUnemId !== '__todas__') {
+        if (filtroUnemId === '__logada__') {
+          params.set('UNEM_ID', unemId);
+        } else {
+          params.set('UNEM_ID', filtroUnemId);
+        }
+      }
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
 
