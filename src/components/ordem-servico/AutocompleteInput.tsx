@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
@@ -38,17 +38,22 @@ export function AutocompleteInput({
   const [loading, setLoading] = useState(false);
   const debouncedValue = useDebounce(value, 400);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
 
   const updatePosition = useCallback(() => {
     if (!inputRef.current) return;
-    const rect = inputRef.current.getBoundingClientRect();
+
+    const inputRect = inputRef.current.getBoundingClientRect();
+    const scopeElement = containerRef.current?.closest('[data-autocomplete-scope]') as HTMLElement | null;
+    const scopeRect = scopeElement?.getBoundingClientRect();
+
     setDropdownStyle({
       position: 'fixed',
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
+      top: inputRect.bottom + 4,
+      left: scopeRect?.left ?? inputRect.left,
+      width: scopeRect?.width ?? inputRect.width,
       zIndex: 9999,
     });
   }, []);
@@ -59,8 +64,10 @@ export function AutocompleteInput({
       setOpen(false);
       return;
     }
+
     let cancelled = false;
     setLoading(true);
+
     fetchOptions(debouncedValue)
       .then((res) => {
         if (!cancelled) {
@@ -75,66 +82,65 @@ export function AutocompleteInput({
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [debouncedValue, fetchOptions, minChars, updatePosition]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
     };
+
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Update position on scroll/resize
   useEffect(() => {
     if (!open) return;
-    const handleScroll = () => updatePosition();
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleScroll);
+
+    const reposition = () => updatePosition();
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+
     return () => {
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleScroll);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
     };
   }, [open, updatePosition]);
 
-  const dropdown = open && options.length > 0 ? createPortal(
-    <div
-      ref={(el) => {
-        // Also close when clicking outside the portal dropdown
-        if (!el) return;
-        const handler = (e: MouseEvent) => {
-          if (containerRef.current?.contains(e.target as Node)) return;
-          if (el.contains(e.target as Node)) return;
-          setOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-      }}
-      style={dropdownStyle}
-      className="max-h-48 overflow-auto rounded-md border bg-popover shadow-lg"
-    >
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          type="button"
-          className="w-full text-left px-3 py-2 text-sm hover:bg-accent/20 transition-colors border-b border-border/30 last:border-0 cursor-pointer"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onSelect(opt);
-            setOpen(false);
-          }}
-        >
-          <span className="font-medium text-foreground">{opt.label}</span>
-          {opt.sublabel && <span className="ml-2 text-xs text-muted-foreground">{opt.sublabel}</span>}
-        </button>
-      ))}
-    </div>,
-    document.body
-  ) : null;
+  const dropdown =
+    open && options.length > 0
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            style={dropdownStyle}
+            className="max-h-48 overflow-auto rounded-md border bg-popover shadow-lg"
+          >
+            {options.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-accent/20 transition-colors border-b border-border/30 last:border-0 cursor-pointer"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSelect(opt);
+                  setOpen(false);
+                }}
+              >
+                <span className="font-medium text-foreground">{opt.label}</span>
+                {opt.sublabel && <span className="ml-2 text-xs text-muted-foreground">{opt.sublabel}</span>}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
@@ -154,7 +160,9 @@ export function AutocompleteInput({
             }
           }}
         />
-        {loading && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+        {loading && (
+          <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+        )}
       </div>
       {dropdown}
     </div>
