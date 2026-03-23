@@ -92,6 +92,7 @@ export default function Marketing() {
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendProgress, setSendProgress] = useState({ current: 0, total: 0 });
   const [selectAll, setSelectAll] = useState(false);
   const [imagemUrl, setImagemUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
