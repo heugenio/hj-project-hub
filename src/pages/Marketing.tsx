@@ -272,7 +272,8 @@ export default function Marketing() {
   const previewMsg = mensagem
     .replace("{NOME_CLIENTE}", "Sr João Silva")
     .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
-    .replace("{NOME_LOJA}", "Auto Peças Centro")
+    .replace("{EMPR}", "Auto Peças Centro")
+    .replace("{NOME_LOJA}", "Filial Sul")
     .replace("{URL_LOJA}", "https://loja.exemplo.com");
 
   // Send messages
