@@ -282,7 +282,30 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto]);
+
+  // Save message template
+  const salvarMensagem = async () => {
+    setSavingMsg(true);
+    try {
+      const mswaTipo = getMswaTipo(campanhaAtiva);
+      const { data, error } = await supabase.functions.invoke('api-proxy', {
+        body: {
+          baseUrl: getBaseUrl(),
+          endpoint: '/setMenssagensWhts',
+          method: 'POST',
+          body: { MSWA_TIPO: mswaTipo, MSWA_MENSAGEM: mensagem },
+        },
+      });
+      if (error) throw new Error(error.message);
+      toast.success('Mensagem salva com sucesso!');
+    } catch (err: any) {
+      console.error('Erro ao salvar mensagem:', err);
+      toast.error('Erro ao salvar mensagem: ' + err.message);
+    } finally {
+      setSavingMsg(false);
+    }
+  };
 
   // Toggle select all
   const toggleSelectAll = () => {
