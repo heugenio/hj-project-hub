@@ -83,17 +83,10 @@ export default function Marketing() {
   const [loadingMensagem, setLoadingMensagem] = useState(false);
 
   // Filters
-  const [filtroNome, setFiltroNome] = useState("");
-  const [filtroCpf, setFiltroCpf] = useState("");
   const [filtroPeriodoIni, setFiltroPeriodoIni] = useState("");
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
-  const [filtroCidade, setFiltroCidade] = useState("");
-  const [filtroUf, setFiltroUf] = useState("");
-  const [filtroDiasSemCompra, setFiltroDiasSemCompra] = useState("");
-  const [filtroAnivMes, setFiltroAnivMes] = useState("");
-  const [filtroAnivDia, setFiltroAnivDia] = useState("");
 
   const selectedCount = contatos.filter(c => c.selected).length;
 
