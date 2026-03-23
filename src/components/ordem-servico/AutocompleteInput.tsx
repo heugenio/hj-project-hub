@@ -36,6 +36,7 @@ export function AutocompleteInput({
   const [options, setOptions] = useState<AutocompleteOption[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const justSelected = useRef(false);
   const debouncedValue = useDebounce(value, 400);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -59,6 +60,10 @@ export function AutocompleteInput({
   }, []);
 
   useEffect(() => {
+    if (justSelected.current) {
+      justSelected.current = false;
+      return;
+    }
     if (debouncedValue.length < minChars) {
       setOptions([]);
       setOpen(false);
@@ -129,8 +134,10 @@ export function AutocompleteInput({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  justSelected.current = true;
                   onSelect(opt);
                   setOpen(false);
+                  setOptions([]);
                 }}
               >
                 <span className="font-medium text-foreground">{opt.label}</span>
