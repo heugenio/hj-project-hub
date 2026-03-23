@@ -287,13 +287,16 @@ export default function Marketing() {
 
     for (const contato of selecionados) {
       try {
+        const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
         const texto = mensagem
-          .replace("{NOME_CLIENTE}", contato.PESS_NOME || "")
-          .replace("{PRODUTO}", contato.PRODUTO || "")
-          .replace("{DATA_ULTIMA_COMPRA}", contato.ULTIMA_COMPRA || "")
-          .replace("{VALOR_TOTAL}", contato.VLR_TOTAL || "");
+          .replace("{NOME_CLIENTE}", nomeComTratamento)
+          .replace("{PRODUTO}", "")
+          .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
+          .replace("{VALOR_TOTAL}", "")
+          .replace("{NOME_LOJA}", contato.loja || "")
+          .replace("{URL_LOJA}", contato.lojaUrl || "");
 
-        const phone = (contato.PESS_FONE || "").replace(/\D/g, "");
+        const phone = contato.telefone.replace(/\D/g, "");
         if (!phone) { erros++; continue; }
 
         const payload: any = {
