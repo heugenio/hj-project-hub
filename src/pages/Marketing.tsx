@@ -236,7 +236,7 @@ export default function Marketing() {
           tratamento,
           nome: r.PESS_NOME || r.PESS_RAZAO_SOCIAL || '',
           telefone,
-          ultimaCompra: r.DCFS_DATA_NOTA || '',
+          ultimaCompra: (r.DCFS_DATA_NOTA || '').split(' ')[0],
           loja: r.UNEM_FANTASIA || '',
           lojaUrl: r.UNEM_MSG_ASSINATURA || '',
           raw: r,
