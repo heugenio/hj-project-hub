@@ -173,11 +173,11 @@ export function ProdutoSearchDialog({ open, onOpenChange, unemId, onSelect }: Pr
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => handleSelect(item)}
                 >
-                  <TableCell className="text-xs font-mono">{item.prod_Codigo || item.Codigo || ''}</TableCell>
-                  <TableCell className="text-xs">{item.prod_Nome || item.Nome || ''}</TableCell>
-                  <TableCell className="text-xs">{item.prod_Referencia || item.Referencia || ''}</TableCell>
-                  <TableCell className="text-xs text-right">{item.sest_Saldo || item.Geral || ''}</TableCell>
-                  <TableCell className="text-xs text-right">{item.prod_Preco_Venda || ''}</TableCell>
+                  <TableCell className="text-xs font-mono">{item.pROD_CODIGO || item.prod_Codigo || item.Codigo || ''}</TableCell>
+                  <TableCell className="text-xs">{item.pROD_NOME || item.prod_Nome || item.Nome || ''}</TableCell>
+                  <TableCell className="text-xs">{item.pROD_REFERENCIA || item.prod_Referencia || item.Referencia || ''}</TableCell>
+                  <TableCell className="text-xs text-right">{item.sEST_QTD_SALDO || item.sest_Saldo || item.Geral || ''}</TableCell>
+                  <TableCell className="text-xs text-right">{item.pCPR_PRECO || item.prod_Preco_Venda || ''}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
