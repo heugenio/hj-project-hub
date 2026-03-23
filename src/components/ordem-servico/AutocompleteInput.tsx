@@ -62,6 +62,8 @@ export function AutocompleteInput({
   useEffect(() => {
     if (justSelected.current) {
       justSelected.current = false;
+      setOptions([]);
+      setOpen(false);
       return;
     }
     if (debouncedValue.length < minChars) {

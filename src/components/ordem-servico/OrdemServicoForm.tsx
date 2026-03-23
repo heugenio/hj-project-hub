@@ -88,6 +88,24 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
       .then(setMidias)
       .catch(() => {})
       .finally(() => setLoadingMidias(false));
+
+    // Auto-set vendedor from logged user's PESS_ID
+    const pessId = auth?.user?.pess_ID;
+    if (pessId) {
+      getVendedores({ id: pessId })
+        .then((r: any[]) => {
+          if (r.length > 0) {
+            const v = r[0];
+            const id = v.VDDR_ID || v.vDDR_ID || '';
+            const nome = v.VDDR_NOME || v.vDDR_NOME || v.PESS_NOME || v.pESS_NOME || '';
+            if (id) {
+              setVendedor({ VDDR_ID: id, VDDR_NOME: nome });
+              setVendedorText(nome);
+            }
+          }
+        })
+        .catch(() => {});
+    }
   }, []);
 
   // When cliente is selected and no veiculo → fetch vehicles
@@ -195,7 +213,7 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
   const fetchVendedores = useCallback(async (query: string) => {
     try {
       const r = await getVendedores({ nome: query });
-      return r.map((v) => ({ id: v.VDDR_ID, label: v.VDDR_NOME }));
+      return r.map((v: any) => ({ id: v.VDDR_ID || v.vDDR_ID || v.Vddr_ID || '', label: v.VDDR_NOME || v.vDDR_NOME || v.PESS_NOME || v.pESS_NOME || '' }));
     } catch { return []; }
   }, []);
 
