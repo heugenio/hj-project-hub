@@ -386,10 +386,12 @@ export default function Marketing() {
       return;
     }
     setSending(true);
+    setSendProgress({ current: 0, total: selecionados.length });
     let enviados = 0;
     let erros = 0;
     let pulados = 0;
     const msweTipo = getMswaTipo(campanhaAtiva);
+    let processados = 0;
 
     for (const contato of selecionados) {
       try {
