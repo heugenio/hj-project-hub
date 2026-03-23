@@ -104,7 +104,9 @@ export default function Marketing() {
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
-  const [enviarUnemId, setEnviarUnemId] = useState(true);
+  const [filtroUnemId, setFiltroUnemId] = useState<string>("__logada__");
+  const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string }[]>([]);
+  const [loadingUnidades, setLoadingUnidades] = useState(false);
 
   const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
   const [loadingGrupos, setLoadingGrupos] = useState(false);
@@ -112,7 +114,7 @@ export default function Marketing() {
 
   const selectedCount = contatos.filter(c => c.selected).length;
 
-  // Fetch grupos on mount
+  // Fetch grupos and unidades on mount
   useEffect(() => {
     const fetchGrupos = async () => {
       setLoadingGrupos(true);
@@ -131,7 +133,31 @@ export default function Marketing() {
         setLoadingGrupos(false);
       }
     };
+    const fetchUnidades = async () => {
+      setLoadingUnidades(true);
+      try {
+        const stored = localStorage.getItem('hj_unidade');
+        let emprId = '';
+        if (stored) {
+          try { const u = JSON.parse(stored); emprId = u.empr_id || u.empr_Id || ''; } catch {}
+        }
+        if (!emprId) return;
+        const { data, error } = await supabase.functions.invoke('api-proxy', {
+          body: { baseUrl: getBaseUrl(), endpoint: `/getUnidadesEmpresariais?empr_id=${emprId}`, method: 'GET' },
+        });
+        if (error) throw new Error(error.message);
+        let list: any[] = [];
+        if (Array.isArray(data)) list = data;
+        else if (typeof data === 'string') list = JSON.parse(data);
+        setUnidades(list.map((u: any) => ({ unem_Id: u.unem_Id || u.UNEM_ID || '', unem_Fantasia: u.unem_Fantasia || u.UNEM_FANTASIA || '' })));
+      } catch (err: any) {
+        console.error('Erro ao buscar unidades:', err);
+      } finally {
+        setLoadingUnidades(false);
+      }
+    };
     fetchGrupos();
+    fetchUnidades();
   }, []);
 
   // Map campaign type to API MSWA_TIPO value
@@ -239,7 +265,13 @@ export default function Marketing() {
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
       if (filtroGrupo && filtroGrupo !== '__all__') params.set('Grupo', filtroGrupo);
       if (filtroProduto) params.set('Produto', filtroProduto);
-      if (enviarUnemId) params.set('UNEM_ID', unemId);
+      if (filtroUnemId && filtroUnemId !== '__todas__') {
+        if (filtroUnemId === '__logada__') {
+          params.set('UNEM_ID', unemId);
+        } else {
+          params.set('UNEM_ID', filtroUnemId);
+        }
+      }
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
 
@@ -284,7 +316,7 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto, enviarUnemId]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto, filtroUnemId]);
 
   // Save message template
   const salvarMensagem = async () => {
@@ -550,9 +582,20 @@ export default function Marketing() {
                   {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                   Gerar Lista
                 </Button>
-                <div className="flex items-center gap-1.5">
-                  <Checkbox id="enviarUnemId" checked={enviarUnemId} onCheckedChange={(v) => setEnviarUnemId(!!v)} />
-                  <Label htmlFor="enviarUnemId" className="text-[9px] text-muted-foreground cursor-pointer">Filtrar por Unidade (UNEM_ID)</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[9px] text-muted-foreground whitespace-nowrap">Unidade:</Label>
+                  <Select value={filtroUnemId} onValueChange={setFiltroUnemId}>
+                    <SelectTrigger className="h-7 text-[10px] w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__logada__" className="text-xs">Loja Logada</SelectItem>
+                      <SelectItem value="__todas__" className="text-xs">Todas as Unidades</SelectItem>
+                      {unidades.map(u => (
+                        <SelectItem key={u.unem_Id} value={u.unem_Id} className="text-xs">{u.unem_Fantasia}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
