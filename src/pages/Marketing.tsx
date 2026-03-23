@@ -104,7 +104,33 @@ export default function Marketing() {
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
 
+  const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
+  const [loadingGrupos, setLoadingGrupos] = useState(false);
+  const [savingMsg, setSavingMsg] = useState(false);
+
   const selectedCount = contatos.filter(c => c.selected).length;
+
+  // Fetch grupos on mount
+  useEffect(() => {
+    const fetchGrupos = async () => {
+      setLoadingGrupos(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('api-proxy', {
+          body: { baseUrl: getBaseUrl(), endpoint: '/getGrupos', method: 'GET' },
+        });
+        if (error) throw new Error(error.message);
+        let list: any[] = [];
+        if (Array.isArray(data)) list = data;
+        else if (typeof data === 'string') list = JSON.parse(data);
+        setGrupos(list);
+      } catch (err: any) {
+        console.error('Erro ao buscar grupos:', err);
+      } finally {
+        setLoadingGrupos(false);
+      }
+    };
+    fetchGrupos();
+  }, []);
 
   // Map campaign type to API MSWA_TIPO value
   const getMswaTipo = (tipo: CampanhaTipo): string => {
@@ -209,6 +235,8 @@ export default function Marketing() {
       params.set('MSWA_TIPO', mswaTipo);
       if (filtroPeriodoIni) params.set('DATAINI', filtroPeriodoIni);
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
+      if (filtroGrupo && filtroGrupo !== '__all__') params.set('Grupo', filtroGrupo);
+      if (filtroProduto) params.set('Produto', filtroProduto);
       params.set('UNEM_ID', unemId);
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
@@ -254,7 +282,30 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto]);
+
+  // Save message template
+  const salvarMensagem = async () => {
+    setSavingMsg(true);
+    try {
+      const mswaTipo = getMswaTipo(campanhaAtiva);
+      const { data, error } = await supabase.functions.invoke('api-proxy', {
+        body: {
+          baseUrl: getBaseUrl(),
+          endpoint: '/setMenssagensWhts',
+          method: 'POST',
+          body: { MSWA_TIPO: mswaTipo, MSWA_MENSAGEM: mensagem },
+        },
+      });
+      if (error) throw new Error(error.message);
+      toast.success('Mensagem salva com sucesso!');
+    } catch (err: any) {
+      console.error('Erro ao salvar mensagem:', err);
+      toast.error('Erro ao salvar mensagem: ' + err.message);
+    } finally {
+      setSavingMsg(false);
+    }
+  };
 
   // Toggle select all
   const toggleSelectAll = () => {
@@ -274,7 +325,8 @@ export default function Marketing() {
     .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
     .replace("{EMPR}", "Auto Peças Centro")
     .replace("{NOME_LOJA}", "Filial Sul")
-    .replace("{URL_LOJA}", "https://loja.exemplo.com");
+    .replace("{URL_LOJA}", "https://loja.exemplo.com")
+    .replace(/\\n/g, "\n");
 
   // Send messages
   const enviarMensagens = async () => {
@@ -298,7 +350,8 @@ export default function Marketing() {
           .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
           .replace("{EMPR}", emprNome)
           .replace("{NOME_LOJA}", contato.loja || "")
-          .replace("{URL_LOJA}", contato.lojaUrl || "");
+          .replace("{URL_LOJA}", contato.lojaUrl || "")
+          .replace(/\\n/g, "\n");
 
         const phone = contato.telefone.replace(/\D/g, "");
         if (!phone) { erros++; continue; }
@@ -394,22 +447,32 @@ export default function Marketing() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Período Início</Label>
-                  <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Período Início</Label>
+                  <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-7 text-[10px] px-1.5" />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Período Fim</Label>
-                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Período Fim</Label>
+                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-7 text-[10px] px-1.5" />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Produto</Label>
-                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Produto</Label>
+                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-7 text-[10px]" />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Grupo de Produto</Label>
-                  <Input value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)} placeholder="Grupo" className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Grupo de Produto</Label>
+                  <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
+                    <SelectTrigger className="h-7 text-[10px]">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__" className="text-xs">Todos</SelectItem>
+                      {grupos.map(g => (
+                        <SelectItem key={g.grpo_id} value={g.grpo_id} className="text-xs">{g.grpo_Nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
@@ -469,6 +532,12 @@ export default function Marketing() {
                 placeholder="Digite sua mensagem..."
                 className="text-sm resize-none normal-case"
               />
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" onClick={salvarMensagem} disabled={savingMsg} className="gap-1.5 h-7 text-xs">
+                  {savingMsg ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Salvar Mensagem
+                </Button>
+              </div>
 
               {/* Image upload */}
               <div className="space-y-2">
