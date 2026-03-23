@@ -396,8 +396,7 @@ export default function Marketing() {
         if (!phone) { erros++; continue; }
 
         // Check if already sent
-        const hoje = formatDate(new Date());
-        const jaEnviada = await checkJaEnviada(msweTipo, phone, hoje);
+        const jaEnviada = await checkJaEnviada(msweTipo, phone);
         if (jaEnviada) {
           pulados++;
           continue;
