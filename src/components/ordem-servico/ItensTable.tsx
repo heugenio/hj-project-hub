@@ -34,6 +34,9 @@ function calcTotal(item: ItemOS): number {
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const formatNumber = (v: number) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchDialogIndex, setSearchDialogIndex] = useState<number | null>(null);
@@ -241,6 +244,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                         value={item.ITOS_VLR_UNITARIO}
                         onChange={(e) => updateItem(idx, 'ITOS_VLR_UNITARIO', parseFloat(e.target.value) || 0)}
                         className="h-7 text-[10px] text-right"
+                        placeholder="0,00"
                       />
                     </TableCell>
                     <TableCell className="p-1">
@@ -251,10 +255,11 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                         value={item.ITOS_DESCONTO}
                         onChange={(e) => updateItem(idx, 'ITOS_DESCONTO', parseFloat(e.target.value) || 0)}
                         className="h-7 text-[10px] text-right"
+                        placeholder="0,00"
                       />
                     </TableCell>
                     <TableCell className="p-1 text-right text-[10px] font-semibold text-foreground">
-                      {formatCurrency(item.ITOS_VLR_TOTAL)}
+                      {formatNumber(item.ITOS_VLR_TOTAL)}
                     </TableCell>
                     <TableCell className="p-1">
                       <Button
