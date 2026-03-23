@@ -289,12 +289,14 @@ export default function Marketing() {
 
     for (const contato of selecionados) {
       try {
+        const storedUnidade = localStorage.getItem('hj_unidade');
+        let emprNome = '';
+        if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
         const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
         const texto = mensagem
           .replace("{NOME_CLIENTE}", nomeComTratamento)
-          .replace("{PRODUTO}", "")
           .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
-          .replace("{VALOR_TOTAL}", "")
+          .replace("{EMPR}", emprNome)
           .replace("{NOME_LOJA}", contato.loja || "")
           .replace("{URL_LOJA}", contato.lojaUrl || "");
 
