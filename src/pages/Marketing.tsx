@@ -446,6 +446,8 @@ export default function Marketing() {
         console.error('Erro envio:', err);
         erros++;
       }
+      processados++;
+      setSendProgress({ current: processados, total: selecionados.length });
     }
 
     let msg = `${enviados} mensagem(ns) enviada(s)`;
