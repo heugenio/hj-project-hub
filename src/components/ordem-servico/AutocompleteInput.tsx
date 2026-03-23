@@ -134,8 +134,10 @@ export function AutocompleteInput({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  justSelected.current = true;
                   onSelect(opt);
                   setOpen(false);
+                  setOptions([]);
                 }}
               >
                 <span className="font-medium text-foreground">{opt.label}</span>
