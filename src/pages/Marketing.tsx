@@ -447,22 +447,32 @@ export default function Marketing() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Período Início</Label>
-                  <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Período Início</Label>
+                  <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-7 text-[10px] px-1.5" />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Período Fim</Label>
-                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Período Fim</Label>
+                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-7 text-[10px] px-1.5" />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Produto</Label>
-                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Produto</Label>
+                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-7 text-[10px]" />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Grupo de Produto</Label>
-                  <Input value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)} placeholder="Grupo" className="h-8 text-xs" />
+                  <Label className="text-[9px] text-muted-foreground">Grupo de Produto</Label>
+                  <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
+                    <SelectTrigger className="h-7 text-[10px]">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__" className="text-xs">Todos</SelectItem>
+                      {grupos.map(g => (
+                        <SelectItem key={g.grpo_id} value={g.grpo_id} className="text-xs">{g.grpo_Nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
