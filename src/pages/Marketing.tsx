@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ interface MensagemWhts {
   MSWA_ID?: string;
   MSWA_TIPO?: string;
   MSWA_MENSAGEM?: string;
+  MSWA_QTD_DIAS?: number;
   MSWA_STATUS?: string;
 }
 
@@ -62,16 +63,26 @@ function getBaseUrl(): string {
   return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
 }
 
+function formatDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export default function Marketing() {
   // State
   const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Recompra");
   const [canal, setCanal] = useState<string>("whatsapp");
-  const [mensagem, setMensagem] = useState("Olá {NOME_CLIENTE}, vimos que você comprou {PRODUTO}. Temos uma oferta especial para você!");
+  const [mensagem, setMensagem] = useState("");
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
   const [imagemUrl, setImagemUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loadingMensagem, setLoadingMensagem] = useState(false);
 
   // Filters
   const [filtroNome, setFiltroNome] = useState("");
@@ -88,13 +99,109 @@ export default function Marketing() {
 
   const selectedCount = contatos.filter(c => c.selected).length;
 
+  // Map campaign type to API MSWA_TIPO value
+  const getMswaTipo = (tipo: CampanhaTipo): string => {
+    const map: Record<CampanhaTipo, string> = {
+      Recompra: "VENDAS",
+      Rodizio: "RODIZIO",
+      Aniversario: "ANIVERSARIO",
+      Promocao: "MARKETING",
+      Inativos: "VENDAS",
+      Personalizada: "MARKETING",
+    };
+    return map[tipo];
+  };
+
+  // Fetch message template when campaign type changes
+  useEffect(() => {
+    const fetchMensagem = async () => {
+      setLoadingMensagem(true);
+      try {
+        const mswaTipo = getMswaTipo(campanhaAtiva);
+        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${mswaTipo}`;
+
+        const { data, error } = await supabase.functions.invoke('api-proxy', {
+          body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
+        });
+
+        if (error) throw new Error(error.message);
+
+        let result: MensagemWhts | null = null;
+        if (Array.isArray(data) && data.length > 0) {
+          result = data[0];
+        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+          result = data as MensagemWhts;
+        }
+
+        if (result) {
+          if (result.MSWA_MENSAGEM) {
+            setMensagem(result.MSWA_MENSAGEM);
+          }
+          // Calculate dates based on MSWA_QTD_DIAS
+          const qtdDias = Number(result.MSWA_QTD_DIAS) || 0;
+          if (qtdDias > 0) {
+            const hoje = new Date();
+            const fim = new Date(hoje);
+            fim.setDate(fim.getDate() - qtdDias);
+            const ini = new Date(fim);
+            ini.setDate(ini.getDate() - 7);
+            setFiltroPeriodoFim(formatDate(fim));
+            setFiltroPeriodoIni(formatDate(ini));
+          }
+        }
+      } catch (err: any) {
+        console.error('Erro ao buscar mensagem:', err);
+      } finally {
+        setLoadingMensagem(false);
+      }
+    };
+
+    fetchMensagem();
+  }, [campanhaAtiva]);
+
+  // Upload image file to storage
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `campanha_${Date.now()}.${ext}`;
+
+      const { data, error } = await supabase.storage
+        .from('marketing-images')
+        .upload(fileName, file, { contentType: file.type, upsert: true });
+
+      if (error) throw error;
+
+      const { data: publicData } = supabase.storage
+        .from('marketing-images')
+        .getPublicUrl(data.path);
+
+      setImagemUrl(publicData.publicUrl);
+      toast.success('Imagem enviada com sucesso!');
+    } catch (err: any) {
+      console.error('Erro no upload:', err);
+      toast.error('Erro ao enviar imagem: ' + err.message);
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // Fetch contacts from API
   const gerarLista = useCallback(async () => {
     setLoading(true);
     try {
-      const unemId = localStorage.getItem('hj_system_unem_id') || '';
+      const stored = localStorage.getItem('hj_unidade');
+      let unemId = '';
+      if (stored) {
+        try { unemId = JSON.parse(stored).UNEM_ID || ''; } catch {}
+      }
+      const mswaTipo = getMswaTipo(campanhaAtiva);
       const params = new URLSearchParams();
-      params.set('MSWA_TIPO', campanhaAtiva);
+      params.set('MSWA_TIPO', mswaTipo);
       if (filtroPeriodoIni) params.set('DATAINI', filtroPeriodoIni);
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
       if (unemId) params.set('UNEM_ID', unemId);
@@ -112,8 +219,6 @@ export default function Marketing() {
         list = JSON.parse(data);
       } else if (Array.isArray(data)) {
         list = data;
-      } else if (data && typeof data === 'object') {
-        list = Array.isArray(data) ? data : [];
       }
 
       // Apply local filters
@@ -383,21 +488,39 @@ export default function Marketing() {
               />
 
               {/* Image upload */}
-              <div className="flex items-center gap-3">
+              <div className="space-y-2">
                 <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <ImageIcon className="h-3.5 w-3.5" /> URL da Imagem (opcional):
+                  <ImageIcon className="h-3.5 w-3.5" /> Imagem de Marketing (opcional):
                 </Label>
-                <Input
-                  value={imagemUrl}
-                  onChange={e => setImagemUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="h-7 text-xs flex-1 normal-case"
-                />
-                {imagemUrl && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setImagemUrl("")}>
-                    <X className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    {uploadingImage ? "Enviando..." : "Upload Imagem"}
                   </Button>
-                )}
+                  {imagemUrl && (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <img src={imagemUrl} alt="Preview" className="h-8 w-8 rounded object-cover border border-border" />
+                      <span className="text-[10px] text-muted-foreground truncate flex-1">{imagemUrl.split('/').pop()}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setImagemUrl("")}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
