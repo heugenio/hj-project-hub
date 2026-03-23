@@ -104,7 +104,16 @@ export default function Marketing() {
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
-  const [filtroUnemId, setFiltroUnemId] = useState<string>("__logada__");
+  const [filtroUnemId, setFiltroUnemId] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('hj_unidade');
+      if (stored) {
+        const u = JSON.parse(stored);
+        return u.unem_Id || u.UNEM_ID || '__todas__';
+      }
+    } catch {}
+    return '__todas__';
+  });
   const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string }[]>([]);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
