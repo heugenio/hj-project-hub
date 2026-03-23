@@ -161,13 +161,23 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                 {itens.map((item, idx) => (
                   <TableRow key={idx} className="group">
                     <TableCell className="p-1.5">
-                      <Input
-                        value={item.PROD_ID || ''}
-                        readOnly
-                        className="h-8 text-xs font-mono bg-muted/30"
-                        placeholder="—"
-                        tabIndex={-1}
-                      />
+                      {unemId ? (
+                        <AutocompleteInput
+                          placeholder="Código..."
+                          value={item.PROD_ID || ''}
+                          onChange={(v) => updateItem(idx, 'PROD_ID' as keyof ItemOS, v)}
+                          onSelect={(opt) => applyProduct(idx, opt.data)}
+                          fetchOptions={fetchProdutosPorCodigo}
+                          className="h-8 text-xs font-mono"
+                        />
+                      ) : (
+                        <Input
+                          value={item.PROD_ID || ''}
+                          onChange={(e) => updateItem(idx, 'PROD_ID' as keyof ItemOS, e.target.value)}
+                          className="h-8 text-xs font-mono"
+                          placeholder="Código..."
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="p-1.5">
                       <div className="flex items-center gap-1">
@@ -179,7 +189,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                                 value={item.ITOS_DESCRICAO}
                                 onChange={(v) => updateItem(idx, 'ITOS_DESCRICAO', v)}
                                 onSelect={(opt) => applyProduct(idx, opt.data)}
-                                fetchOptions={fetchProdutos}
+                                fetchOptions={fetchProdutosPorNome}
                                 className="h-8 text-xs"
                               />
                             </div>
