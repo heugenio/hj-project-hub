@@ -16,6 +16,7 @@ import {
   BarChart3,
   LogOut,
   Store,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
