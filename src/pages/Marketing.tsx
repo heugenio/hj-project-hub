@@ -66,10 +66,10 @@ const campanhaConfig: { tipo: CampanhaTipo; label: string; icon: React.ReactNode
 ];
 
 const variaveisDisponiveis = [
-  { var: "{NOME_CLIENTE}", desc: "Nome do cliente" },
-  { var: "{PRODUTO}", desc: "Produto comprado" },
+  { var: "{NOME_CLIENTE}", desc: "Sr/Sra + Nome do cliente" },
   { var: "{DATA_ULTIMA_COMPRA}", desc: "Data da última compra" },
-  { var: "{VALOR_TOTAL}", desc: "Valor total" },
+  { var: "{NOME_LOJA}", desc: "Nome fantasia da loja" },
+  { var: "{URL_LOJA}", desc: "URL/assinatura da loja" },
 ];
 
 function getBaseUrl(): string {
