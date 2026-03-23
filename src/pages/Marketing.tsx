@@ -235,7 +235,7 @@ export default function Marketing() {
       params.set('MSWA_TIPO', mswaTipo);
       if (filtroPeriodoIni) params.set('DATAINI', filtroPeriodoIni);
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
-      if (filtroGrupo) params.set('Grupo', filtroGrupo);
+      if (filtroGrupo && filtroGrupo !== '__all__') params.set('Grupo', filtroGrupo);
       if (filtroProduto) params.set('Produto', filtroProduto);
       params.set('UNEM_ID', unemId);
 
