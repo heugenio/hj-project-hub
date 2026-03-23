@@ -699,14 +699,6 @@ export default function Marketing() {
                 {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Enviar Mensagens ({selectedCount})
               </Button>
-              <Button variant="outline" className="w-full gap-2 justify-start" onClick={() => toast.info("Campanha salva com sucesso!")}>
-                <Save className="h-4 w-4" />
-                Salvar Campanha
-              </Button>
-              <Button variant="outline" className="w-full gap-2 justify-start" onClick={() => toast.info("Funcionalidade de agendamento em breve!")}>
-                <Clock className="h-4 w-4" />
-                Agendar Envio
-              </Button>
             </CardContent>
           </Card>
         </div>
