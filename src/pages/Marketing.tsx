@@ -532,6 +532,12 @@ export default function Marketing() {
                 placeholder="Digite sua mensagem..."
                 className="text-sm resize-none normal-case"
               />
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" onClick={salvarMensagem} disabled={savingMsg} className="gap-1.5 h-7 text-xs">
+                  {savingMsg ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Salvar Mensagem
+                </Button>
+              </div>
 
               {/* Image upload */}
               <div className="space-y-2">
