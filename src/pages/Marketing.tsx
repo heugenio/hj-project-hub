@@ -284,7 +284,7 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto, enviarUnemId]);
 
   // Save message template
   const salvarMensagem = async () => {
