@@ -454,7 +454,7 @@ export default function Marketing() {
                 </div>
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Período Fim</Label>
-                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-7 text-[10px] px-1.5" />
+                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-7 text-[9px] px-1" />
                 </div>
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Produto</Label>
