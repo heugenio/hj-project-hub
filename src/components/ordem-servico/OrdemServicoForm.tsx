@@ -251,6 +251,7 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
         UNEM_ID: auth?.unidade?.unem_Id,
         itens,
       };
+      console.log('=== PAYLOAD OS ===', JSON.stringify(payload, null, 2));
       const result = await saveOS(payload);
       if (result.ORSV_NUMERO) setNumeroOS(result.ORSV_NUMERO);
       setStatusOS(finalizar ? 'Finalizado' : 'Aberto');
