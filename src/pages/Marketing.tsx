@@ -239,7 +239,7 @@ export default function Marketing() {
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
       if (filtroGrupo && filtroGrupo !== '__all__') params.set('Grupo', filtroGrupo);
       if (filtroProduto) params.set('Produto', filtroProduto);
-      params.set('UNEM_ID', unemId);
+      if (enviarUnemId) params.set('UNEM_ID', unemId);
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
 
