@@ -195,7 +195,7 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
   const fetchVendedores = useCallback(async (query: string) => {
     try {
       const r = await getVendedores({ nome: query });
-      return r.map((v) => ({ id: v.VDDR_ID, label: v.VDDR_NOME }));
+      return r.map((v: any) => ({ id: v.VDDR_ID || v.vDDR_ID || v.Vddr_ID || '', label: v.VDDR_NOME || v.vDDR_NOME || v.PESS_NOME || v.pESS_NOME || '' }));
     } catch { return []; }
   }, []);
 
