@@ -536,10 +536,10 @@ export default function Marketing() {
                     <TableHeader>
                       <TableRow className="bg-muted/40">
                         <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead className="text-[10px]">Nome</TableHead>
-                        <TableHead className="text-[10px]">Contato</TableHead>
+                        <TableHead className="text-[10px]">Cliente</TableHead>
+                        <TableHead className="text-[10px]">Telefone</TableHead>
                         <TableHead className="text-[10px]">Última Compra</TableHead>
-                        <TableHead className="text-[10px]">Produto</TableHead>
+                        <TableHead className="text-[10px]">Loja</TableHead>
                         <TableHead className="w-10 text-center">
                           <Checkbox checked={selectAll} onCheckedChange={toggleSelectAll} className="h-3.5 w-3.5" />
                         </TableHead>
@@ -549,12 +549,13 @@ export default function Marketing() {
                       {contatos.map((c, idx) => (
                         <TableRow key={idx} className={`text-xs transition-colors ${c.selected ? "bg-primary/5" : "hover:bg-muted/30"}`}>
                           <TableCell className="text-center text-muted-foreground text-[10px]">{idx + 1}</TableCell>
-                          <TableCell className="font-medium text-[11px]">{c.PESS_NOME}</TableCell>
-                          <TableCell className="text-[10px] text-muted-foreground">
-                            {canal === "email" ? c.PESS_EMAIL || "—" : c.PESS_FONE || "—"}
+                          <TableCell className="font-medium text-[11px]">
+                            {c.tratamento && <span className="text-muted-foreground mr-1">{c.tratamento}</span>}
+                            {c.nome}
                           </TableCell>
-                          <TableCell className="text-[10px]">{c.ULTIMA_COMPRA || "—"}</TableCell>
-                          <TableCell className="text-[10px]">{c.PRODUTO || "—"}</TableCell>
+                          <TableCell className="text-[10px] text-muted-foreground">{c.telefone || "—"}</TableCell>
+                          <TableCell className="text-[10px]">{c.ultimaCompra || "—"}</TableCell>
+                          <TableCell className="text-[10px]">{c.loja || "—"}</TableCell>
                           <TableCell className="text-center">
                             <Checkbox checked={c.selected} onCheckedChange={() => toggleContato(idx)} className="h-3.5 w-3.5" />
                           </TableCell>
