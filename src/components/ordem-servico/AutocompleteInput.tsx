@@ -4,10 +4,11 @@ import { Loader2, Search } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { cn } from '@/lib/utils';
 
-interface AutocompleteOption {
+export interface AutocompleteOption {
   id: string;
   label: string;
   sublabel?: string;
+  data?: any;
 }
 
 interface AutocompleteInputProps {
