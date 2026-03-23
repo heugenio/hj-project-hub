@@ -210,12 +210,6 @@ export default function Marketing() {
         list = data;
       }
 
-      // Apply local filters
-      if (filtroNome) list = list.filter(c => c.PESS_NOME?.toLowerCase().includes(filtroNome.toLowerCase()));
-      if (filtroCpf) list = list.filter(c => c.PESS_CPFCNPJ?.includes(filtroCpf));
-      if (filtroCidade) list = list.filter(c => c.PESS_CIDADE?.toLowerCase().includes(filtroCidade.toLowerCase()));
-      if (filtroUf) list = list.filter(c => c.PESS_UF?.toLowerCase().includes(filtroUf.toLowerCase()));
-
       setContatos(list.map(c => ({ ...c, selected: false })));
       setSelectAll(false);
       toast.success(`${list.length} contato(s) encontrado(s)`);
@@ -225,7 +219,7 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroNome, filtroCpf, filtroCidade, filtroUf]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim]);
 
   // Toggle select all
   const toggleSelectAll = () => {
