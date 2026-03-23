@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Package, Wrench, Search } from 'lucide-react';
@@ -19,7 +18,7 @@ interface ItensTableProps {
 
 function emptyItem(): ItemOS {
   return {
-    ITOS_TIPO: 'S',
+    ITOS_TIPO: 'P',
     ITOS_DESCRICAO: '',
     ITOS_QTDE: 1,
     ITOS_VLR_UNITARIO: 0,
@@ -58,15 +57,17 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
   };
 
   const applyProduct = (index: number, produto: ConsultaEstoqueItem) => {
+    const preco = parseFloat(produto.PCPR_PRECO || produto.prod_Preco_Venda || '0') || 0;
+    const saldo = parseFloat(produto.SEST_QTD_SALDO || produto.sest_Saldo || '0') || 0;
     const updated = itens.map((item, i) => {
       if (i !== index) return item;
-      const preco = parseFloat(produto.prod_Preco_Venda || '0') || 0;
       const newItem: ItemOS = {
         ...item,
         ITOS_TIPO: 'P',
         ITOS_DESCRICAO: produto.prod_Nome || produto.Nome || '',
         PROD_ID: produto.prod_Codigo || produto.Codigo || '',
         ITOS_VLR_UNITARIO: preco,
+        ITOS_SALDO_ESTOQUE: saldo,
       };
       newItem.ITOS_VLR_TOTAL = calcTotal(newItem);
       return newItem;
@@ -127,8 +128,9 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="text-xs w-[100px]">Tipo</TableHead>
+                  <TableHead className="text-xs w-[100px]">Código</TableHead>
                   <TableHead className="text-xs">Descrição</TableHead>
+                  <TableHead className="text-xs w-[70px] text-center">Saldo</TableHead>
                   <TableHead className="text-xs w-[80px] text-center">Qtde</TableHead>
                   <TableHead className="text-xs w-[120px] text-right">Vlr Unit.</TableHead>
                   <TableHead className="text-xs w-[100px] text-right">Desconto</TableHead>
@@ -139,7 +141,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
               <TableBody>
                 {itens.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground text-sm py-8">
                       Nenhum item adicionado. Clique em "Adicionar" para começar.
                     </TableCell>
                   </TableRow>
@@ -147,26 +149,21 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                 {itens.map((item, idx) => (
                   <TableRow key={idx} className="group">
                     <TableCell className="p-1.5">
-                      <Select
-                        value={item.ITOS_TIPO}
-                        onValueChange={(v) => updateItem(idx, 'ITOS_TIPO', v)}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="S">Serviço</SelectItem>
-                          <SelectItem value="P">Produto</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        value={item.PROD_ID || ''}
+                        readOnly
+                        className="h-8 text-xs font-mono bg-muted/30"
+                        placeholder="—"
+                        tabIndex={-1}
+                      />
                     </TableCell>
                     <TableCell className="p-1.5">
                       <div className="flex items-center gap-1">
-                        {item.ITOS_TIPO === 'P' && unemId ? (
+                        {unemId ? (
                           <>
                             <div className="flex-1">
                               <AutocompleteInput
-                                placeholder="Buscar produto..."
+                                placeholder="Buscar produto/serviço..."
                                 value={item.ITOS_DESCRICAO}
                                 onChange={(v) => updateItem(idx, 'ITOS_DESCRICAO', v)}
                                 onSelect={(opt) => applyProduct(idx, opt.data)}
@@ -193,6 +190,14 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                           />
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="p-1.5">
+                      <Input
+                        value={item.ITOS_SALDO_ESTOQUE != null ? item.ITOS_SALDO_ESTOQUE : ''}
+                        readOnly
+                        className="h-8 text-xs text-center bg-muted/30"
+                        tabIndex={-1}
+                      />
                     </TableCell>
                     <TableCell className="p-1.5">
                       <Input
