@@ -766,8 +766,21 @@ export default function Marketing() {
                 disabled={sending || selectedCount === 0}
               >
                 {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Enviar Mensagens ({selectedCount})
+                {sending ? `Enviando...` : `Enviar Mensagens (${selectedCount})`}
               </Button>
+              {sending && sendProgress.total > 0 && (
+                <div className="space-y-1.5">
+                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-primary h-full transition-all duration-300 rounded-full"
+                      style={{ width: `${(sendProgress.current / sendProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center font-medium">
+                    {sendProgress.current} de {sendProgress.total} msg enviadas
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
