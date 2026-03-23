@@ -92,6 +92,7 @@ export default function Marketing() {
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendProgress, setSendProgress] = useState({ current: 0, total: 0 });
   const [selectAll, setSelectAll] = useState(false);
   const [imagemUrl, setImagemUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -385,10 +386,12 @@ export default function Marketing() {
       return;
     }
     setSending(true);
+    setSendProgress({ current: 0, total: selecionados.length });
     let enviados = 0;
     let erros = 0;
     let pulados = 0;
     const msweTipo = getMswaTipo(campanhaAtiva);
+    let processados = 0;
 
     for (const contato of selecionados) {
       try {
@@ -443,6 +446,8 @@ export default function Marketing() {
         console.error('Erro envio:', err);
         erros++;
       }
+      processados++;
+      setSendProgress({ current: processados, total: selecionados.length });
     }
 
     let msg = `${enviados} mensagem(ns) enviada(s)`;
@@ -450,6 +455,7 @@ export default function Marketing() {
     if (erros > 0) msg += `, ${erros} erro(s)`;
     toast.success(msg);
     setSending(false);
+    setSendProgress({ current: 0, total: 0 });
   };
 
   // Insert variable into message
@@ -760,8 +766,21 @@ export default function Marketing() {
                 disabled={sending || selectedCount === 0}
               >
                 {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Enviar Mensagens ({selectedCount})
+                {sending ? `Enviando...` : `Enviar Mensagens (${selectedCount})`}
               </Button>
+              {sending && sendProgress.total > 0 && (
+                <div className="space-y-1.5">
+                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-primary h-full transition-all duration-300 rounded-full"
+                      style={{ width: `${(sendProgress.current / sendProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center font-medium">
+                    {sendProgress.current} de {sendProgress.total} msg enviadas
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
