@@ -450,15 +450,15 @@ export default function Marketing() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Período Início</Label>
-                  <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-7 text-[10px] px-1.5" />
+                  <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-7 text-[9px] px-1" />
                 </div>
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Período Fim</Label>
-                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-7 text-[10px] px-1.5" />
+                  <Input type="date" value={filtroPeriodoFim} onChange={e => setFiltroPeriodoFim(e.target.value)} className="h-7 text-[9px] px-1" />
                 </div>
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Produto</Label>
-                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-7 text-[10px]" />
+                  <Input value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} placeholder="Nome do produto" className="h-7 text-[9px]" />
                 </div>
                 <div>
                   <Label className="text-[9px] text-muted-foreground">Grupo de Produto</Label>
@@ -698,14 +698,6 @@ export default function Marketing() {
               >
                 {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Enviar Mensagens ({selectedCount})
-              </Button>
-              <Button variant="outline" className="w-full gap-2 justify-start" onClick={() => toast.info("Campanha salva com sucesso!")}>
-                <Save className="h-4 w-4" />
-                Salvar Campanha
-              </Button>
-              <Button variant="outline" className="w-full gap-2 justify-start" onClick={() => toast.info("Funcionalidade de agendamento em breve!")}>
-                <Clock className="h-4 w-4" />
-                Agendar Envio
               </Button>
             </CardContent>
           </Card>
