@@ -50,6 +50,10 @@ const reportItems = [
   { title: "Resumo de Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
 ];
 
+const marketingItems = [
+  { title: "Campanhas", url: "/marketing/campanhas", icon: Megaphone },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
