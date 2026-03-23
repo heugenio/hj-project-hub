@@ -104,7 +104,33 @@ export default function Marketing() {
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
 
+  const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
+  const [loadingGrupos, setLoadingGrupos] = useState(false);
+  const [savingMsg, setSavingMsg] = useState(false);
+
   const selectedCount = contatos.filter(c => c.selected).length;
+
+  // Fetch grupos on mount
+  useEffect(() => {
+    const fetchGrupos = async () => {
+      setLoadingGrupos(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('api-proxy', {
+          body: { baseUrl: getBaseUrl(), endpoint: '/getGrupos', method: 'GET' },
+        });
+        if (error) throw new Error(error.message);
+        let list: any[] = [];
+        if (Array.isArray(data)) list = data;
+        else if (typeof data === 'string') list = JSON.parse(data);
+        setGrupos(list);
+      } catch (err: any) {
+        console.error('Erro ao buscar grupos:', err);
+      } finally {
+        setLoadingGrupos(false);
+      }
+    };
+    fetchGrupos();
+  }, []);
 
   // Map campaign type to API MSWA_TIPO value
   const getMswaTipo = (tipo: CampanhaTipo): string => {
