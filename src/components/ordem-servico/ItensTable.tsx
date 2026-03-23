@@ -143,27 +143,27 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="text-xs w-[100px]">Código</TableHead>
-                  <TableHead className="text-xs">Descrição</TableHead>
-                  <TableHead className="text-xs w-[70px] text-center">Saldo</TableHead>
-                  <TableHead className="text-xs w-[80px] text-center">Qtde</TableHead>
-                  <TableHead className="text-xs w-[120px] text-right">Vlr Unit.</TableHead>
-                  <TableHead className="text-xs w-[100px] text-right">Desconto</TableHead>
-                  <TableHead className="text-xs w-[120px] text-right">Total</TableHead>
-                  <TableHead className="text-xs w-[50px]"></TableHead>
+                  <TableHead className="text-[10px] w-[90px] py-1">Código</TableHead>
+                  <TableHead className="text-[10px] py-1">Descrição</TableHead>
+                  <TableHead className="text-[10px] w-[60px] text-center py-1">Saldo</TableHead>
+                  <TableHead className="text-[10px] w-[65px] text-center py-1">Qtde</TableHead>
+                  <TableHead className="text-[10px] w-[100px] text-right py-1">Vlr Unit.</TableHead>
+                  <TableHead className="text-[10px] w-[85px] text-right py-1">Desconto</TableHead>
+                  <TableHead className="text-[10px] w-[100px] text-right py-1">Total</TableHead>
+                  <TableHead className="text-[10px] w-[40px] py-1"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {itens.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground text-sm py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground text-[11px] py-6">
                       Nenhum item adicionado. Clique em "Adicionar" para começar.
                     </TableCell>
                   </TableRow>
                 )}
                 {itens.map((item, idx) => (
                   <TableRow key={idx} className="group">
-                    <TableCell className="p-1.5">
+                    <TableCell className="p-1">
                       {unemId ? (
                         <AutocompleteInput
                           placeholder="Código..."
@@ -171,19 +171,19 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                           onChange={(v) => updateItem(idx, 'PROD_ID' as keyof ItemOS, v)}
                           onSelect={(opt) => applyProduct(idx, opt.data)}
                           fetchOptions={fetchProdutosPorCodigo}
-                          className="h-8 text-xs font-mono"
+                          className="h-7 text-[10px] font-mono"
                         />
                       ) : (
                         <Input
                           value={item.PROD_ID || ''}
                           onChange={(e) => updateItem(idx, 'PROD_ID' as keyof ItemOS, e.target.value)}
-                          className="h-8 text-xs font-mono"
+                          className="h-7 text-[10px] font-mono"
                           placeholder="Código..."
                         />
                       )}
                     </TableCell>
-                    <TableCell className="p-1.5">
-                      <div className="flex items-center gap-1">
+                    <TableCell className="p-1">
+                      <div className="flex items-center gap-0.5">
                         {unemId ? (
                           <>
                             <div className="flex-1">
@@ -193,77 +193,77 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                                 onChange={(v) => updateItem(idx, 'ITOS_DESCRICAO', v)}
                                 onSelect={(opt) => applyProduct(idx, opt.data)}
                                 fetchOptions={fetchProdutosPorNome}
-                                className="h-8 text-xs"
+                                className="h-7 text-[10px]"
                               />
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 shrink-0"
+                              className="h-7 w-7 shrink-0"
                               onClick={() => openSearchDialog(idx)}
                               title="Pesquisa avançada de produtos"
                             >
-                              <Search className="h-3.5 w-3.5 text-primary" />
+                              <Search className="h-3 w-3 text-primary" />
                             </Button>
                           </>
                         ) : (
                           <Input
                             value={item.ITOS_DESCRICAO}
                             onChange={(e) => updateItem(idx, 'ITOS_DESCRICAO', e.target.value)}
-                            className="h-8 text-xs"
+                            className="h-7 text-[10px]"
                             placeholder="Descrição do item..."
                           />
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="p-1.5">
+                    <TableCell className="p-1">
                       <Input
                         value={item.ITOS_SALDO_ESTOQUE != null ? item.ITOS_SALDO_ESTOQUE : ''}
                         readOnly
-                        className="h-8 text-xs text-center bg-muted/30"
+                        className="h-7 text-[10px] text-center bg-muted/30"
                         tabIndex={-1}
                       />
                     </TableCell>
-                    <TableCell className="p-1.5">
+                    <TableCell className="p-1">
                       <Input
                         type="number"
                         min={1}
                         value={item.ITOS_QTDE}
                         onChange={(e) => updateItem(idx, 'ITOS_QTDE', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-center"
+                        className="h-7 text-[10px] text-center"
                       />
                     </TableCell>
-                    <TableCell className="p-1.5">
+                    <TableCell className="p-1">
                       <Input
                         type="number"
                         min={0}
                         step={0.01}
                         value={item.ITOS_VLR_UNITARIO}
                         onChange={(e) => updateItem(idx, 'ITOS_VLR_UNITARIO', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-right"
+                        className="h-7 text-[10px] text-right"
                       />
                     </TableCell>
-                    <TableCell className="p-1.5">
+                    <TableCell className="p-1">
                       <Input
                         type="number"
                         min={0}
                         step={0.01}
                         value={item.ITOS_DESCONTO}
                         onChange={(e) => updateItem(idx, 'ITOS_DESCONTO', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-right"
+                        className="h-7 text-[10px] text-right"
                       />
                     </TableCell>
-                    <TableCell className="p-1.5 text-right text-xs font-semibold text-foreground">
+                    <TableCell className="p-1 text-right text-[10px] font-semibold text-foreground">
                       {formatCurrency(item.ITOS_VLR_TOTAL)}
                     </TableCell>
-                    <TableCell className="p-1.5">
+                    <TableCell className="p-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => removeItem(idx)}
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </TableCell>
                   </TableRow>
