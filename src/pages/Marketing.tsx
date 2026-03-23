@@ -41,14 +41,12 @@ interface MensagemWhts {
   MSWA_STATUS?: string;
 }
 
-type CampanhaTipo = "Recompra" | "Rodizio" | "Aniversario" | "Promocao" | "Inativos" | "Personalizada";
+type CampanhaTipo = "Rodizio" | "Aniversario" | "Promocao" | "Personalizada";
 
 const campanhaConfig: { tipo: CampanhaTipo; label: string; icon: React.ReactNode; color: string }[] = [
-  { tipo: "Recompra", label: "Recompra de Produto", icon: <Package className="h-5 w-5" />, color: "bg-primary/10 text-primary border-primary/20" },
   { tipo: "Rodizio", label: "Rodízio de Pneus", icon: <RefreshCw className="h-5 w-5" />, color: "bg-accent/10 text-accent border-accent/20" },
   { tipo: "Aniversario", label: "Aniversário", icon: <Cake className="h-5 w-5" />, color: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
   { tipo: "Promocao", label: "Promoção", icon: <Flame className="h-5 w-5" />, color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
-  { tipo: "Inativos", label: "Recuperação de Inativos", icon: <DollarSign className="h-5 w-5" />, color: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20" },
   { tipo: "Personalizada", label: "Campanha Personalizada", icon: <Pencil className="h-5 w-5" />, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
 ];
 
