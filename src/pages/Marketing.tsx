@@ -70,7 +70,7 @@ function formatDate(date: Date): string {
 
 export default function Marketing() {
   // State
-  const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Recompra");
+  const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Rodizio");
   const [canal, setCanal] = useState<string>("whatsapp");
   const [mensagem, setMensagem] = useState("");
   const [contatos, setContatos] = useState<Contato[]>([]);
