@@ -114,7 +114,7 @@ export default function Marketing() {
 
   const selectedCount = contatos.filter(c => c.selected).length;
 
-  // Fetch grupos on mount
+  // Fetch grupos and unidades on mount
   useEffect(() => {
     const fetchGrupos = async () => {
       setLoadingGrupos(true);
@@ -133,7 +133,31 @@ export default function Marketing() {
         setLoadingGrupos(false);
       }
     };
+    const fetchUnidades = async () => {
+      setLoadingUnidades(true);
+      try {
+        const stored = localStorage.getItem('hj_unidade');
+        let emprId = '';
+        if (stored) {
+          try { const u = JSON.parse(stored); emprId = u.empr_id || u.empr_Id || ''; } catch {}
+        }
+        if (!emprId) return;
+        const { data, error } = await supabase.functions.invoke('api-proxy', {
+          body: { baseUrl: getBaseUrl(), endpoint: `/getUnidadesEmpresariais?empr_id=${emprId}`, method: 'GET' },
+        });
+        if (error) throw new Error(error.message);
+        let list: any[] = [];
+        if (Array.isArray(data)) list = data;
+        else if (typeof data === 'string') list = JSON.parse(data);
+        setUnidades(list.map((u: any) => ({ unem_Id: u.unem_Id || u.UNEM_ID || '', unem_Fantasia: u.unem_Fantasia || u.UNEM_FANTASIA || '' })));
+      } catch (err: any) {
+        console.error('Erro ao buscar unidades:', err);
+      } finally {
+        setLoadingUnidades(false);
+      }
+    };
     fetchGrupos();
+    fetchUnidades();
   }, []);
 
   // Map campaign type to API MSWA_TIPO value
