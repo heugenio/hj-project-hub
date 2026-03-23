@@ -41,14 +41,12 @@ interface MensagemWhts {
   MSWA_STATUS?: string;
 }
 
-type CampanhaTipo = "Recompra" | "Rodizio" | "Aniversario" | "Promocao" | "Inativos" | "Personalizada";
+type CampanhaTipo = "Rodizio" | "Aniversario" | "Promocao" | "Personalizada";
 
 const campanhaConfig: { tipo: CampanhaTipo; label: string; icon: React.ReactNode; color: string }[] = [
-  { tipo: "Recompra", label: "Recompra de Produto", icon: <Package className="h-5 w-5" />, color: "bg-primary/10 text-primary border-primary/20" },
   { tipo: "Rodizio", label: "Rodízio de Pneus", icon: <RefreshCw className="h-5 w-5" />, color: "bg-accent/10 text-accent border-accent/20" },
   { tipo: "Aniversario", label: "Aniversário", icon: <Cake className="h-5 w-5" />, color: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
   { tipo: "Promocao", label: "Promoção", icon: <Flame className="h-5 w-5" />, color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
-  { tipo: "Inativos", label: "Recuperação de Inativos", icon: <DollarSign className="h-5 w-5" />, color: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20" },
   { tipo: "Personalizada", label: "Campanha Personalizada", icon: <Pencil className="h-5 w-5" />, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
 ];
 
@@ -72,7 +70,7 @@ function formatDate(date: Date): string {
 
 export default function Marketing() {
   // State
-  const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Recompra");
+  const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Rodizio");
   const [canal, setCanal] = useState<string>("whatsapp");
   const [mensagem, setMensagem] = useState("");
   const [contatos, setContatos] = useState<Contato[]>([]);
@@ -85,28 +83,19 @@ export default function Marketing() {
   const [loadingMensagem, setLoadingMensagem] = useState(false);
 
   // Filters
-  const [filtroNome, setFiltroNome] = useState("");
-  const [filtroCpf, setFiltroCpf] = useState("");
   const [filtroPeriodoIni, setFiltroPeriodoIni] = useState("");
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
-  const [filtroCidade, setFiltroCidade] = useState("");
-  const [filtroUf, setFiltroUf] = useState("");
-  const [filtroDiasSemCompra, setFiltroDiasSemCompra] = useState("");
-  const [filtroAnivMes, setFiltroAnivMes] = useState("");
-  const [filtroAnivDia, setFiltroAnivDia] = useState("");
 
   const selectedCount = contatos.filter(c => c.selected).length;
 
   // Map campaign type to API MSWA_TIPO value
   const getMswaTipo = (tipo: CampanhaTipo): string => {
     const map: Record<CampanhaTipo, string> = {
-      Recompra: "VENDAS",
       Rodizio: "RODIZIO",
       Aniversario: "ANIVERSARIO",
       Promocao: "MARKETING",
-      Inativos: "VENDAS",
       Personalizada: "MARKETING",
     };
     return map[tipo];
@@ -221,12 +210,6 @@ export default function Marketing() {
         list = data;
       }
 
-      // Apply local filters
-      if (filtroNome) list = list.filter(c => c.PESS_NOME?.toLowerCase().includes(filtroNome.toLowerCase()));
-      if (filtroCpf) list = list.filter(c => c.PESS_CPFCNPJ?.includes(filtroCpf));
-      if (filtroCidade) list = list.filter(c => c.PESS_CIDADE?.toLowerCase().includes(filtroCidade.toLowerCase()));
-      if (filtroUf) list = list.filter(c => c.PESS_UF?.toLowerCase().includes(filtroUf.toLowerCase()));
-
       setContatos(list.map(c => ({ ...c, selected: false })));
       setSelectAll(false);
       toast.success(`${list.length} contato(s) encontrado(s)`);
@@ -236,7 +219,7 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroNome, filtroCpf, filtroCidade, filtroUf]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim]);
 
   // Toggle select all
   const toggleSelectAll = () => {
@@ -372,14 +355,6 @@ export default function Marketing() {
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">Nome / Razão Social</Label>
-                  <Input value={filtroNome} onChange={e => setFiltroNome(e.target.value)} placeholder="Buscar..." className="h-8 text-xs" />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">CPF / CNPJ</Label>
-                  <Input value={filtroCpf} onChange={e => setFiltroCpf(e.target.value)} placeholder="000.000.000-00" className="h-8 text-xs" />
-                </div>
-                <div>
                   <Label className="text-[10px] text-muted-foreground">Período Início</Label>
                   <Input type="date" value={filtroPeriodoIni} onChange={e => setFiltroPeriodoIni(e.target.value)} className="h-8 text-xs" />
                 </div>
@@ -395,39 +370,6 @@ export default function Marketing() {
                   <Label className="text-[10px] text-muted-foreground">Grupo de Produto</Label>
                   <Input value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)} placeholder="Grupo" className="h-8 text-xs" />
                 </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Cidade</Label>
-                  <Input value={filtroCidade} onChange={e => setFiltroCidade(e.target.value)} placeholder="Cidade" className="h-8 text-xs" />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">UF</Label>
-                  <Input value={filtroUf} onChange={e => setFiltroUf(e.target.value)} placeholder="UF" className="h-8 text-xs" maxLength={2} />
-                </div>
-                {campanhaAtiva === "Inativos" && (
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground">Dias sem Comprar</Label>
-                    <Input type="number" value={filtroDiasSemCompra} onChange={e => setFiltroDiasSemCompra(e.target.value)} placeholder="90" className="h-8 text-xs" />
-                  </div>
-                )}
-                {campanhaAtiva === "Aniversario" && (
-                  <>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Mês Aniversário</Label>
-                      <Select value={filtroAnivMes} onValueChange={setFiltroAnivMes}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
-                        <SelectContent>
-                          {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((m, i) => (
-                            <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{m}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Dia Aniversário</Label>
-                      <Input type="number" value={filtroAnivDia} onChange={e => setFiltroAnivDia(e.target.value)} placeholder="15" className="h-8 text-xs" min={1} max={31} />
-                    </div>
-                  </>
-                )}
               </div>
               <div className="flex gap-2 mt-4">
                 <Button size="sm" onClick={gerarLista} disabled={loading} className="gap-1.5">
