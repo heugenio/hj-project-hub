@@ -37,6 +37,10 @@ const reportItems = [
   { title: "Resumo de Movimentação", url: "/relatorios/movimentacao", icon: ArrowLeftRight },
 ];
 
+const marketingItems = [
+  { title: "Campanhas", url: "/marketing/campanhas", icon: Megaphone },
+];
+
 function formatCNPJ(cnpj: string): string {
   const d = cnpj.replace(/\D/g, "");
   if (d.length !== 14) return cnpj;
