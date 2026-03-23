@@ -350,7 +350,8 @@ export default function Marketing() {
           .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
           .replace("{EMPR}", emprNome)
           .replace("{NOME_LOJA}", contato.loja || "")
-          .replace("{URL_LOJA}", contato.lojaUrl || "");
+          .replace("{URL_LOJA}", contato.lojaUrl || "")
+          .replace(/\\n/g, "\n");
 
         const phone = contato.telefone.replace(/\D/g, "");
         if (!phone) { erros++; continue; }
