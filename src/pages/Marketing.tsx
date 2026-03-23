@@ -68,7 +68,8 @@ const campanhaConfig: { tipo: CampanhaTipo; label: string; icon: React.ReactNode
 const variaveisDisponiveis = [
   { var: "{NOME_CLIENTE}", desc: "Sr/Sra + Nome do cliente" },
   { var: "{DATA_ULTIMA_COMPRA}", desc: "Data da última compra" },
-  { var: "{NOME_LOJA}", desc: "Nome fantasia da loja" },
+  { var: "{EMPR}", desc: "Nome da loja" },
+  { var: "{NOME_LOJA}", desc: "Nome fantasia da loja que vendeu" },
   { var: "{URL_LOJA}", desc: "URL/assinatura da loja" },
 ];
 
@@ -201,14 +202,14 @@ export default function Marketing() {
       const stored = localStorage.getItem('hj_unidade');
       let unemId = '';
       if (stored) {
-        try { unemId = JSON.parse(stored).UNEM_ID || ''; } catch {}
+        try { unemId = JSON.parse(stored).unem_Id || JSON.parse(stored).UNEM_ID || ''; } catch {}
       }
       const mswaTipo = getMswaTipo(campanhaAtiva);
       const params = new URLSearchParams();
       params.set('MSWA_TIPO', mswaTipo);
       if (filtroPeriodoIni) params.set('DATAINI', filtroPeriodoIni);
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
-      if (unemId) params.set('UNEM_ID', unemId);
+      params.set('UNEM_ID', unemId);
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
 
@@ -236,7 +237,7 @@ export default function Marketing() {
           tratamento,
           nome: r.PESS_NOME || r.PESS_RAZAO_SOCIAL || '',
           telefone,
-          ultimaCompra: r.DCFS_DATA_NOTA || '',
+          ultimaCompra: (r.DCFS_DATA_NOTA || '').split(' ')[0],
           loja: r.UNEM_FANTASIA || '',
           lojaUrl: r.UNEM_MSG_ASSINATURA || '',
           raw: r,
@@ -271,7 +272,8 @@ export default function Marketing() {
   const previewMsg = mensagem
     .replace("{NOME_CLIENTE}", "Sr João Silva")
     .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
-    .replace("{NOME_LOJA}", "Auto Peças Centro")
+    .replace("{EMPR}", "Auto Peças Centro")
+    .replace("{NOME_LOJA}", "Filial Sul")
     .replace("{URL_LOJA}", "https://loja.exemplo.com");
 
   // Send messages
@@ -287,12 +289,14 @@ export default function Marketing() {
 
     for (const contato of selecionados) {
       try {
+        const storedUnidade = localStorage.getItem('hj_unidade');
+        let emprNome = '';
+        if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
         const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
         const texto = mensagem
           .replace("{NOME_CLIENTE}", nomeComTratamento)
-          .replace("{PRODUTO}", "")
           .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
-          .replace("{VALOR_TOTAL}", "")
+          .replace("{EMPR}", emprNome)
           .replace("{NOME_LOJA}", contato.loja || "")
           .replace("{URL_LOJA}", contato.lojaUrl || "");
 
