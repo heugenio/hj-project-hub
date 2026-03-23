@@ -16,6 +16,7 @@ import OrdemServico from "@/pages/OrdemServico";
 import SalesDemo from "@/pages/SalesDemo";
 import MovementSummary from "@/pages/MovementSummary";
 import Configuracoes from "@/pages/Configuracoes";
+import Marketing from "@/pages/Marketing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/ordem-servico" element={<OrdemServico />} />
                 <Route path="/relatorios/vendas" element={<SalesDemo />} />
                 <Route path="/relatorios/movimentacao" element={<MovementSummary />} />
+                <Route path="/marketing/campanhas" element={<Marketing />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
