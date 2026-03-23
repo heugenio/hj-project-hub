@@ -369,9 +369,7 @@ export default function Marketing() {
                 <div>
                   <Label className="text-[10px] text-muted-foreground">Grupo de Produto</Label>
                   <Input value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)} placeholder="Grupo" className="h-8 text-xs" />
-                    </div>
-                  </>
-                )}
+                </div>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button size="sm" onClick={gerarLista} disabled={loading} className="gap-1.5">
