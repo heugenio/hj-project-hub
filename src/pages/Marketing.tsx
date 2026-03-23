@@ -201,14 +201,14 @@ export default function Marketing() {
       const stored = localStorage.getItem('hj_unidade');
       let unemId = '';
       if (stored) {
-        try { unemId = JSON.parse(stored).UNEM_ID || ''; } catch {}
+        try { unemId = JSON.parse(stored).unem_Id || JSON.parse(stored).UNEM_ID || ''; } catch {}
       }
       const mswaTipo = getMswaTipo(campanhaAtiva);
       const params = new URLSearchParams();
       params.set('MSWA_TIPO', mswaTipo);
       if (filtroPeriodoIni) params.set('DATAINI', filtroPeriodoIni);
       if (filtroPeriodoFim) params.set('DATAFIM', filtroPeriodoFim);
-      if (unemId) params.set('UNEM_ID', unemId);
+      params.set('UNEM_ID', unemId);
 
       const endpoint = `/getContatosMsg?${params.toString()}`;
 
