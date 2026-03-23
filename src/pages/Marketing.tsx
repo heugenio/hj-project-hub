@@ -104,6 +104,7 @@ export default function Marketing() {
   const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroProduto, setFiltroProduto] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
+  const [enviarUnemId, setEnviarUnemId] = useState(true);
 
   const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
   const [loadingGrupos, setLoadingGrupos] = useState(false);
