@@ -20,17 +20,32 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 // Types
+interface ContatoApi {
+  PESS_MARCAR?: string;
+  PESS_NOME?: string;
+  PESS_RAZAO_SOCIAL?: string;
+  PESS_SEXO?: string;
+  PESS_FISICO_JURIDICO?: string;
+  PESS_DATA_NASCIMENTO?: string;
+  TELE_DDD?: string;
+  TELE_NUMERO?: string;
+  DCFS_DATA_NOTA?: string;
+  UNEM_FANTASIA?: string;
+  UNEM_FONE?: string;
+  UNEM_ENDERECO?: string;
+  UNEM_ID?: string;
+  UNEM_MSG_ASSINATURA?: string;
+}
+
 interface Contato {
-  PESS_NOME: string;
-  PESS_FONE: string;
-  PESS_EMAIL?: string;
-  PESS_CPFCNPJ?: string;
-  PESS_CIDADE?: string;
-  PESS_UF?: string;
-  ULTIMA_COMPRA?: string;
-  PRODUTO?: string;
-  VLR_TOTAL?: string;
-  selected?: boolean;
+  tratamento: string;
+  nome: string;
+  telefone: string;
+  ultimaCompra: string;
+  loja: string;
+  lojaUrl: string;
+  raw: ContatoApi;
+  selected: boolean;
 }
 
 interface MensagemWhts {
