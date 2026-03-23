@@ -70,8 +70,19 @@ Deno.serve(async (req) => {
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Try to ensure valid JSON response
+    let jsonText = trimmed;
+    if (trimmed && !trimmed.startsWith('[') && !trimmed.startsWith('{')) {
+      // Non-JSON text response — wrap it
+      if (response.status >= 200 && response.status < 300) {
+        jsonText = JSON.stringify({ success: true, message: trimmed || '200 OK' });
+      } else {
+        jsonText = JSON.stringify({ error: trimmed });
+      }
+    }
     
-    return new Response(text, {
+    return new Response(jsonText || JSON.stringify({ success: true }), {
       status: response.status,
       headers: {
         ...corsHeaders,
