@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Loader2, Package } from 'lucide-react';
+import { Search, Loader2, Package, Warehouse } from 'lucide-react';
 import { getConsultaEstoque, getGrupos, getMarcas, type ConsultaEstoqueItem, type Grupo, type Marca } from '@/lib/api';
 
 interface ProdutoSearchDialogProps {
@@ -14,6 +13,48 @@ interface ProdutoSearchDialogProps {
   unemId: string;
   onSelect: (produto: ConsultaEstoqueItem) => void;
 }
+
+const visibleCols = [
+  'pROD_CODIGO', 'pROD_NOME', 'uNID_SIGLA', 'pCPR_PRECO',
+  'sEST_QTD_SALDO', 'tEST_RESERVA', 'tEST_REQUISICOES',
+  'gRPO_NOME', 'mARC_NOME', 'pROD_REFERENCIA',
+];
+
+const colLabelsMap: Record<string, string> = {
+  prod_codigo: 'Código',
+  prod_nome: 'Produto',
+  prod_referencia: 'Referência',
+  grpo_nome: 'Grupo',
+  marc_nome: 'Marca',
+  unid_sigla: 'Und',
+  sest_qtd_saldo: 'Saldo',
+  test_reserva: 'Reservado',
+  test_requisicoes: 'Requisitado',
+  pcpr_preco: 'Preço',
+  prod_natureza_economica: 'Nat. Econômica',
+};
+
+const rightAlignKeys = new Set([
+  'sest_qtd_saldo', 'test_reserva', 'test_requisicoes', 'pcpr_preco',
+]);
+
+const numericCols = new Set(['sest_qtd_saldo', 'test_reserva', 'test_requisicoes']);
+
+const getColLabel = (col: string) => colLabelsMap[col.toLowerCase()] || col;
+const isRightAlign = (col: string) => rightAlignKeys.has(col.toLowerCase());
+
+const formatValue = (col: string, val: string | undefined) => {
+  if (!val || val === '') return '';
+  const lower = col.toLowerCase();
+  if (rightAlignKeys.has(lower)) {
+    const num = parseFloat(val);
+    if (isNaN(num)) return val;
+    if (numericCols.has(lower)) return num.toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    if (lower.includes('preco')) return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return num.toLocaleString('pt-BR');
+  }
+  return val;
+};
 
 export function ProdutoSearchDialog({ open, onOpenChange, unemId, onSelect }: ProdutoSearchDialogProps) {
   const [prodCodigo, setProdCodigo] = useState('');
@@ -66,7 +107,6 @@ export function ProdutoSearchDialog({ open, onOpenChange, unemId, onSelect }: Pr
   const handleSelect = (item: ConsultaEstoqueItem) => {
     onSelect(item);
     onOpenChange(false);
-    // Reset
     setResults([]);
     setSearched(false);
     setProdCodigo('');
@@ -77,9 +117,28 @@ export function ProdutoSearchDialog({ open, onOpenChange, unemId, onSelect }: Pr
     setAplicacao('');
   };
 
+  const onEnter = (e: React.KeyboardEvent) => { if (e.key === 'Enter') handleSearch(); };
+
+  // Build columns from results, filtered to visible set
+  const columns = results.length > 0
+    ? (() => {
+        const allKeys = Object.keys(results[0]);
+        const sorted: string[] = [];
+        const remaining = new Set(allKeys);
+        for (const ordKey of visibleCols) {
+          const match = allKeys.find((k) => k.toLowerCase() === ordKey.toLowerCase());
+          if (match && remaining.has(match)) {
+            sorted.push(match);
+            remaining.delete(match);
+          }
+        }
+        return sorted;
+      })()
+    : visibleCols;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-5xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" /> Pesquisa de Produtos
@@ -90,20 +149,19 @@ export function ProdutoSearchDialog({ open, onOpenChange, unemId, onSelect }: Pr
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div>
             <Label className="text-xs">Código</Label>
-            <Input value={prodCodigo} onChange={(e) => setProdCodigo(e.target.value)} placeholder="Código" className="h-8 text-xs" />
+            <Input value={prodCodigo} onChange={(e) => setProdCodigo(e.target.value)} placeholder="Código" className="h-8 text-xs" onKeyDown={onEnter} />
           </div>
           <div>
             <Label className="text-xs">Nome</Label>
-            <Input value={prodNome} onChange={(e) => setProdNome(e.target.value)} placeholder="Nome do produto" className="h-8 text-xs"
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+            <Input value={prodNome} onChange={(e) => setProdNome(e.target.value)} placeholder="Nome do produto" className="h-8 text-xs" onKeyDown={onEnter} />
           </div>
           <div>
             <Label className="text-xs">Referência</Label>
-            <Input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Referência" className="h-8 text-xs" />
+            <Input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Referência" className="h-8 text-xs" onKeyDown={onEnter} />
           </div>
           <div>
             <Label className="text-xs">Aplicação</Label>
-            <Input value={aplicacao} onChange={(e) => setAplicacao(e.target.value)} placeholder="Aplicação" className="h-8 text-xs" />
+            <Input value={aplicacao} onChange={(e) => setAplicacao(e.target.value)} placeholder="Aplicação" className="h-8 text-xs" onKeyDown={onEnter} />
           </div>
           <div>
             <Label className="text-xs">Marca</Label>
@@ -140,49 +198,82 @@ export function ProdutoSearchDialog({ open, onOpenChange, unemId, onSelect }: Pr
           Pesquisar
         </Button>
 
-        {/* Results */}
+        {/* Results - same style as ConsultaEstoque */}
         <div className="flex-1 overflow-auto border rounded-md min-h-[200px]">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="text-xs">Código</TableHead>
-                <TableHead className="text-xs">Produto</TableHead>
-                <TableHead className="text-xs">Referência</TableHead>
-                <TableHead className="text-xs text-right">Saldo</TableHead>
-                <TableHead className="text-xs text-right">Preço</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="bg-muted/70 border-b border-border">
+                {columns.map((col) => (
+                  <th
+                    key={col}
+                    className={`px-2 py-1.5 font-semibold text-muted-foreground whitespace-nowrap ${
+                      isRightAlign(col) ? 'text-right' : 'text-left'
+                    }`}
+                  >
+                    {getColLabel(col)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
               {loading && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                <tr>
+                  <td colSpan={columns.length} className="text-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               )}
               {!loading && searched && results.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-8">
-                    Nenhum produto encontrado.
-                  </TableCell>
-                </TableRow>
+                <tr>
+                  <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                    <Warehouse className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                    Nenhum produto encontrado
+                  </td>
+                </tr>
               )}
-              {!loading && results.map((item, idx) => (
-                <TableRow
-                  key={idx}
-                  className="cursor-pointer hover:bg-muted/50"
+              {!loading && !searched && results.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                    <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                    Utilize os filtros e clique em Pesquisar
+                  </td>
+                </tr>
+              )}
+              {!loading && results.map((item, i) => (
+                <tr
+                  key={i}
+                  className={`border-b border-border/40 cursor-pointer hover:bg-accent/40 transition-colors ${
+                    i % 2 === 0 ? 'bg-background' : 'bg-muted/30'
+                  }`}
                   onClick={() => handleSelect(item)}
                 >
-                  <TableCell className="text-xs font-mono">{item.pROD_CODIGO || item.prod_Codigo || item.Codigo || ''}</TableCell>
-                  <TableCell className="text-xs">{item.pROD_NOME || item.prod_Nome || item.Nome || ''}</TableCell>
-                  <TableCell className="text-xs">{item.pROD_REFERENCIA || item.prod_Referencia || item.Referencia || ''}</TableCell>
-                  <TableCell className="text-xs text-right">{item.sEST_QTD_SALDO || item.sest_Saldo || item.Geral || ''}</TableCell>
-                  <TableCell className="text-xs text-right">{item.pCPR_PRECO || item.prod_Preco_Venda || ''}</TableCell>
-                </TableRow>
+                  {columns.map((col) => (
+                    <td
+                      key={col}
+                      className={`px-2 py-1 whitespace-nowrap ${
+                        isRightAlign(col)
+                          ? 'text-right tabular-nums font-medium'
+                          : col.toLowerCase() === 'prod_nome'
+                          ? 'font-medium max-w-[250px] truncate'
+                          : col.toLowerCase() === 'prod_codigo'
+                          ? 'font-mono text-muted-foreground'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      {formatValue(col, item[col])}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
+
+        {results.length > 0 && (
+          <div className="text-xs text-muted-foreground">
+            {results.length} produto(s) encontrado(s)
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
