@@ -545,11 +545,15 @@ export default function Marketing() {
                   </Select>
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
+              <div className="flex items-center gap-4 mt-4">
                 <Button size="sm" onClick={gerarLista} disabled={loading} className="gap-1.5">
                   {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                   Gerar Lista
                 </Button>
+                <div className="flex items-center gap-1.5">
+                  <Checkbox id="enviarUnemId" checked={enviarUnemId} onCheckedChange={(v) => setEnviarUnemId(!!v)} />
+                  <Label htmlFor="enviarUnemId" className="text-[9px] text-muted-foreground cursor-pointer">Filtrar por Unidade (UNEM_ID)</Label>
+                </div>
               </div>
             </CardContent>
           </Card>
