@@ -175,7 +175,7 @@ export default function Login() {
                   color: "hsl(var(--primary-foreground))",
                   fontFamily: "'Space Grotesk', sans-serif",
                 }}>
-                  HJ
+                  V
                 </div>
                 <p className="text-white/50 text-sm tracking-widest uppercase">Sistema de Gestão</p>
               </div>
