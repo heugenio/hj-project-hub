@@ -66,7 +66,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <img src={verttriceLogo} alt="Verttice" className="w-9 h-9 rounded-lg shrink-0 object-contain" />
+          <img src={verttriceLogo} alt="Verttice" className="w-9 h-9 rounded-lg shrink-0 object-contain bg-white p-0.5" />
           {!collapsed && (
             <div>
               <h2 className="text-sm font-bold text-sidebar-foreground tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
