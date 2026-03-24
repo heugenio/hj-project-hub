@@ -44,6 +44,7 @@ interface Contato {
   ultimaCompra: string;
   loja: string;
   lojaUrl: string;
+  lojaEndereco: string;
   raw: ContatoApi;
   selected: boolean;
 }
