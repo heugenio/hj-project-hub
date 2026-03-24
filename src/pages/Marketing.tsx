@@ -199,7 +199,7 @@ export default function Marketing() {
         fetchParametro(unemId, 'ServidorSSL'),
         fetchParametro(unemId, 'EnderecoEmail'),
       ]);
-      setWhatsProvider(servidor);
+      setWhatsProvider(sanitizeProvider(servidor));
       setWhatsToken(token);
       setWhatsDevice(device);
       setWhatsPhoneNumberId(phoneId);
