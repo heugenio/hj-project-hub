@@ -23,7 +23,7 @@ import {
   type Usuario,
 } from "@/lib/api";
 import { Loader2, Eye, EyeOff, Settings } from "lucide-react";
-import hjSystemsLogo from "@/assets/hj_systems.png";
+import vertticeFull from "@/assets/verttice-full.jpeg";
 import { toast } from "sonner";
 
 export default function Login() {
