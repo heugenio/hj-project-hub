@@ -102,12 +102,20 @@ async function fetchParametro(unemId: string, nome: string): Promise<string> {
     if (error) return '';
     let result: any = data;
     if (typeof data === 'string') { try { result = JSON.parse(data); } catch { return ''; } }
-    if (Array.isArray(result) && result.length > 0) return result[0].PRMT_VALOR || '';
-    if (result && result.PRMT_VALOR) return result.PRMT_VALOR;
+    if (Array.isArray(result) && result.length > 0) return (result[0].PRMT_VALOR || '').trim();
+    if (result && result.PRMT_VALOR) return (result.PRMT_VALOR || '').trim();
     return '';
   } catch {
     return '';
   }
+}
+
+const VALID_WHATS_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI'];
+
+function sanitizeProvider(value: string): string {
+  const trimmed = value.trim();
+  const match = VALID_WHATS_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase());
+  return match || '';
 }
 
 export default function Marketing() {
