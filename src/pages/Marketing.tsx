@@ -394,12 +394,12 @@ export default function Marketing() {
 
       const mapped: Contato[] = rawList
         .filter(r => {
-          // Filter by canal: WhatsApp/SMS need phone, Email needs email
           if (canal === 'email') {
-            return !!(r.PESS_EMAIL && r.PESS_EMAIL.trim());
+            return !!(r.PESS_EMAIL && r.PESS_EMAIL.trim() && r.PESS_EMAIL.includes('@'));
           } else {
-            // whatsapp or sms - need TELE_NUMERO
-            return !!(r.TELE_NUMERO && r.TELE_NUMERO.trim());
+            // whatsapp or sms - need TELE_NUMERO with at least 8 digits
+            const num = (r.TELE_NUMERO || '').replace(/\D/g, '');
+            return num.length >= 8;
           }
         })
         .map(r => {
