@@ -203,7 +203,7 @@ export default function Login() {
                 HJ
               </div>
             )}
-            <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>HJ Systems</h1>
+            <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Verttice</h1>
           </div>
 
           <div className="hidden lg:block">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import verttriceLogo from "@/assets/verttice-logo.png";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
