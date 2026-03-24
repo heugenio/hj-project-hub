@@ -309,6 +309,7 @@ export default function Marketing() {
           ultimaCompra: (r.DCFS_DATA_NOTA || '').split(' ')[0],
           loja: r.UNEM_FANTASIA || '',
           lojaUrl: r.UNEM_MSG_ASSINATURA || '',
+          lojaEndereco: r.UNEM_ENDERECO || '',
           raw: r,
           selected: false,
         };
