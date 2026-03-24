@@ -72,6 +72,7 @@ const variaveisDisponiveis = [
   { var: "{EMPR}", desc: "Nome da loja" },
   { var: "{NOME_LOJA}", desc: "Nome fantasia da loja que vendeu" },
   { var: "{URL_LOJA}", desc: "URL/assinatura da loja" },
+  { var: "{ENDLOJA}", desc: "Endereço da loja" },
 ];
 
 function getBaseUrl(): string {
