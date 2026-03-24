@@ -35,12 +35,14 @@ interface ContatoApi {
   UNEM_ENDERECO?: string;
   UNEM_ID?: string;
   UNEM_MSG_ASSINATURA?: string;
+  PESS_EMAIL?: string;
 }
 
 interface Contato {
   tratamento: string;
   nome: string;
   telefone: string;
+  email: string;
   ultimaCompra: string;
   loja: string;
   lojaUrl: string;
@@ -55,6 +57,11 @@ interface MensagemWhts {
   MSWA_MENSAGEM?: string;
   MSWA_QTD_DIAS?: number;
   MSWA_STATUS?: string;
+}
+
+interface Parametro {
+  PRMT_NOME?: string;
+  PRMT_VALOR?: string;
 }
 
 type CampanhaTipo = "Rodizio" | "Aniversario" | "Promocao" | "Personalizada";
@@ -84,6 +91,23 @@ function formatDate(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+// Helper to fetch a single parameter from API
+async function fetchParametro(unemId: string, nome: string): Promise<string> {
+  try {
+    const { data, error } = await supabase.functions.invoke('api-proxy', {
+      body: { baseUrl: getBaseUrl(), endpoint: `/getParametros?UNEM_ID=${unemId}&nome=${encodeURIComponent(nome)}`, method: 'GET' },
+    });
+    if (error) return '';
+    let result: any = data;
+    if (typeof data === 'string') { try { result = JSON.parse(data); } catch { return ''; } }
+    if (Array.isArray(result) && result.length > 0) return result[0].PRMT_VALOR || '';
+    if (result && result.PRMT_VALOR) return result.PRMT_VALOR;
+    return '';
+  } catch {
+    return '';
+  }
 }
 
 export default function Marketing() {
@@ -123,9 +147,70 @@ export default function Marketing() {
   const [loadingGrupos, setLoadingGrupos] = useState(false);
   const [savingMsg, setSavingMsg] = useState(false);
 
+  // Provider params state
+  const [whatsProvider, setWhatsProvider] = useState<string>('');
+  const [whatsToken, setWhatsToken] = useState<string>('');
+  const [whatsDevice, setWhatsDevice] = useState<string>('');
+  const [whatsPhoneNumberId, setWhatsPhoneNumberId] = useState<string>('');
+  const [emailSenha, setEmailSenha] = useState<string>('');
+  const [emailServidor, setEmailServidor] = useState<string>('');
+  const [emailPorta, setEmailPorta] = useState<string>('');
+  const [emailSsl, setEmailSsl] = useState<string>('');
+  const [emailEndereco, setEmailEndereco] = useState<string>('');
+  const [loadingParams, setLoadingParams] = useState(false);
+
   const selectedCount = contatos.filter(c => c.selected).length;
 
-  // Fetch grupos and unidades on mount
+  // Get resolved UNEM_ID for parameters
+  const getResolvedUnemId = (): string => {
+    if (filtroUnemId && filtroUnemId !== '__todas__') return filtroUnemId;
+    try {
+      const stored = localStorage.getItem('hj_unidade');
+      if (stored) {
+        const u = JSON.parse(stored);
+        return u.unem_Id || u.UNEM_ID || '';
+      }
+    } catch {}
+    return '';
+  };
+
+  // Fetch parameters for the selected unidade
+  const fetchParametros = useCallback(async () => {
+    const unemId = getResolvedUnemId();
+    if (!unemId) return;
+    setLoadingParams(true);
+    try {
+      const [servidor, token, device, phoneId, senha, smtpServer, porta, ssl, endereco] = await Promise.all([
+        fetchParametro(unemId, 'SERVIDORWHATS'),
+        fetchParametro(unemId, 'TOKENWHATS'),
+        fetchParametro(unemId, 'DEVICEWHATS'),
+        fetchParametro(unemId, 'PHONENUMBERID'),
+        fetchParametro(unemId, 'SenhaEmail'),
+        fetchParametro(unemId, 'ServidorEmail'),
+        fetchParametro(unemId, 'ServidorPorta'),
+        fetchParametro(unemId, 'ServidorSSL'),
+        fetchParametro(unemId, 'EnderecoEmail'),
+      ]);
+      setWhatsProvider(servidor);
+      setWhatsToken(token);
+      setWhatsDevice(device);
+      setWhatsPhoneNumberId(phoneId);
+      setEmailSenha(senha);
+      setEmailServidor(smtpServer);
+      setEmailPorta(porta);
+      setEmailSsl(ssl);
+      setEmailEndereco(endereco);
+      if (servidor) {
+        console.log(`Provedor WhatsApp configurado: ${servidor}`);
+      }
+    } catch (err: any) {
+      console.error('Erro ao buscar parâmetros:', err);
+    } finally {
+      setLoadingParams(false);
+    }
+  }, [filtroUnemId]);
+
+  // Fetch grupos, unidades and params on mount / filter change
   useEffect(() => {
     const fetchGrupos = async () => {
       setLoadingGrupos(true);
@@ -171,6 +256,11 @@ export default function Marketing() {
     fetchUnidades();
   }, []);
 
+  // Fetch params when unidade filter changes
+  useEffect(() => {
+    fetchParametros();
+  }, [fetchParametros]);
+
   // Map campaign type to API MSWA_TIPO value
   const getMswaTipo = (tipo: CampanhaTipo): string => {
     const map: Record<CampanhaTipo, string> = {
@@ -207,7 +297,6 @@ export default function Marketing() {
           if (result.MSWA_MENSAGEM) {
             setMensagem(result.MSWA_MENSAGEM);
           }
-          // Calculate dates based on MSWA_QTD_DIAS
           const qtdDias = Number(result.MSWA_QTD_DIAS) || 0;
           if (qtdDias > 0) {
             const hoje = new Date();
@@ -295,25 +384,36 @@ export default function Marketing() {
         rawList = data;
       }
 
-      const mapped: Contato[] = rawList.map(r => {
-        const isFisica = (r.PESS_FISICO_JURIDICO || '').toUpperCase().includes('FISIC');
-        const sexo = (r.PESS_SEXO || '').toUpperCase();
-        const tratamento = isFisica ? (sexo === 'F' ? 'Sra' : 'Sr') : '';
-        const ddd = (r.TELE_DDD || '').replace(/\D/g, '');
-        const numero = (r.TELE_NUMERO || '').replace(/\D/g, '');
-        const telefone = ddd && numero ? `${ddd}-${numero}` : numero || '';
-        return {
-          tratamento,
-          nome: r.PESS_NOME || r.PESS_RAZAO_SOCIAL || '',
-          telefone,
-          ultimaCompra: (r.DCFS_DATA_NOTA || '').split(' ')[0],
-          loja: r.UNEM_FANTASIA || '',
-          lojaUrl: r.UNEM_MSG_ASSINATURA || '',
-          lojaEndereco: r.UNEM_ENDERECO || '',
-          raw: r,
-          selected: false,
-        };
-      });
+      const mapped: Contato[] = rawList
+        .filter(r => {
+          // Filter by canal: WhatsApp/SMS need phone, Email needs email
+          if (canal === 'email') {
+            return !!(r.PESS_EMAIL && r.PESS_EMAIL.trim());
+          } else {
+            // whatsapp or sms - need TELE_NUMERO
+            return !!(r.TELE_NUMERO && r.TELE_NUMERO.trim());
+          }
+        })
+        .map(r => {
+          const isFisica = (r.PESS_FISICO_JURIDICO || '').toUpperCase().includes('FISIC');
+          const sexo = (r.PESS_SEXO || '').toUpperCase();
+          const tratamento = isFisica ? (sexo === 'F' ? 'Sra' : 'Sr') : '';
+          const ddd = (r.TELE_DDD || '').replace(/\D/g, '');
+          const numero = (r.TELE_NUMERO || '').replace(/\D/g, '');
+          const telefone = ddd && numero ? `${ddd}-${numero}` : numero || '';
+          return {
+            tratamento,
+            nome: r.PESS_NOME || r.PESS_RAZAO_SOCIAL || '',
+            telefone,
+            email: r.PESS_EMAIL || '',
+            ultimaCompra: (r.DCFS_DATA_NOTA || '').split(' ')[0],
+            loja: r.UNEM_FANTASIA || '',
+            lojaUrl: r.UNEM_MSG_ASSINATURA || '',
+            lojaEndereco: r.UNEM_ENDERECO || '',
+            raw: r,
+            selected: false,
+          };
+        });
 
       setContatos(mapped);
       setSelectAll(false);
@@ -324,7 +424,7 @@ export default function Marketing() {
     } finally {
       setLoading(false);
     }
-  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto, filtroUnemId]);
+  }, [campanhaAtiva, filtroPeriodoIni, filtroPeriodoFim, filtroGrupo, filtroProduto, filtroUnemId, canal]);
 
   // Save message template
   const salvarMensagem = async () => {
@@ -442,6 +542,29 @@ export default function Marketing() {
       toast.warning("Selecione ao menos um destinatário");
       return;
     }
+
+    // Validate provider config
+    if (canal === 'whatsapp' || canal === 'sms') {
+      if (!whatsProvider) {
+        toast.error("Provedor WhatsApp não configurado. Verifique o parâmetro SERVIDORWHATS para esta unidade.");
+        return;
+      }
+      if (!whatsToken) {
+        toast.error("Token WhatsApp não configurado. Verifique o parâmetro TOKENWHATS para esta unidade.");
+        return;
+      }
+      if (whatsProvider === 'BrasilAPI' && !whatsDevice) {
+        toast.error("DeviceToken não configurado. Verifique o parâmetro DEVICEWHATS para esta unidade.");
+        return;
+      }
+    }
+    if (canal === 'email') {
+      if (!emailServidor || !emailEndereco) {
+        toast.error("Configuração de e-mail incompleta. Verifique os parâmetros ServidorEmail e EnderecoEmail.");
+        return;
+      }
+    }
+
     let ultimoErro = '';
     setSending(true);
     setSendProgress({ current: 0, total: selecionados.length });
@@ -453,56 +576,122 @@ export default function Marketing() {
 
     for (const contato of selecionados) {
       try {
-        const phone = contato.telefone.replace(/\D/g, "");
-        if (!phone) { erros++; continue; }
+        if (canal === 'email') {
+          // Email sending
+          const emailDest = contato.email;
+          if (!emailDest) { erros++; ultimoErro = 'Contato sem e-mail'; continue; }
 
-        // Check if already sent
-        const jaEnviada = await checkJaEnviada(msweTipo, phone);
-        if (jaEnviada) {
-          pulados++;
-          continue;
-        }
+          const storedUnidade = localStorage.getItem('hj_unidade');
+          let emprNome = '';
+          if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
+          const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
+          const texto = mensagem
+            .replace("{NOME_CLIENTE}", nomeComTratamento)
+            .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
+            .replace("{EMPR}", emprNome)
+            .replace("{NOME_LOJA}", contato.loja || "")
+            .replace("{URL_LOJA}", contato.lojaUrl || "")
+            .replace("{ENDLOJA}", contato.lojaEndereco || enderecoLoja || "")
+            .replace(/\\n/g, "\n");
 
-        const storedUnidade = localStorage.getItem('hj_unidade');
-        let emprNome = '';
-        if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
-        const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
-        const texto = mensagem
-          .replace("{NOME_CLIENTE}", nomeComTratamento)
-          .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
-          .replace("{EMPR}", emprNome)
-          .replace("{NOME_LOJA}", contato.loja || "")
-          .replace("{URL_LOJA}", contato.lojaUrl || "")
-          .replace("{ENDLOJA}", contato.lojaEndereco || enderecoLoja || "")
-          .replace(/\\n/g, "\n");
+          const payload = {
+            provider: 'Email' as const,
+            token: emailSenha,
+            number: '',
+            text: texto,
+            emailTo: emailDest,
+            emailFrom: emailEndereco,
+            emailSubject: `${campanhaAtiva} - ${emprNome}`,
+            smtpServer: emailServidor,
+            smtpPort: emailPorta,
+            smtpSsl: emailSsl,
+            smtpPassword: emailSenha,
+          };
 
-        const payload: any = { number: phone, canal };
+          console.log('=== ENVIO EMAIL ===', JSON.stringify({ ...payload, smtpPassword: '***' }, null, 2));
 
-        if (imagemUrl) {
-          payload.type = "media";
-          payload.mediaType = "image";
-          payload.file = imagemUrl;
-          payload.text = texto;
+          const { error } = await supabase.functions.invoke('send-message', { body: payload });
+
+          if (error) {
+            const errorDetail = error?.message || JSON.stringify(error);
+            await registrarEnvio(texto, msweTipo, emailDest, "Nao");
+            erros++;
+            ultimoErro = errorDetail;
+          } else {
+            await registrarEnvio(texto, msweTipo, emailDest, "Sim");
+            enviados++;
+          }
         } else {
-          payload.type = "text";
-          payload.text = texto;
-        }
+          // WhatsApp / SMS sending
+          const phone = contato.telefone.replace(/\D/g, "");
+          if (!phone) { erros++; ultimoErro = 'Contato sem telefone'; continue; }
 
-        console.log('=== ENVIO MARKETING ===', JSON.stringify(payload, null, 2));
+          // Check if already sent
+          const jaEnviada = await checkJaEnviada(msweTipo, phone);
+          if (jaEnviada) {
+            pulados++;
+            processados++;
+            setSendProgress({ current: processados, total: selecionados.length });
+            continue;
+          }
 
-        const { error } = await supabase.functions.invoke('send-whatsapp', {
-          body: payload,
-        });
+          const storedUnidade = localStorage.getItem('hj_unidade');
+          let emprNome = '';
+          if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
+          const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
+          const texto = mensagem
+            .replace("{NOME_CLIENTE}", nomeComTratamento)
+            .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
+            .replace("{EMPR}", emprNome)
+            .replace("{NOME_LOJA}", contato.loja || "")
+            .replace("{URL_LOJA}", contato.lojaUrl || "")
+            .replace("{ENDLOJA}", contato.lojaEndereco || enderecoLoja || "")
+            .replace(/\\n/g, "\n");
 
-        if (error) {
-          const errorDetail = error?.message || error?.context?.body || JSON.stringify(error);
-          console.error('Erro envio WhatsApp:', errorDetail, error);
-          await registrarEnvio(texto, msweTipo, phone, "Nao");
-          erros++;
-          ultimoErro = errorDetail;
-        } else {
-          await registrarEnvio(texto, msweTipo, phone, "Sim");
-          enviados++;
+          const payload: any = {
+            provider: whatsProvider,
+            token: whatsToken,
+            number: phone,
+            text: texto,
+          };
+
+          if (whatsProvider === 'BrasilAPI') {
+            payload.device = whatsDevice;
+          }
+          if (whatsProvider === 'WhatsAppOficial') {
+            payload.phoneNumberId = whatsPhoneNumberId;
+          }
+
+          if (imagemUrl) {
+            payload.type = "media";
+            payload.mediaType = "image";
+            payload.file = imagemUrl;
+          } else {
+            payload.type = "text";
+          }
+
+          console.log('=== ENVIO MARKETING ===', JSON.stringify(payload, null, 2));
+
+          const { data: respData, error } = await supabase.functions.invoke('send-message', {
+            body: payload,
+          });
+
+          if (error) {
+            const errorDetail = error?.message || error?.context?.body || JSON.stringify(error);
+            console.error('Erro envio:', errorDetail, error);
+            await registrarEnvio(texto, msweTipo, phone, "Nao");
+            erros++;
+            ultimoErro = errorDetail;
+          } else if (respData && respData.success === false) {
+            const errorDetail = respData.data?.raw || respData.data?.message || JSON.stringify(respData.data);
+            console.error('Erro envio (API):', errorDetail);
+            await registrarEnvio(texto, msweTipo, phone, "Nao");
+            erros++;
+            ultimoErro = `[${respData.status}] ${errorDetail}`;
+          } else {
+            await registrarEnvio(texto, msweTipo, phone, "Sim");
+            enviados++;
+          }
         }
       } catch (err: any) {
         const errorDetail = err?.message || JSON.stringify(err);
@@ -538,10 +727,18 @@ export default function Marketing() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Envie mensagens personalizadas para seus clientes</p>
         </div>
-        <Badge variant="outline" className="text-xs px-3 py-1 gap-1.5">
-          <Users className="h-3.5 w-3.5" />
-          {selectedCount} selecionado(s)
-        </Badge>
+        <div className="flex items-center gap-3">
+          {whatsProvider && (
+            <Badge variant="outline" className="text-[9px] px-2 py-0.5 gap-1">
+              <MessageSquare className="h-3 w-3" />
+              {whatsProvider}
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-xs px-3 py-1 gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            {selectedCount} selecionado(s)
+          </Badge>
+        </div>
       </div>
 
       {/* Campaign Type Cards */}
@@ -621,7 +818,6 @@ export default function Marketing() {
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      
                       <SelectItem value="__todas__" className="text-xs">Todas as Unidades</SelectItem>
                       {unidades.map(u => (
                         <SelectItem key={u.unem_Id} value={u.unem_Id} className="text-xs">{u.unem_Fantasia}</SelectItem>
@@ -759,7 +955,11 @@ export default function Marketing() {
                       <TableRow className="bg-muted/40">
                         <TableHead className="w-10 text-center">#</TableHead>
                         <TableHead className="text-[10px]">Cliente</TableHead>
-                        <TableHead className="text-[10px]">Telefone</TableHead>
+                        {canal === 'email' ? (
+                          <TableHead className="text-[10px]">E-mail</TableHead>
+                        ) : (
+                          <TableHead className="text-[10px]">Telefone</TableHead>
+                        )}
                         <TableHead className="text-[10px]">Última Compra</TableHead>
                         <TableHead className="text-[10px]">Loja</TableHead>
                         <TableHead className="w-10 text-center">
@@ -775,7 +975,11 @@ export default function Marketing() {
                             {c.tratamento && <span className="text-muted-foreground mr-1">{c.tratamento}</span>}
                             {c.nome}
                           </TableCell>
-                          <TableCell className="text-[10px] text-muted-foreground">{c.telefone || "—"}</TableCell>
+                          {canal === 'email' ? (
+                            <TableCell className="text-[10px] text-muted-foreground">{c.email || "—"}</TableCell>
+                          ) : (
+                            <TableCell className="text-[10px] text-muted-foreground">{c.telefone || "—"}</TableCell>
+                          )}
                           <TableCell className="text-[10px]">{c.ultimaCompra || "—"}</TableCell>
                           <TableCell className="text-[10px]">{c.loja || "—"}</TableCell>
                           <TableCell className="text-center">
@@ -793,6 +997,16 @@ export default function Marketing() {
 
         {/* Right Column - Preview + Actions */}
         <div className="space-y-5">
+          {/* Provider Info */}
+          {loadingParams && (
+            <Card className="border-border/60">
+              <CardContent className="py-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                Carregando configurações...
+              </CardContent>
+            </Card>
+          )}
+
           {/* Preview */}
           <Card className="border-border/60 sticky top-4">
             <CardHeader className="pb-3">
@@ -803,7 +1017,7 @@ export default function Marketing() {
               <CardDescription className="text-[10px]">Simulação com dados fictícios</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 p-4 border border-green-200/50 dark:border-green-800/30">
+              <div className={`rounded-xl p-4 border ${canal === 'email' ? 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200/50 dark:border-blue-800/30' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200/50 dark:border-green-800/30'}`}>
                 {/* Chat bubble */}
                 <div className="bg-card rounded-lg rounded-tl-none p-3 shadow-sm border border-border/40 max-w-[280px]">
                   <p className="text-xs leading-relaxed whitespace-pre-wrap text-foreground">{previewMsg}</p>
@@ -826,6 +1040,12 @@ export default function Marketing() {
                   <span className="text-muted-foreground">Canal</span>
                   <Badge variant="outline" className="text-[9px] capitalize">{canal}</Badge>
                 </div>
+                {canal !== 'email' && whatsProvider && (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground">Provedor</span>
+                    <Badge variant="outline" className="text-[9px]">{whatsProvider}</Badge>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-[10px]">
                   <span className="text-muted-foreground">Destinatários</span>
                   <Badge variant="secondary" className="text-[9px]">{selectedCount}</Badge>
@@ -846,7 +1066,7 @@ export default function Marketing() {
                 disabled={sending || selectedCount === 0}
               >
                 {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {sending ? `Enviando...` : `Enviar Mensagens (${selectedCount})`}
+                {sending ? `Enviando...` : `Enviar ${canal === 'email' ? 'E-mails' : 'Mensagens'} (${selectedCount})`}
               </Button>
               {sending && sendProgress.total > 0 && (
                 <div className="space-y-1.5">
@@ -857,7 +1077,7 @@ export default function Marketing() {
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground text-center font-medium">
-                    {sendProgress.current} de {sendProgress.total} msg enviadas
+                    {sendProgress.current} de {sendProgress.total} enviadas
                   </p>
                 </div>
               )}
