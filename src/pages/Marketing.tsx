@@ -361,14 +361,29 @@ export default function Marketing() {
     setContatos(prev => prev.map((c, i) => i === idx ? { ...c, selected: !c.selected } : c));
   };
 
+  // Resolve address from selected unidade or logged-in unidade
+  const resolveEnderecoLoja = (): string => {
+    const unem = unidades.find(u => u.unem_Id === filtroUnemId);
+    if (unem?.unem_Endereco) return unem.unem_Endereco;
+    try {
+      const stored = localStorage.getItem('hj_unidade');
+      if (stored) {
+        const u = JSON.parse(stored);
+        return u.unem_Endereco || u.UNEM_ENDERECO || '';
+      }
+    } catch {}
+    return '';
+  };
+
   // Preview message with simulated data
+  const enderecoLoja = resolveEnderecoLoja();
   const previewMsg = mensagem
     .replace("{NOME_CLIENTE}", "Sr João Silva")
     .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
     .replace("{EMPR}", "Auto Peças Centro")
     .replace("{NOME_LOJA}", "Filial Sul")
     .replace("{URL_LOJA}", "https://loja.exemplo.com")
-    .replace("{ENDLOJA}", "Rua Exemplo, 123 - Centro")
+    .replace("{ENDLOJA}", enderecoLoja || "Rua Exemplo, 123 - Centro")
     .replace(/\\n/g, "\n");
 
   // Check if message was already sent
