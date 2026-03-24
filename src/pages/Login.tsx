@@ -200,7 +200,7 @@ export default function Login() {
               <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
             ) : (
               <div className="w-16 h-16 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                HJ
+                V
               </div>
             )}
             <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Verttice</h1>
