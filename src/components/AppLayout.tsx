@@ -1,4 +1,5 @@
 import { useState } from "react";
+import verttriceLogo from "@/assets/verttice-logo.png";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -98,12 +99,10 @@ export function AppLayout() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={cn("flex items-center border-b border-sidebar-border shrink-0", collapsed && !mobile ? "justify-center px-2 h-14" : "gap-2.5 px-4 h-14")}>
-        <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold text-base shrink-0">
-          HJ
-        </div>
+        <img src={verttriceLogo} alt="Verttice" className="w-9 h-9 rounded-lg shrink-0 object-contain bg-white p-0.5" />
         {(!collapsed || mobile) && (
           <div className="overflow-hidden">
-            <p className="text-sm font-bold text-sidebar-foreground tracking-tight whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>HJ Systems</p>
+            <p className="text-sm font-bold text-sidebar-foreground tracking-tight whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Verttice</p>
             <p className="text-[10px] text-sidebar-foreground/50 whitespace-nowrap">Gestão Empresarial</p>
           </div>
         )}
@@ -351,7 +350,7 @@ export function AppLayout() {
         </main>
 
         <footer className="border-t border-border bg-card py-3">
-          <p className="text-center text-[11px] text-muted-foreground">© 2026 HJ Systems — Gestão Empresarial</p>
+          <p className="text-center text-[11px] text-muted-foreground">© 2026 Verttice — Gestão Empresarial</p>
         </footer>
       </div>
     </div>

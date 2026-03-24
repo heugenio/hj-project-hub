@@ -175,7 +175,7 @@ export default function Login() {
                   color: "hsl(var(--primary-foreground))",
                   fontFamily: "'Space Grotesk', sans-serif",
                 }}>
-                  HJ
+                  V
                 </div>
                 <p className="text-white/50 text-sm tracking-widest uppercase">Sistema de Gestão</p>
               </div>
@@ -203,7 +203,7 @@ export default function Login() {
                 HJ
               </div>
             )}
-            <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>HJ Systems</h1>
+            <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Verttice</h1>
           </div>
 
           <div className="hidden lg:block">
