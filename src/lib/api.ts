@@ -64,6 +64,7 @@ export interface UnidadeEmpresarial {
   unem_Id: string;
   unem_Sigla: string;
   unem_Uf?: string;
+  unem_Endereco?: string;
 }
 
 export interface Usuario {

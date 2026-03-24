@@ -457,6 +457,7 @@ export default function Marketing() {
           .replace("{EMPR}", emprNome)
           .replace("{NOME_LOJA}", contato.loja || "")
           .replace("{URL_LOJA}", contato.lojaUrl || "")
+          .replace("{ENDLOJA}", contato.lojaEndereco || "")
           .replace(/\\n/g, "\n");
 
         const payload: any = { number: phone, canal };
