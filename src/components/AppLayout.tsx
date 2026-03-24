@@ -349,7 +349,7 @@ export function AppLayout() {
         </main>
 
         <footer className="border-t border-border bg-card py-3">
-          <p className="text-center text-[11px] text-muted-foreground">© 2026 HJ Systems — Gestão Empresarial</p>
+          <p className="text-center text-[11px] text-muted-foreground">© 2026 Verttice — Gestão Empresarial</p>
         </footer>
       </div>
     </div>
