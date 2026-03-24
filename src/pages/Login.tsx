@@ -23,7 +23,7 @@ import {
   type Usuario,
 } from "@/lib/api";
 import { Loader2, Eye, EyeOff, Settings } from "lucide-react";
-import hjSystemsLogo from "@/assets/hj_systems.png";
+import vertticeFull from "@/assets/verttice-full.jpeg";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -183,9 +183,9 @@ export default function Login() {
           </div>
           {/* Footer credits */}
           <div className="pb-8 flex flex-col items-center gap-3">
-            <img src={hjSystemsLogo} alt="HJ-Systems" className="h-7 object-contain invert opacity-70" />
+            <img src={vertticeFull} alt="Verttice" className="h-14 object-contain rounded-lg" />
             <p className="text-[11px] text-white/40 tracking-widest uppercase">
-              Gestão de Negócios
+              Conectando ideias, entregando soluções
             </p>
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function Login() {
               <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
             ) : (
               <div className="w-16 h-16 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                HJ
+                V
               </div>
             )}
             <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Verttice</h1>
