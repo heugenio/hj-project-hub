@@ -494,15 +494,20 @@ export default function Marketing() {
         });
 
         if (error) {
+          const errorDetail = error?.message || error?.context?.body || JSON.stringify(error);
+          console.error('Erro envio WhatsApp:', errorDetail, error);
           await registrarEnvio(texto, msweTipo, phone, "Nao");
-          throw error;
+          erros++;
+          ultimoErro = errorDetail;
+        } else {
+          await registrarEnvio(texto, msweTipo, phone, "Sim");
+          enviados++;
         }
-
-        await registrarEnvio(texto, msweTipo, phone, "Sim");
-        enviados++;
       } catch (err: any) {
-        console.error('Erro envio:', err);
+        const errorDetail = err?.message || JSON.stringify(err);
+        console.error('Erro envio:', errorDetail, err);
         erros++;
+        ultimoErro = errorDetail;
       }
       processados++;
       setSendProgress({ current: processados, total: selecionados.length });
@@ -511,7 +516,8 @@ export default function Marketing() {
     let msg = `${enviados} mensagem(ns) enviada(s)`;
     if (pulados > 0) msg += `, ${pulados} já enviada(s)`;
     if (erros > 0) msg += `, ${erros} erro(s)`;
-    toast.success(msg);
+    if (ultimoErro) msg += `\nÚltimo erro: ${ultimoErro}`;
+    if (erros > 0) toast.error(msg); else toast.success(msg);
     setSending(false);
     setSendProgress({ current: 0, total: 0 });
   };
