@@ -442,6 +442,7 @@ export default function Marketing() {
       toast.warning("Selecione ao menos um destinatário");
       return;
     }
+    let ultimoErro = '';
     setSending(true);
     setSendProgress({ current: 0, total: selecionados.length });
     let enviados = 0;
