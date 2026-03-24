@@ -183,9 +183,9 @@ export default function Login() {
           </div>
           {/* Footer credits */}
           <div className="pb-8 flex flex-col items-center gap-3">
-            <img src={hjSystemsLogo} alt="HJ-Systems" className="h-7 object-contain invert opacity-70" />
+            <img src={vertticeFull} alt="Verttice" className="h-14 object-contain rounded-lg" />
             <p className="text-[11px] text-white/40 tracking-widest uppercase">
-              Gestão de Negócios
+              Conectando ideias, entregando soluções
             </p>
           </div>
         </div>
