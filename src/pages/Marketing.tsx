@@ -116,7 +116,7 @@ export default function Marketing() {
     } catch {}
     return '__todas__';
   });
-  const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string }[]>([]);
+  const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string; unem_Endereco: string }[]>([]);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
   const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
