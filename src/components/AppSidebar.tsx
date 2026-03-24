@@ -13,6 +13,7 @@ import {
   Warehouse,
   Megaphone,
 } from "lucide-react";
+import verttriceLogo from "@/assets/verttice-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
