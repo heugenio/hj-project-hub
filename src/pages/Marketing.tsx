@@ -160,7 +160,7 @@ export default function Marketing() {
         let list: any[] = [];
         if (Array.isArray(data)) list = data;
         else if (typeof data === 'string') list = JSON.parse(data);
-        setUnidades(list.map((u: any) => ({ unem_Id: u.unem_Id || u.UNEM_ID || '', unem_Fantasia: u.unem_Fantasia || u.UNEM_FANTASIA || '' })));
+        setUnidades(list.map((u: any) => ({ unem_Id: u.unem_Id || u.UNEM_ID || '', unem_Fantasia: u.unem_Fantasia || u.UNEM_FANTASIA || '', unem_Endereco: u.unem_Endereco || u.UNEM_ENDERECO || '' })));
       } catch (err: any) {
         console.error('Erro ao buscar unidades:', err);
       } finally {
