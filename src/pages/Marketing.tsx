@@ -116,7 +116,7 @@ export default function Marketing() {
     } catch {}
     return '__todas__';
   });
-  const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string }[]>([]);
+  const [unidades, setUnidades] = useState<{ unem_Id: string; unem_Fantasia: string; unem_Endereco: string }[]>([]);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
 
   const [grupos, setGrupos] = useState<{ grpo_id: string; grpo_Nome: string }[]>([]);
@@ -160,7 +160,7 @@ export default function Marketing() {
         let list: any[] = [];
         if (Array.isArray(data)) list = data;
         else if (typeof data === 'string') list = JSON.parse(data);
-        setUnidades(list.map((u: any) => ({ unem_Id: u.unem_Id || u.UNEM_ID || '', unem_Fantasia: u.unem_Fantasia || u.UNEM_FANTASIA || '' })));
+        setUnidades(list.map((u: any) => ({ unem_Id: u.unem_Id || u.UNEM_ID || '', unem_Fantasia: u.unem_Fantasia || u.UNEM_FANTASIA || '', unem_Endereco: u.unem_Endereco || u.UNEM_ENDERECO || '' })));
       } catch (err: any) {
         console.error('Erro ao buscar unidades:', err);
       } finally {
@@ -361,14 +361,29 @@ export default function Marketing() {
     setContatos(prev => prev.map((c, i) => i === idx ? { ...c, selected: !c.selected } : c));
   };
 
+  // Resolve address from selected unidade or logged-in unidade
+  const resolveEnderecoLoja = (): string => {
+    const unem = unidades.find(u => u.unem_Id === filtroUnemId);
+    if (unem?.unem_Endereco) return unem.unem_Endereco;
+    try {
+      const stored = localStorage.getItem('hj_unidade');
+      if (stored) {
+        const u = JSON.parse(stored);
+        return u.unem_Endereco || u.UNEM_ENDERECO || '';
+      }
+    } catch {}
+    return '';
+  };
+
   // Preview message with simulated data
+  const enderecoLoja = resolveEnderecoLoja();
   const previewMsg = mensagem
     .replace("{NOME_CLIENTE}", "Sr João Silva")
     .replace("{DATA_ULTIMA_COMPRA}", "15/01/2026")
     .replace("{EMPR}", "Auto Peças Centro")
     .replace("{NOME_LOJA}", "Filial Sul")
     .replace("{URL_LOJA}", "https://loja.exemplo.com")
-    .replace("{ENDLOJA}", "Rua Exemplo, 123 - Centro")
+    .replace("{ENDLOJA}", enderecoLoja || "Rua Exemplo, 123 - Centro")
     .replace(/\\n/g, "\n");
 
   // Check if message was already sent
@@ -457,7 +472,7 @@ export default function Marketing() {
           .replace("{EMPR}", emprNome)
           .replace("{NOME_LOJA}", contato.loja || "")
           .replace("{URL_LOJA}", contato.lojaUrl || "")
-          .replace("{ENDLOJA}", contato.lojaEndereco || "")
+          .replace("{ENDLOJA}", contato.lojaEndereco || enderecoLoja || "")
           .replace(/\\n/g, "\n");
 
         const payload: any = { number: phone, canal };
