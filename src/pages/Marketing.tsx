@@ -199,6 +199,7 @@ export default function Marketing() {
         fetchParametro(unemId, 'ServidorSSL'),
         fetchParametro(unemId, 'EnderecoEmail'),
       ]);
+      console.log('SERVIDORWHATS raw value:', JSON.stringify(servidor));
       setWhatsProvider(sanitizeProvider(servidor));
       setWhatsToken(token);
       setWhatsDevice(device);
