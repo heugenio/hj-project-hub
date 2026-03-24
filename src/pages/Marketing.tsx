@@ -44,6 +44,7 @@ interface Contato {
   ultimaCompra: string;
   loja: string;
   lojaUrl: string;
+  lojaEndereco: string;
   raw: ContatoApi;
   selected: boolean;
 }
@@ -71,6 +72,7 @@ const variaveisDisponiveis = [
   { var: "{EMPR}", desc: "Nome da loja" },
   { var: "{NOME_LOJA}", desc: "Nome fantasia da loja que vendeu" },
   { var: "{URL_LOJA}", desc: "URL/assinatura da loja" },
+  { var: "{ENDLOJA}", desc: "Endereço da loja" },
 ];
 
 function getBaseUrl(): string {
@@ -307,6 +309,7 @@ export default function Marketing() {
           ultimaCompra: (r.DCFS_DATA_NOTA || '').split(' ')[0],
           loja: r.UNEM_FANTASIA || '',
           lojaUrl: r.UNEM_MSG_ASSINATURA || '',
+          lojaEndereco: r.UNEM_ENDERECO || '',
           raw: r,
           selected: false,
         };
@@ -365,6 +368,7 @@ export default function Marketing() {
     .replace("{EMPR}", "Auto Peças Centro")
     .replace("{NOME_LOJA}", "Filial Sul")
     .replace("{URL_LOJA}", "https://loja.exemplo.com")
+    .replace("{ENDLOJA}", "Rua Exemplo, 123 - Centro")
     .replace(/\\n/g, "\n");
 
   // Check if message was already sent
@@ -453,6 +457,7 @@ export default function Marketing() {
           .replace("{EMPR}", emprNome)
           .replace("{NOME_LOJA}", contato.loja || "")
           .replace("{URL_LOJA}", contato.lojaUrl || "")
+          .replace("{ENDLOJA}", contato.lojaEndereco || "")
           .replace(/\\n/g, "\n");
 
         const payload: any = { number: phone, canal };
