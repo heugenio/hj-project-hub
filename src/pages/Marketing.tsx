@@ -705,16 +705,19 @@ export default function Marketing() {
             const errorDetail = error?.message || error?.context?.body || JSON.stringify(error);
             console.error('Erro envio:', errorDetail, error);
             await registrarEnvio(texto, msweTipo, phone, "Nao");
+            updateSendStatus(contato.nome, phone, 'error');
             erros++;
             ultimoErro = errorDetail;
           } else if (respData && respData.success === false) {
             const errorDetail = respData.data?.raw || respData.data?.message || JSON.stringify(respData.data);
             console.error('Erro envio (API):', errorDetail);
             await registrarEnvio(texto, msweTipo, phone, "Nao");
+            updateSendStatus(contato.nome, phone, 'error');
             erros++;
             ultimoErro = `[${respData.status}] ${errorDetail}`;
           } else {
             await registrarEnvio(texto, msweTipo, phone, "Sim");
+            updateSendStatus(contato.nome, phone, 'sent');
             enviados++;
           }
         }
