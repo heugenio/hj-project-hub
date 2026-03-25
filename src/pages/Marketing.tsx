@@ -983,7 +983,7 @@ export default function Marketing() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
-                        <TableHead className="w-10 text-center">#</TableHead>
+                        <TableHead className="w-8 text-center">#</TableHead>
                         <TableHead className="text-[10px]">Cliente</TableHead>
                         {canal === 'email' ? (
                           <TableHead className="text-[10px]">E-mail</TableHead>
@@ -992,6 +992,7 @@ export default function Marketing() {
                         )}
                         <TableHead className="text-[10px]">Última Compra</TableHead>
                         <TableHead className="text-[10px]">Loja</TableHead>
+                        <TableHead className="w-8 text-center text-[10px]">Status</TableHead>
                         <TableHead className="w-10 text-center">
                           <Checkbox checked={selectAll} onCheckedChange={toggleSelectAll} className="h-3.5 w-3.5" />
                         </TableHead>
@@ -1012,6 +1013,12 @@ export default function Marketing() {
                           )}
                           <TableCell className="text-[10px]">{c.ultimaCompra || "—"}</TableCell>
                           <TableCell className="text-[10px]">{c.loja || "—"}</TableCell>
+                          <TableCell className="text-center">
+                            {c.sendStatus === 'sent' && <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mx-auto" title="Enviado" />}
+                            {c.sendStatus === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive mx-auto" title="Erro no envio" />}
+                            {c.sendStatus === 'skipped' && <SkipForward className="h-3.5 w-3.5 text-yellow-500 mx-auto" title="Já enviado anteriormente" />}
+                            {c.sendStatus === 'idle' && <Minus className="h-3 w-3 text-muted-foreground/30 mx-auto" />}
+                          </TableCell>
                           <TableCell className="text-center">
                             <Checkbox checked={c.selected} onCheckedChange={() => toggleContato(idx)} className="h-3.5 w-3.5" />
                           </TableCell>
