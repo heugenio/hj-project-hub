@@ -637,10 +637,12 @@ export default function Marketing() {
           if (error) {
             const errorDetail = error?.message || JSON.stringify(error);
             await registrarEnvio(texto, msweTipo, emailDest, "Nao");
+            updateSendStatus(contato.nome, emailDest, 'error');
             erros++;
             ultimoErro = errorDetail;
           } else {
             await registrarEnvio(texto, msweTipo, emailDest, "Sim");
+            updateSendStatus(contato.nome, emailDest, 'sent');
             enviados++;
           }
         } else {
