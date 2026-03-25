@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   Package, Cake, Flame, DollarSign, Pencil, Send, Save, Clock,
   Users, Filter, Eye, MessageSquare, Mail, Smartphone, Search,
-  Upload, X, CheckCircle2, RefreshCw, ImageIcon, AlertCircle, SkipForward, Minus
+  Upload, X, CheckCircle2, RefreshCw, ImageIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -1014,10 +1014,10 @@ export default function Marketing() {
                           <TableCell className="text-[10px]">{c.ultimaCompra || "—"}</TableCell>
                           <TableCell className="text-[10px]">{c.loja || "—"}</TableCell>
                           <TableCell className="text-center">
-                            {c.sendStatus === 'sent' && <span className="inline-flex" aria-label="Enviado"><CheckCircle2 className="h-3.5 w-3.5 text-green-500 mx-auto" /></span>}
-                            {c.sendStatus === 'error' && <span className="inline-flex" aria-label="Erro no envio"><AlertCircle className="h-3.5 w-3.5 text-destructive mx-auto" /></span>}
-                            {c.sendStatus === 'skipped' && <span className="inline-flex" aria-label="Já enviado anteriormente"><SkipForward className="h-3.5 w-3.5 text-yellow-500 mx-auto" /></span>}
-                            {c.sendStatus === 'idle' && <Minus className="h-3 w-3 text-muted-foreground/30 mx-auto" />}
+                            {c.sendStatus === 'sent' && <span className="text-blue-500 text-sm tracking-tighter" aria-label="Enviado">✓✓</span>}
+                            {c.sendStatus === 'error' && <span className="text-destructive text-sm" aria-label="Erro">✗</span>}
+                            {c.sendStatus === 'skipped' && <span className="text-blue-500 text-sm tracking-tighter" aria-label="Já enviado">✓✓</span>}
+                            {c.sendStatus === 'idle' && <span className="text-muted-foreground/40 text-sm" aria-label="Pendente">🕐</span>}
                           </TableCell>
                           <TableCell className="text-center">
                             <Checkbox checked={c.selected} onCheckedChange={() => toggleContato(idx)} className="h-3.5 w-3.5" />
