@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   Package, Cake, Flame, DollarSign, Pencil, Send, Save, Clock,
   Users, Filter, Eye, MessageSquare, Mail, Smartphone, Search,
-  Upload, X, CheckCircle2, RefreshCw, ImageIcon
+  Upload, X, CheckCircle2, RefreshCw, ImageIcon, AlertCircle, SkipForward, Minus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -38,6 +38,8 @@ interface ContatoApi {
   PESS_EMAIL?: string;
 }
 
+type SendStatus = 'idle' | 'sent' | 'error' | 'skipped';
+
 interface Contato {
   tratamento: string;
   nome: string;
@@ -49,6 +51,7 @@ interface Contato {
   lojaEndereco: string;
   raw: ContatoApi;
   selected: boolean;
+  sendStatus: SendStatus;
 }
 
 interface MensagemWhts {
@@ -421,6 +424,7 @@ export default function Marketing() {
             lojaEndereco: r.UNEM_ENDERECO || '',
             raw: r,
             selected: false,
+            sendStatus: 'idle' as SendStatus,
           };
         });
 
@@ -468,6 +472,15 @@ export default function Marketing() {
   // Toggle single contact
   const toggleContato = (idx: number) => {
     setContatos(prev => prev.map((c, i) => i === idx ? { ...c, selected: !c.selected } : c));
+  };
+
+  // Update send status for a contact by index in the full list
+  const updateSendStatus = (contatoNome: string, contatoKey: string, status: SendStatus) => {
+    setContatos(prev => prev.map(c => {
+      const key = canal === 'email' ? c.email : c.telefone.replace(/\D/g, '');
+      if (c.nome === contatoNome && key === contatoKey) return { ...c, sendStatus: status };
+      return c;
+    }));
   };
 
   // Resolve address from selected unidade or logged-in unidade
@@ -624,10 +637,12 @@ export default function Marketing() {
           if (error) {
             const errorDetail = error?.message || JSON.stringify(error);
             await registrarEnvio(texto, msweTipo, emailDest, "Nao");
+            updateSendStatus(contato.nome, emailDest, 'error');
             erros++;
             ultimoErro = errorDetail;
           } else {
             await registrarEnvio(texto, msweTipo, emailDest, "Sim");
+            updateSendStatus(contato.nome, emailDest, 'sent');
             enviados++;
           }
         } else {
@@ -638,6 +653,7 @@ export default function Marketing() {
           // Check if already sent
           const jaEnviada = await checkJaEnviada(msweTipo, phone);
           if (jaEnviada) {
+            updateSendStatus(contato.nome, phone, 'skipped');
             pulados++;
             processados++;
             setSendProgress({ current: processados, total: selecionados.length });
@@ -689,22 +705,27 @@ export default function Marketing() {
             const errorDetail = error?.message || error?.context?.body || JSON.stringify(error);
             console.error('Erro envio:', errorDetail, error);
             await registrarEnvio(texto, msweTipo, phone, "Nao");
+            updateSendStatus(contato.nome, phone, 'error');
             erros++;
             ultimoErro = errorDetail;
           } else if (respData && respData.success === false) {
             const errorDetail = respData.data?.raw || respData.data?.message || JSON.stringify(respData.data);
             console.error('Erro envio (API):', errorDetail);
             await registrarEnvio(texto, msweTipo, phone, "Nao");
+            updateSendStatus(contato.nome, phone, 'error');
             erros++;
             ultimoErro = `[${respData.status}] ${errorDetail}`;
           } else {
             await registrarEnvio(texto, msweTipo, phone, "Sim");
+            updateSendStatus(contato.nome, phone, 'sent');
             enviados++;
           }
         }
       } catch (err: any) {
         const errorDetail = err?.message || JSON.stringify(err);
         console.error('Erro envio:', errorDetail, err);
+        const key = canal === 'email' ? contato.email : contato.telefone.replace(/\D/g, '');
+        updateSendStatus(contato.nome, key, 'error');
         erros++;
         ultimoErro = errorDetail;
       }
@@ -962,7 +983,7 @@ export default function Marketing() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
-                        <TableHead className="w-10 text-center">#</TableHead>
+                        <TableHead className="w-8 text-center">#</TableHead>
                         <TableHead className="text-[10px]">Cliente</TableHead>
                         {canal === 'email' ? (
                           <TableHead className="text-[10px]">E-mail</TableHead>
@@ -971,6 +992,7 @@ export default function Marketing() {
                         )}
                         <TableHead className="text-[10px]">Última Compra</TableHead>
                         <TableHead className="text-[10px]">Loja</TableHead>
+                        <TableHead className="w-8 text-center text-[10px]">Status</TableHead>
                         <TableHead className="w-10 text-center">
                           <Checkbox checked={selectAll} onCheckedChange={toggleSelectAll} className="h-3.5 w-3.5" />
                         </TableHead>
@@ -991,6 +1013,12 @@ export default function Marketing() {
                           )}
                           <TableCell className="text-[10px]">{c.ultimaCompra || "—"}</TableCell>
                           <TableCell className="text-[10px]">{c.loja || "—"}</TableCell>
+                          <TableCell className="text-center">
+                            {c.sendStatus === 'sent' && <span className="inline-flex" aria-label="Enviado"><CheckCircle2 className="h-3.5 w-3.5 text-green-500 mx-auto" /></span>}
+                            {c.sendStatus === 'error' && <span className="inline-flex" aria-label="Erro no envio"><AlertCircle className="h-3.5 w-3.5 text-destructive mx-auto" /></span>}
+                            {c.sendStatus === 'skipped' && <span className="inline-flex" aria-label="Já enviado anteriormente"><SkipForward className="h-3.5 w-3.5 text-yellow-500 mx-auto" /></span>}
+                            {c.sendStatus === 'idle' && <Minus className="h-3 w-3 text-muted-foreground/30 mx-auto" />}
+                          </TableCell>
                           <TableCell className="text-center">
                             <Checkbox checked={c.selected} onCheckedChange={() => toggleContato(idx)} className="h-3.5 w-3.5" />
                           </TableCell>
