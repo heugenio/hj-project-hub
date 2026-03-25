@@ -724,6 +724,8 @@ export default function Marketing() {
       } catch (err: any) {
         const errorDetail = err?.message || JSON.stringify(err);
         console.error('Erro envio:', errorDetail, err);
+        const key = canal === 'email' ? contato.email : contato.telefone.replace(/\D/g, '');
+        updateSendStatus(contato.nome, key, 'error');
         erros++;
         ultimoErro = errorDetail;
       }
