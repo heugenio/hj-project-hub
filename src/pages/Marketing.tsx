@@ -474,6 +474,15 @@ export default function Marketing() {
     setContatos(prev => prev.map((c, i) => i === idx ? { ...c, selected: !c.selected } : c));
   };
 
+  // Update send status for a contact by index in the full list
+  const updateSendStatus = (contatoNome: string, contatoKey: string, status: SendStatus) => {
+    setContatos(prev => prev.map(c => {
+      const key = canal === 'email' ? c.email : c.telefone.replace(/\D/g, '');
+      if (c.nome === contatoNome && key === contatoKey) return { ...c, sendStatus: status };
+      return c;
+    }));
+  };
+
   // Resolve address from selected unidade or logged-in unidade
   const resolveEnderecoLoja = (): string => {
     const unem = unidades.find(u => u.unem_Id === filtroUnemId);
