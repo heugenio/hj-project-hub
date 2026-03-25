@@ -653,6 +653,7 @@ export default function Marketing() {
           // Check if already sent
           const jaEnviada = await checkJaEnviada(msweTipo, phone);
           if (jaEnviada) {
+            updateSendStatus(contato.nome, phone, 'skipped');
             pulados++;
             processados++;
             setSendProgress({ current: processados, total: selecionados.length });
