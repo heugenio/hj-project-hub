@@ -38,6 +38,8 @@ interface ContatoApi {
   PESS_EMAIL?: string;
 }
 
+type SendStatus = 'idle' | 'sent' | 'error' | 'skipped';
+
 interface Contato {
   tratamento: string;
   nome: string;
@@ -49,6 +51,7 @@ interface Contato {
   lojaEndereco: string;
   raw: ContatoApi;
   selected: boolean;
+  sendStatus: SendStatus;
 }
 
 interface MensagemWhts {
