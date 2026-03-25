@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   Package, Cake, Flame, DollarSign, Pencil, Send, Save, Clock,
   Users, Filter, Eye, MessageSquare, Mail, Smartphone, Search,
-  Upload, X, CheckCircle2, RefreshCw, ImageIcon
+  Upload, X, CheckCircle2, RefreshCw, ImageIcon, AlertCircle, SkipForward, Minus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
