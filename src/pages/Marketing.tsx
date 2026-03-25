@@ -100,7 +100,7 @@ function formatDate(date: Date): string {
 async function fetchParametro(unemId: string, nome: string): Promise<string> {
   try {
     const { data, error } = await supabase.functions.invoke('api-proxy', {
-      body: { baseUrl: getBaseUrl(), endpoint: `/getParametros?UNEM_ID=${unemId}&nome=${encodeURIComponent(nome)}`, method: 'GET' },
+      body: { baseUrl: getBaseUrl(), endpoint: `/getParametros?Unidade=${unemId}&nome=${encodeURIComponent(nome)}`, method: 'GET' },
     });
     if (error) return '';
     let result: any = data;
