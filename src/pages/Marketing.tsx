@@ -403,7 +403,13 @@ export default function Marketing() {
           } else {
             // whatsapp or sms - need TELE_NUMERO with at least 8 digits
             const num = (r.TELE_NUMERO || '').replace(/\D/g, '');
-            return num.length >= 8;
+            if (num.length < 8) return false;
+            // Para WhatsApp, validar que é celular: primeiro dígito após DDD deve ser > 6 (7, 8 ou 9)
+            if (canal === 'whatsapp') {
+              const firstDigit = parseInt(num.charAt(0), 10);
+              if (isNaN(firstDigit) || firstDigit <= 6) return false;
+            }
+            return true;
           }
         })
         .map(r => {
