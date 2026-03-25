@@ -424,6 +424,7 @@ export default function Marketing() {
             lojaEndereco: r.UNEM_ENDERECO || '',
             raw: r,
             selected: false,
+            sendStatus: 'idle' as SendStatus,
           };
         });
 
