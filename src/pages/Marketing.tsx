@@ -1022,7 +1022,7 @@ export default function Marketing() {
                           <TableCell className="text-center">
                             {c.sendStatus === 'sent' && <span className="text-blue-500 text-sm tracking-tighter" aria-label="Enviado">✓✓</span>}
                             {c.sendStatus === 'error' && <span className="text-destructive text-sm" aria-label="Erro">✗</span>}
-                            {c.sendStatus === 'skipped' && <span className="text-blue-500 text-sm tracking-tighter" aria-label="Já enviado">✓✓</span>}
+                            {c.sendStatus === 'skipped' && <span className="text-muted-foreground text-sm tracking-tighter" aria-label="Já enviado anteriormente">✓✓</span>}
                             {c.sendStatus === 'idle' && <span className="text-muted-foreground/40 text-sm" aria-label="Pendente">🕐</span>}
                           </TableCell>
                           <TableCell className="text-center">
