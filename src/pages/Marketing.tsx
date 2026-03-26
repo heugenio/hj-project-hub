@@ -540,7 +540,7 @@ export default function Marketing() {
     .replace("{ENDLOJA}", enderecoLoja || "Rua Exemplo, 123 - Centro")
     .replace(/\\n/g, "\n");
 
-  // Check if message was already sent
+  // Check if message was already sent via API
   const checkJaEnviada = async (tipo: string, fone: string): Promise<boolean> => {
     try {
       const now = new Date();
@@ -550,8 +550,13 @@ export default function Marketing() {
         body: { baseUrl: getBaseUrl(), endpoint: `/getMsgWths?${params.toString()}`, method: 'GET' },
       });
       if (error) return false;
-      if (Array.isArray(result) && result.length > 0) return true;
-      if (result && typeof result === 'object' && !Array.isArray(result) && result.MSWE_ID) return true;
+      // Check for MSWE_ENVIADA === "Sim" in response
+      if (Array.isArray(result)) {
+        return result.some((r: any) => (r.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim');
+      }
+      if (result && typeof result === 'object' && !Array.isArray(result)) {
+        return (result.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim';
+      }
       return false;
     } catch {
       return false;
