@@ -1231,8 +1231,13 @@ export default function Marketing() {
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground text-center font-medium">
-                    {sendProgress.current} de {sendProgress.total} enviadas
+                    {sendProgress.current} de {sendProgress.total} processadas
                   </p>
+                  <div className="flex justify-center gap-3 text-[9px]">
+                    <span className="text-blue-500">✓✓ {bgSend.progress.enviados}</span>
+                    <span className="text-muted-foreground">⏭ {bgSend.progress.pulados}</span>
+                    <span className="text-destructive">✗ {bgSend.progress.erros}</span>
+                  </div>
                 </div>
               )}
             </CardContent>
