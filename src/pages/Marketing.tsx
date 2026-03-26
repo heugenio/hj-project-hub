@@ -121,6 +121,32 @@ function sanitizeProvider(value: string): string {
   return match || '';
 }
 
+// ── Background sending state (persists across navigation) ──
+interface BackgroundSendState {
+  active: boolean;
+  contatos: Contato[];
+  progress: { current: number; total: number; enviados: number; erros: number; pulados: number };
+  listeners: Set<() => void>;
+}
+
+const bgSend: BackgroundSendState = {
+  active: false,
+  contatos: [],
+  progress: { current: 0, total: 0, enviados: 0, erros: 0, pulados: 0 },
+  listeners: new Set(),
+};
+
+function notifyBgListeners() {
+  bgSend.listeners.forEach(fn => fn());
+}
+
+const BATCH_SIZE = 10;
+const BATCH_DELAYS = [10000, 15000, 10000]; // cycle through these delays between batches
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export default function Marketing() {
   // State
   const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Rodizio");
