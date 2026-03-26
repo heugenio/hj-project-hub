@@ -121,6 +121,32 @@ function sanitizeProvider(value: string): string {
   return match || '';
 }
 
+// ── Background sending state (persists across navigation) ──
+interface BackgroundSendState {
+  active: boolean;
+  contatos: Contato[];
+  progress: { current: number; total: number; enviados: number; erros: number; pulados: number };
+  listeners: Set<() => void>;
+}
+
+const bgSend: BackgroundSendState = {
+  active: false,
+  contatos: [],
+  progress: { current: 0, total: 0, enviados: 0, erros: 0, pulados: 0 },
+  listeners: new Set(),
+};
+
+function notifyBgListeners() {
+  bgSend.listeners.forEach(fn => fn());
+}
+
+const BATCH_SIZE = 10;
+const BATCH_DELAYS = [10000, 15000, 10000]; // cycle through these delays between batches
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export default function Marketing() {
   // State
   const [campanhaAtiva, setCampanhaAtiva] = useState<CampanhaTipo>("Rodizio");
@@ -514,7 +540,7 @@ export default function Marketing() {
     .replace("{ENDLOJA}", enderecoLoja || "Rua Exemplo, 123 - Centro")
     .replace(/\\n/g, "\n");
 
-  // Check if message was already sent
+  // Check if message was already sent via API
   const checkJaEnviada = async (tipo: string, fone: string): Promise<boolean> => {
     try {
       const now = new Date();
@@ -524,8 +550,13 @@ export default function Marketing() {
         body: { baseUrl: getBaseUrl(), endpoint: `/getMsgWths?${params.toString()}`, method: 'GET' },
       });
       if (error) return false;
-      if (Array.isArray(result) && result.length > 0) return true;
-      if (result && typeof result === 'object' && !Array.isArray(result) && result.MSWE_ID) return true;
+      // Check for MSWE_ENVIADA === "Sim" in response
+      if (Array.isArray(result)) {
+        return result.some((r: any) => (r.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim');
+      }
+      if (result && typeof result === 'object' && !Array.isArray(result)) {
+        return (result.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim';
+      }
       return false;
     } catch {
       return false;
@@ -563,11 +594,55 @@ export default function Marketing() {
     }
   };
 
-  // Send messages
+  // Sync component state with background sending state
+  useEffect(() => {
+    const syncFromBg = () => {
+      if (bgSend.active) {
+        setSending(true);
+        setSendProgress({ current: bgSend.progress.current, total: bgSend.progress.total });
+        setContatos(prev => {
+          // Merge statuses from bgSend.contatos into current contatos
+          const bgMap = new Map<string, SendStatus>();
+          bgSend.contatos.forEach(c => {
+            const key = c.email || c.telefone.replace(/\D/g, '');
+            bgMap.set(`${c.nome}_${key}`, c.sendStatus);
+          });
+          return prev.map(c => {
+            const key = canal === 'email' ? c.email : c.telefone.replace(/\D/g, '');
+            const bgStatus = bgMap.get(`${c.nome}_${key}`);
+            if (bgStatus && bgStatus !== c.sendStatus) return { ...c, sendStatus: bgStatus };
+            return c;
+          });
+        });
+      } else if (sending && !bgSend.active) {
+        // Background finished while we're mounted
+        setSending(false);
+        const p = bgSend.progress;
+        let msg = `${p.enviados} mensagem(ns) enviada(s)`;
+        if (p.pulados > 0) msg += `, ${p.pulados} já enviada(s)`;
+        if (p.erros > 0) msg += `, ${p.erros} erro(s)`;
+        if (p.erros > 0) toast.error(msg); else toast.success(msg);
+      }
+    };
+
+    // Initial sync on mount
+    syncFromBg();
+
+    // Subscribe to updates
+    bgSend.listeners.add(syncFromBg);
+    return () => { bgSend.listeners.delete(syncFromBg); };
+  }, [canal, sending]);
+
+  // Send messages in batched background mode
   const enviarMensagens = async () => {
     const selecionados = contatos.filter(c => c.selected);
     if (selecionados.length === 0) {
       toast.warning("Selecione ao menos um destinatário");
+      return;
+    }
+
+    if (bgSend.active) {
+      toast.warning("Já existe um envio em andamento");
       return;
     }
 
@@ -593,159 +668,195 @@ export default function Marketing() {
       }
     }
 
-    let ultimoErro = '';
+    // Capture current config for background use
+    const bgCanal = canal;
+    const bgMensagem = mensagem;
+    const bgImagemUrl = imagemUrl;
+    const bgWhatsProvider = whatsProvider;
+    const bgWhatsToken = whatsToken;
+    const bgWhatsDevice = whatsDevice;
+    const bgWhatsPhoneNumberId = whatsPhoneNumberId;
+    const bgEmailSenha = emailSenha;
+    const bgEmailServidor = emailServidor;
+    const bgEmailPorta = emailPorta;
+    const bgEmailSsl = emailSsl;
+    const bgEmailEndereco = emailEndereco;
+    const bgCampanhaAtiva = campanhaAtiva;
+    const bgEnderecoLoja = enderecoLoja;
+    const msweTipo = getMswaTipo(bgCampanhaAtiva);
+
+    // Initialize background state
+    bgSend.active = true;
+    bgSend.contatos = selecionados.map(c => ({ ...c }));
+    bgSend.progress = { current: 0, total: selecionados.length, enviados: 0, erros: 0, pulados: 0 };
+
     setSending(true);
     setSendProgress({ current: 0, total: selecionados.length });
-    let enviados = 0;
-    let erros = 0;
-    let pulados = 0;
-    const msweTipo = getMswaTipo(campanhaAtiva);
-    let processados = 0;
+    toast.info(`Iniciando envio escalonado de ${selecionados.length} mensagem(ns)...`);
+    notifyBgListeners();
 
-    for (const contato of selecionados) {
-      try {
-        if (canal === 'email') {
-          // Email sending
-          const emailDest = contato.email;
-          if (!emailDest) { erros++; ultimoErro = 'Contato sem e-mail'; continue; }
+    // Run in background (detached from component lifecycle)
+    (async () => {
+      let processados = 0;
+      let batchIndex = 0;
+      let delayIndex = 0;
 
-          const storedUnidade = localStorage.getItem('hj_unidade');
-          let emprNome = '';
-          if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
-          const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
-          const texto = mensagem
-            .replace("{NOME_CLIENTE}", nomeComTratamento)
-            .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
-            .replace("{EMPR}", emprNome)
-            .replace("{NOME_LOJA}", contato.loja || "")
-            .replace("{URL_LOJA}", contato.lojaUrl || "")
-            .replace("{ENDLOJA}", contato.lojaEndereco || enderecoLoja || "")
-            .replace(/\\n/g, "\n");
-
-          const payload = {
-            provider: 'Email' as const,
-            token: emailSenha,
-            number: '',
-            text: texto,
-            emailTo: emailDest,
-            emailFrom: emailEndereco,
-            emailSubject: `${campanhaAtiva} - ${emprNome}`,
-            smtpServer: emailServidor,
-            smtpPort: emailPorta,
-            smtpSsl: emailSsl,
-            smtpPassword: emailSenha,
-          };
-
-          console.log('=== ENVIO EMAIL ===', JSON.stringify({ ...payload, smtpPassword: '***' }, null, 2));
-
-          const { error } = await supabase.functions.invoke('send-message', { body: payload });
-
-          if (error) {
-            const errorDetail = error?.message || JSON.stringify(error);
-            await registrarEnvio(texto, msweTipo, emailDest, "Nao");
-            updateSendStatus(contato.nome, emailDest, 'error');
-            erros++;
-            ultimoErro = errorDetail;
-          } else {
-            await registrarEnvio(texto, msweTipo, emailDest, "Sim");
-            updateSendStatus(contato.nome, emailDest, 'sent');
-            enviados++;
-          }
-        } else {
-          // WhatsApp / SMS sending
-          const phone = contato.telefone.replace(/\D/g, "");
-          if (!phone) { erros++; ultimoErro = 'Contato sem telefone'; continue; }
-
-          // Check if already sent
-          const jaEnviada = await checkJaEnviada(msweTipo, phone);
-          if (jaEnviada) {
-            updateSendStatus(contato.nome, phone, 'skipped');
-            pulados++;
-            processados++;
-            setSendProgress({ current: processados, total: selecionados.length });
-            continue;
-          }
-
-          const storedUnidade = localStorage.getItem('hj_unidade');
-          let emprNome = '';
-          if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
-          const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
-          const texto = mensagem
-            .replace("{NOME_CLIENTE}", nomeComTratamento)
-            .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
-            .replace("{EMPR}", emprNome)
-            .replace("{NOME_LOJA}", contato.loja || "")
-            .replace("{URL_LOJA}", contato.lojaUrl || "")
-            .replace("{ENDLOJA}", contato.lojaEndereco || enderecoLoja || "")
-            .replace(/\\n/g, "\n");
-
-          const payload: any = {
-            provider: whatsProvider,
-            token: whatsToken,
-            number: phone,
-            text: texto,
-          };
-
-          if (whatsProvider === 'BrasilAPI') {
-            payload.device = whatsDevice;
-          }
-          if (whatsProvider === 'WhatsAppOficial') {
-            payload.phoneNumberId = whatsPhoneNumberId;
-          }
-
-          if (imagemUrl) {
-            payload.type = "media";
-            payload.mediaType = "image";
-            payload.file = imagemUrl;
-          } else {
-            payload.type = "text";
-          }
-
-          console.log('=== ENVIO MARKETING ===', JSON.stringify(payload, null, 2));
-
-          const { data: respData, error } = await supabase.functions.invoke('send-message', {
-            body: payload,
-          });
-
-          if (error) {
-            const errorDetail = error?.message || error?.context?.body || JSON.stringify(error);
-            console.error('Erro envio:', errorDetail, error);
-            await registrarEnvio(texto, msweTipo, phone, "Nao");
-            updateSendStatus(contato.nome, phone, 'error');
-            erros++;
-            ultimoErro = errorDetail;
-          } else if (respData && respData.success === false) {
-            const errorDetail = respData.data?.raw || respData.data?.message || JSON.stringify(respData.data);
-            console.error('Erro envio (API):', errorDetail);
-            await registrarEnvio(texto, msweTipo, phone, "Nao");
-            updateSendStatus(contato.nome, phone, 'error');
-            erros++;
-            ultimoErro = `[${respData.status}] ${errorDetail}`;
-          } else {
-            await registrarEnvio(texto, msweTipo, phone, "Sim");
-            updateSendStatus(contato.nome, phone, 'sent');
-            enviados++;
-          }
-        }
-      } catch (err: any) {
-        const errorDetail = err?.message || JSON.stringify(err);
-        console.error('Erro envio:', errorDetail, err);
-        const key = canal === 'email' ? contato.email : contato.telefone.replace(/\D/g, '');
-        updateSendStatus(contato.nome, key, 'error');
-        erros++;
-        ultimoErro = errorDetail;
+      // Split into batches of BATCH_SIZE
+      const batches: Contato[][] = [];
+      for (let i = 0; i < bgSend.contatos.length; i += BATCH_SIZE) {
+        batches.push(bgSend.contatos.slice(i, i + BATCH_SIZE));
       }
-      processados++;
-      setSendProgress({ current: processados, total: selecionados.length });
-    }
 
-    let msg = `${enviados} mensagem(ns) enviada(s)`;
-    if (pulados > 0) msg += `, ${pulados} já enviada(s)`;
-    if (erros > 0) msg += `, ${erros} erro(s)`;
-    if (ultimoErro) msg += `\nÚltimo erro: ${ultimoErro}`;
-    if (erros > 0) toast.error(msg); else toast.success(msg);
-    setSending(false);
-    setSendProgress({ current: 0, total: 0 });
+      for (const batch of batches) {
+        // Wait between batches (not before first)
+        if (batchIndex > 0) {
+          const delay = BATCH_DELAYS[delayIndex % BATCH_DELAYS.length];
+          console.log(`Aguardando ${delay / 1000}s antes do próximo lote...`);
+          await sleep(delay);
+          delayIndex++;
+        }
+
+        for (const contato of batch) {
+          const bgIdx = bgSend.contatos.findIndex(c => c.nome === contato.nome && 
+            ((bgCanal === 'email' ? c.email : c.telefone.replace(/\D/g, '')) === 
+             (bgCanal === 'email' ? contato.email : contato.telefone.replace(/\D/g, ''))));
+
+          try {
+            if (bgCanal === 'email') {
+              const emailDest = contato.email;
+              if (!emailDest) { bgSend.progress.erros++; continue; }
+
+              const storedUnidade = localStorage.getItem('hj_unidade');
+              let emprNome = '';
+              if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
+              const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
+              const texto = bgMensagem
+                .replace("{NOME_CLIENTE}", nomeComTratamento)
+                .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
+                .replace("{EMPR}", emprNome)
+                .replace("{NOME_LOJA}", contato.loja || "")
+                .replace("{URL_LOJA}", contato.lojaUrl || "")
+                .replace("{ENDLOJA}", contato.lojaEndereco || bgEnderecoLoja || "")
+                .replace(/\\n/g, "\n");
+
+              // Check if already sent
+              const jaEnviada = await checkJaEnviada(msweTipo, emailDest);
+              if (jaEnviada) {
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'skipped';
+                bgSend.progress.pulados++;
+                processados++;
+                bgSend.progress.current = processados;
+                notifyBgListeners();
+                continue;
+              }
+
+              const payload = {
+                provider: 'Email' as const,
+                token: bgEmailSenha,
+                number: '',
+                text: texto,
+                emailTo: emailDest,
+                emailFrom: bgEmailEndereco,
+                emailSubject: `${bgCampanhaAtiva} - ${emprNome}`,
+                smtpServer: bgEmailServidor,
+                smtpPort: bgEmailPorta,
+                smtpSsl: bgEmailSsl,
+                smtpPassword: bgEmailSenha,
+              };
+
+              const { error } = await supabase.functions.invoke('send-message', { body: payload });
+              if (error) {
+                await registrarEnvio(texto, msweTipo, emailDest, "Nao");
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
+                bgSend.progress.erros++;
+              } else {
+                await registrarEnvio(texto, msweTipo, emailDest, "Sim");
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'sent';
+                bgSend.progress.enviados++;
+              }
+            } else {
+              // WhatsApp / SMS
+              const phone = contato.telefone.replace(/\D/g, "");
+              if (!phone) { bgSend.progress.erros++; continue; }
+
+              // Check if already sent via API
+              const jaEnviada = await checkJaEnviada(msweTipo, phone);
+              if (jaEnviada) {
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'skipped';
+                bgSend.progress.pulados++;
+                processados++;
+                bgSend.progress.current = processados;
+                notifyBgListeners();
+                continue;
+              }
+
+              const storedUnidade = localStorage.getItem('hj_unidade');
+              let emprNome = '';
+              if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
+              const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
+              const texto = bgMensagem
+                .replace("{NOME_CLIENTE}", nomeComTratamento)
+                .replace("{DATA_ULTIMA_COMPRA}", contato.ultimaCompra || "")
+                .replace("{EMPR}", emprNome)
+                .replace("{NOME_LOJA}", contato.loja || "")
+                .replace("{URL_LOJA}", contato.lojaUrl || "")
+                .replace("{ENDLOJA}", contato.lojaEndereco || bgEnderecoLoja || "")
+                .replace(/\\n/g, "\n");
+
+              const payload: any = {
+                provider: bgWhatsProvider,
+                token: bgWhatsToken,
+                number: phone,
+                text: texto,
+              };
+
+              if (bgWhatsProvider === 'BrasilAPI') payload.device = bgWhatsDevice;
+              if (bgWhatsProvider === 'WhatsAppOficial') payload.phoneNumberId = bgWhatsPhoneNumberId;
+
+              if (bgImagemUrl) {
+                payload.type = "media";
+                payload.mediaType = "image";
+                payload.file = bgImagemUrl;
+              } else {
+                payload.type = "text";
+              }
+
+              console.log('=== ENVIO MARKETING ===', JSON.stringify(payload, null, 2));
+
+              const { data: respData, error } = await supabase.functions.invoke('send-message', { body: payload });
+
+              if (error) {
+                console.error('Erro envio:', error);
+                await registrarEnvio(texto, msweTipo, phone, "Nao");
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
+                bgSend.progress.erros++;
+              } else if (respData && respData.success === false) {
+                console.error('Erro envio (API):', respData);
+                await registrarEnvio(texto, msweTipo, phone, "Nao");
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
+                bgSend.progress.erros++;
+              } else {
+                await registrarEnvio(texto, msweTipo, phone, "Sim");
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'sent';
+                bgSend.progress.enviados++;
+              }
+            }
+          } catch (err: any) {
+            console.error('Erro envio:', err);
+            if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
+            bgSend.progress.erros++;
+          }
+          processados++;
+          bgSend.progress.current = processados;
+          notifyBgListeners();
+        }
+        batchIndex++;
+      }
+
+      // Done
+      bgSend.active = false;
+      notifyBgListeners();
+    })();
   };
 
   // Insert variable into message
@@ -1120,8 +1231,13 @@ export default function Marketing() {
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground text-center font-medium">
-                    {sendProgress.current} de {sendProgress.total} enviadas
+                    {sendProgress.current} de {sendProgress.total} processadas
                   </p>
+                  <div className="flex justify-center gap-3 text-[9px]">
+                    <span className="text-blue-500">✓✓ {bgSend.progress.enviados}</span>
+                    <span className="text-muted-foreground">⏭ {bgSend.progress.pulados}</span>
+                    <span className="text-destructive">✗ {bgSend.progress.erros}</span>
+                  </div>
                 </div>
               )}
             </CardContent>
