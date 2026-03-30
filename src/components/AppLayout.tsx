@@ -18,6 +18,7 @@ import {
   LogOut,
   Store,
   Megaphone,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,10 @@ const reportItems = [
 
 const marketingItems = [
   { title: "Campanhas", url: "/marketing/campanhas", icon: Megaphone },
+];
+
+const financeiroItems = [
+  { title: "Consulta PIX", url: "/financeiro/pix", icon: CreditCard },
 ];
 
 function formatCNPJ(cnpj: string): string {
@@ -237,6 +242,16 @@ export function AppLayout() {
               )}
             </>
           )}
+        </div>
+
+        {/* Financeiro group */}
+        <div className="mt-3">
+          <p className={cn("text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mb-2", collapsed && !mobile ? "text-center" : "px-2")}>
+            {collapsed && !mobile ? "•" : "Financeiro"}
+          </p>
+          {financeiroItems.map((item) => (
+            <NavLink key={item.url} item={item} mobile={mobile} />
+          ))}
         </div>
 
         {/* Marketing group */}
