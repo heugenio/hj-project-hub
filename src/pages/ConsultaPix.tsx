@@ -156,12 +156,37 @@ export default function ConsultaPix() {
   const pageSize = 20;
 
   // Bank configs
-  const [bankConfigs, setBankConfigs] = useState<BankConfig[]>([
-    { id: "1", nome: "Banco do Brasil", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-    { id: "2", nome: "Itaú", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-    { id: "3", nome: "Bradesco", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-    { id: "4", nome: "Santander", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-  ]);
+  const [bankConfigs, setBankConfigs] = useState<BankConfig[]>([]);
+  const [loadingCofres, setLoadingCofres] = useState(false);
+
+  // Load cofres from API
+  useEffect(() => {
+    const loadCofres = async () => {
+      setLoadingCofres(true);
+      try {
+        const cofres = await getCofres();
+        const configs: BankConfig[] = cofres.map((c, idx) => ({
+          id: String(idx + 1),
+          nome: c.COFR_CHAVE_PIX || `Cofre ${idx + 1}`,
+          apiKey: c.COFR_API_KEY || "",
+          clientId: c.COFR_CLIENT_ID || "",
+          clientSecret: c.COFR_CLIENT_SECRET || "",
+          chavePix: c.COFR_CHAVE_PIX || "",
+          urlApi: c.COFR_URL_API || "",
+          urlToken: c.COFR_URL_TOKEN || "",
+          ambientePix: c.COFR_AMBIENTE_PIX || "",
+          tipoChave: c.COFR_TIPO_CHAVE || "",
+        }));
+        setBankConfigs(configs);
+      } catch (err) {
+        console.error("Erro ao carregar cofres:", err);
+        toast({ title: "Erro", description: "Não foi possível carregar as configurações dos cofres.", variant: "destructive" });
+      } finally {
+        setLoadingCofres(false);
+      }
+    };
+    loadCofres();
+  }, []);
 
   // Filtered data
   const filtered = useMemo(() => {
