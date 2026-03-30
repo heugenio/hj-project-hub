@@ -569,7 +569,7 @@ export default function Marketing() {
   const registrarEnvio = async (texto: string, tipo: string, fone: string, enviada: string) => {
     try {
       // Use the unit selected in the campaign, not from localStorage
-      const unemId = unidade || '';
+      const unemId = filtroUnemId || '';
 
       const now = new Date();
       // Format as yyyy/MM/dd HH:mm:ss for SQL Server compatibility
