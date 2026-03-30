@@ -70,7 +70,6 @@ export default function ConsultaPix() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroChave, setFiltroChave] = useState("");
   const [filtroBanco, setFiltroBanco] = useState("todos");
-  const [filtroBanco, setFiltroBanco] = useState("todos");
   const [buscaRapida, setBuscaRapida] = useState("");
   const [showFilters, setShowFilters] = useState(true);
 
