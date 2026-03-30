@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 2: Query PIX received
-    const isBBStyle = isBB || urlApi.toLowerCase().includes('/pix');
+    const isBBStyle = isBB;
     
     let pixUrl: string;
     const pixHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -124,8 +124,16 @@ Deno.serve(async (req) => {
       if (token) {
         pixHeaders['Authorization'] = `Bearer ${token}`;
       }
+    } else if (isItau) {
+      // Itau style: urlApi already points to /pix_recebimentos/v2/pix
+      const separator = urlApi.includes('?') ? '&' : '?';
+      pixUrl = `${urlApi}${separator}inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
+      pixHeaders['Authorization'] = `Bearer ${token}`;
+      if (apiKey) {
+        pixHeaders['x-itau-apikey'] = apiKey;
+      }
     } else {
-      // Standard style: urlApi is the base, append /pix path
+      // Standard BACEN style: urlApi is the base, append /pix path
       pixUrl = `${urlApi}/pix?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
       pixHeaders['Authorization'] = `Bearer ${token}`;
     }
