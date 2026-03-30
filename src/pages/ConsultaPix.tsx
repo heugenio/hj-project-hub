@@ -404,7 +404,7 @@ export default function ConsultaPix() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <CardTitle className="text-base">Transações ({filtered.length})</CardTitle>
+            <CardTitle className="text-base">Transações ({filtered.length}{transactions.length !== filtered.length ? ` / ${transactions.length}` : ''})</CardTitle>
             <Input
               placeholder="Busca rápida..."
               value={buscaRapida}
