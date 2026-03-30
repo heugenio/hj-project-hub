@@ -238,9 +238,7 @@ export default function ConsultaPix() {
     setFiltroTipo("todos");
     setFiltroStatus("todos");
     setFiltroChave("");
-    setFiltroValorMin("");
-    setFiltroValorMax("");
-    setFiltroTxId("");
+    setFiltroBanco("todos");
     setFiltroBanco("todos");
     setBuscaRapida("");
   };
