@@ -141,16 +141,17 @@ export default function ConsultaPix() {
     if (filtroChave) result = result.filter(t => t.chavePix.toLowerCase().includes(filtroChave.toLowerCase()));
     if (filtroBanco !== "todos") result = result.filter(t => t.instituicao === filtroBanco);
 
-    // Date filter using proper Date comparison
+    // Date filter - only apply if different from the query dates (API already filters by date)
+    // Use lenient comparison to handle timezone offsets
     if (dataInicial) {
-      const dtIni = new Date(dataInicial + "T00:00:00");
+      const dtIni = new Date(dataInicial + "T00:00:00-03:00");
       result = result.filter(t => {
         const txDate = new Date(t.dataHora);
         return !isNaN(txDate.getTime()) && txDate >= dtIni;
       });
     }
     if (dataFinal) {
-      const dtFim = new Date(dataFinal + "T23:59:59");
+      const dtFim = new Date(dataFinal + "T23:59:59-03:00");
       result = result.filter(t => {
         const txDate = new Date(t.dataHora);
         return !isNaN(txDate.getTime()) && txDate <= dtFim;
@@ -229,7 +230,12 @@ export default function ConsultaPix() {
         }
 
         if (data?.transactions) {
-          allTx.push(...data.transactions);
+          // Override instituicao with cofre name for consistent filtering
+          const txsWithBank = data.transactions.map((tx: PixTransaction) => ({
+            ...tx,
+            instituicao: bank.nome,
+          }));
+          allTx.push(...txsWithBank);
         }
       } catch (err: any) {
         console.error(`Erro cofre ${bank.nome}:`, err);
