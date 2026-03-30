@@ -18,6 +18,7 @@ import {
   LogOut,
   Store,
   Megaphone,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
