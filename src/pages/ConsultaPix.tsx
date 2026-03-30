@@ -155,12 +155,64 @@ export default function ConsultaPix() {
     return { totalRecebido, totalEnviado, totalTx, pendentes };
   }, [filtered]);
 
-  const handleConsultar = () => {
+  const handleConsultar = async () => {
+    if (!dataInicial || !dataFinal) {
+      toast({ title: "Atenção", description: "Informe a data inicial e final para consultar.", variant: "destructive" });
+      return;
+    }
+
+    if (bankConfigs.length === 0) {
+      toast({ title: "Atenção", description: "Nenhum cofre configurado. Verifique a configuração dos bancos.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast({ title: "Consulta realizada", description: `${transactions.length} transações encontradas.` });
-    }, 1500);
+    const allTx: PixTransaction[] = [];
+    const inicio = `${dataInicial}T00:00:00Z`;
+    const fim = `${dataFinal}T23:59:59Z`;
+
+    const configsToQuery = filtroBanco !== "todos"
+      ? bankConfigs.filter(b => b.nome === filtroBanco || b.chavePix === filtroBanco)
+      : bankConfigs;
+
+    for (const bank of configsToQuery) {
+      if (!bank.urlApi || !bank.clientId || !bank.clientSecret) {
+        console.warn(`Cofre ${bank.nome} sem configuração completa, pulando...`);
+        continue;
+      }
+
+      try {
+        const { data, error } = await supabase.functions.invoke('pix-consulta', {
+          body: {
+            urlToken: bank.urlToken,
+            urlApi: bank.urlApi,
+            clientId: bank.clientId,
+            clientSecret: bank.clientSecret,
+            apiKey: bank.apiKey,
+            inicio,
+            fim,
+          },
+        });
+
+        if (error) {
+          console.error(`Erro cofre ${bank.nome}:`, error);
+          toast({ title: `Erro - ${bank.chavePix || bank.nome}`, description: error.message, variant: "destructive" });
+          continue;
+        }
+
+        if (data?.transactions) {
+          allTx.push(...data.transactions);
+        }
+      } catch (err: any) {
+        console.error(`Erro cofre ${bank.nome}:`, err);
+        toast({ title: `Erro - ${bank.chavePix || bank.nome}`, description: err.message || "Erro desconhecido", variant: "destructive" });
+      }
+    }
+
+    setTransactions(allTx);
+    setCurrentPage(1);
+    setLoading(false);
+    toast({ title: "Consulta realizada", description: `${allTx.length} transação(ões) encontrada(s) em ${configsToQuery.length} cofre(s).` });
   };
 
   const handleUpdateStatus = (tx: PixTransaction) => {
