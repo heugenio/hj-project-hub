@@ -130,6 +130,14 @@ export default function CampanhasAgendadas({ unidades }: Props) {
 
   useEffect(() => { fetchCampanhas(); }, [fetchCampanhas]);
 
+  // Auto-refresh every 30 seconds to show updated execution data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchCampanhas();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchCampanhas]);
+
   const calcularProximaExecucao = (rec: string, diaSem: number, horario: string): string => {
     const now = new Date();
     const [h, m] = horario.split(':').map(Number);
