@@ -382,7 +382,7 @@ export default function ConsultaPix() {
                   <SelectContent>
                     <SelectItem value="todos">Todos os Cofres</SelectItem>
                     {bankConfigs.map(b => (
-                      <SelectItem key={b.id} value={b.chavePix || b.nome}>{b.chavePix || b.nome}</SelectItem>
+                      <SelectItem key={b.id} value={b.nome}>{b.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
