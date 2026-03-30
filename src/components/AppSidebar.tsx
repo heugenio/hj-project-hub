@@ -12,6 +12,7 @@ import {
   Search,
   Warehouse,
   Megaphone,
+  CreditCard,
 } from "lucide-react";
 import verttriceLogo from "@/assets/verttice-logo.png";
 import { NavLink } from "@/components/NavLink";
