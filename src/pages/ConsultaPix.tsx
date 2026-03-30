@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCofres, type Cofre } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,81 +50,7 @@ interface BankConfig {
   tipoChave: string;
 }
 
-// Mock data for demonstration
-const mockTransactions: PixTransaction[] = [
-  {
-    txId: "E00000000202301011234ABC00001",
-    endToEndId: "E00000000202301011234s0000000001",
-    valor: 1500.00,
-    dataHora: "2025-03-30T10:30:00",
-    tipo: "entrada",
-    status: "confirmado",
-    pagadorNome: "JOAO DA SILVA",
-    pagadorDocumento: "***123456**",
-    recebedorNome: "EMPRESA LTDA",
-    recebedorDocumento: "12.345.678/0001-90",
-    chavePix: "empresa@email.com",
-    instituicao: "Banco do Brasil",
-    rawJson: { txid: "E00000000202301011234ABC00001", valor: { original: "1500.00" }, status: "CONCLUIDA" },
-  },
-  {
-    txId: "E00000000202301021234ABC00002",
-    endToEndId: "E00000000202301021234s0000000002",
-    valor: 350.50,
-    dataHora: "2025-03-29T14:15:00",
-    tipo: "saida",
-    status: "confirmado",
-    pagadorNome: "EMPRESA LTDA",
-    pagadorDocumento: "12.345.678/0001-90",
-    recebedorNome: "MARIA OLIVEIRA",
-    recebedorDocumento: "***987654**",
-    chavePix: "11999887766",
-    instituicao: "Itaú",
-  },
-  {
-    txId: "E00000000202301031234ABC00003",
-    endToEndId: "E00000000202301031234s0000000003",
-    valor: 2800.00,
-    dataHora: "2025-03-28T09:00:00",
-    tipo: "entrada",
-    status: "pendente",
-    pagadorNome: "CARLOS SOUZA",
-    pagadorDocumento: "***456789**",
-    recebedorNome: "EMPRESA LTDA",
-    recebedorDocumento: "12.345.678/0001-90",
-    chavePix: "12345678000190",
-    instituicao: "Bradesco",
-  },
-  {
-    txId: "E00000000202301041234ABC00004",
-    endToEndId: "E00000000202301041234s0000000004",
-    valor: 120.00,
-    dataHora: "2025-03-27T16:45:00",
-    tipo: "saida",
-    status: "cancelado",
-    pagadorNome: "EMPRESA LTDA",
-    pagadorDocumento: "12.345.678/0001-90",
-    recebedorNome: "ANA PEREIRA",
-    recebedorDocumento: "***321654**",
-    chavePix: "ana@email.com",
-    instituicao: "Santander",
-  },
-  {
-    txId: "E00000000202301051234ABC00005",
-    endToEndId: "E00000000202301051234s0000000005",
-    valor: 5000.00,
-    dataHora: "2025-03-26T11:20:00",
-    tipo: "entrada",
-    status: "confirmado",
-    pagadorNome: "PEDRO SANTOS",
-    pagadorDocumento: "***654321**",
-    recebedorNome: "EMPRESA LTDA",
-    recebedorDocumento: "12.345.678/0001-90",
-    chavePix: "chave-aleatoria-uuid",
-    instituicao: "Banco do Brasil",
-  },
-];
-
+// No more mock data - starts empty
 const statusConfig = {
   confirmado: { label: "Confirmado", variant: "default" as const, className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/25" },
   pendente: { label: "Pendente", variant: "secondary" as const, className: "bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/25" },
@@ -148,7 +75,7 @@ export default function ConsultaPix() {
 
   // State
   const [loading, setLoading] = useState(false);
-  const [transactions, setTransactions] = useState<PixTransaction[]>(mockTransactions);
+  const [transactions, setTransactions] = useState<PixTransaction[]>([]);
   const [selectedTx, setSelectedTx] = useState<PixTransaction | null>(null);
   const [showJsonRaw, setShowJsonRaw] = useState(false);
   const [showBankConfig, setShowBankConfig] = useState(false);
@@ -228,12 +155,64 @@ export default function ConsultaPix() {
     return { totalRecebido, totalEnviado, totalTx, pendentes };
   }, [filtered]);
 
-  const handleConsultar = () => {
+  const handleConsultar = async () => {
+    if (!dataInicial || !dataFinal) {
+      toast({ title: "Atenção", description: "Informe a data inicial e final para consultar.", variant: "destructive" });
+      return;
+    }
+
+    if (bankConfigs.length === 0) {
+      toast({ title: "Atenção", description: "Nenhum cofre configurado. Verifique a configuração dos bancos.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast({ title: "Consulta realizada", description: `${transactions.length} transações encontradas.` });
-    }, 1500);
+    const allTx: PixTransaction[] = [];
+    const inicio = `${dataInicial}T00:00:00Z`;
+    const fim = `${dataFinal}T23:59:59Z`;
+
+    const configsToQuery = filtroBanco !== "todos"
+      ? bankConfigs.filter(b => b.nome === filtroBanco || b.chavePix === filtroBanco)
+      : bankConfigs;
+
+    for (const bank of configsToQuery) {
+      if (!bank.urlApi || !bank.clientId || !bank.clientSecret) {
+        console.warn(`Cofre ${bank.nome} sem configuração completa, pulando...`);
+        continue;
+      }
+
+      try {
+        const { data, error } = await supabase.functions.invoke('pix-consulta', {
+          body: {
+            urlToken: bank.urlToken,
+            urlApi: bank.urlApi,
+            clientId: bank.clientId,
+            clientSecret: bank.clientSecret,
+            apiKey: bank.apiKey,
+            inicio,
+            fim,
+          },
+        });
+
+        if (error) {
+          console.error(`Erro cofre ${bank.nome}:`, error);
+          toast({ title: `Erro - ${bank.chavePix || bank.nome}`, description: error.message, variant: "destructive" });
+          continue;
+        }
+
+        if (data?.transactions) {
+          allTx.push(...data.transactions);
+        }
+      } catch (err: any) {
+        console.error(`Erro cofre ${bank.nome}:`, err);
+        toast({ title: `Erro - ${bank.chavePix || bank.nome}`, description: err.message || "Erro desconhecido", variant: "destructive" });
+      }
+    }
+
+    setTransactions(allTx);
+    setCurrentPage(1);
+    setLoading(false);
+    toast({ title: "Consulta realizada", description: `${allTx.length} transação(ões) encontrada(s) em ${configsToQuery.length} cofre(s).` });
   };
 
   const handleUpdateStatus = (tx: PixTransaction) => {
@@ -397,15 +376,14 @@ export default function ConsultaPix() {
                 <Input placeholder="ID da transação" value={filtroTxId} onChange={e => setFiltroTxId(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs">Banco</Label>
+                <Label className="text-xs">Cofre / Banco</Label>
                 <Select value={filtroBanco} onValueChange={setFiltroBanco}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="Banco do Brasil">Banco do Brasil</SelectItem>
-                    <SelectItem value="Itaú">Itaú</SelectItem>
-                    <SelectItem value="Bradesco">Bradesco</SelectItem>
-                    <SelectItem value="Santander">Santander</SelectItem>
+                    <SelectItem value="todos">Todos os Cofres</SelectItem>
+                    {bankConfigs.map(b => (
+                      <SelectItem key={b.id} value={b.chavePix || b.nome}>{b.chavePix || b.nome}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
