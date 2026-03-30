@@ -50,6 +50,21 @@ interface BankConfig {
   tipoChave: string;
 }
 
+// Default URLs for banks without COFR_URL_API configured
+function getDefaultUrlApi(nome: string): string {
+  const n = nome.toUpperCase();
+  if (n.includes('ITAU') || n.includes('ITAÚ')) return 'https://secure.api.itau/pix_recebimentos/v2/pix';
+  if (n.includes('BRASIL') || n.includes(' BB')) return 'https://api.bb.com.br/pix/v1/pix';
+  return '';
+}
+
+function getDefaultUrlToken(nome: string): string {
+  const n = nome.toUpperCase();
+  if (n.includes('ITAU') || n.includes('ITAÚ')) return 'https://sts.itau.com.br/api/cfauth/oauth/token';
+  if (n.includes('BRASIL') || n.includes(' BB')) return 'https://oauth.bb.com.br/oauth/token';
+  return '';
+}
+
 // No more mock data - starts empty
 const statusConfig = {
   confirmado: { label: "Confirmado", variant: "default" as const, className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/25" },

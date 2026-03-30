@@ -84,10 +84,13 @@ Deno.serve(async (req) => {
 
     // Step 1: Get OAuth2 token
     const isBB = urlApi.toLowerCase().includes('bb.com');
+    const isItau = urlApi.toLowerCase().includes('itau');
     let token = '';
     
-    // Determine OAuth URL: use provided urlToken, or default for BB
-    const oauthUrl = urlToken || (isBB ? 'https://oauth.bb.com.br/oauth/token' : '');
+    // Determine OAuth URL: use provided urlToken, or defaults
+    let oauthUrl = urlToken || '';
+    if (!oauthUrl && isBB) oauthUrl = 'https://oauth.bb.com.br/oauth/token';
+    if (!oauthUrl && isItau) oauthUrl = 'https://sts.itau.com.br/api/cfauth/oauth/token';
     
     if (oauthUrl) {
       try {
