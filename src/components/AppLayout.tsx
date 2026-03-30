@@ -244,6 +244,16 @@ export function AppLayout() {
           )}
         </div>
 
+        {/* Financeiro group */}
+        <div className="mt-3">
+          <p className={cn("text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mb-2", collapsed && !mobile ? "text-center" : "px-2")}>
+            {collapsed && !mobile ? "•" : "Financeiro"}
+          </p>
+          {financeiroItems.map((item) => (
+            <NavLink key={item.url} item={item} mobile={mobile} />
+          ))}
+        </div>
+
         {/* Marketing group */}
         <div className="mt-3">
           <p className={cn("text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mb-2", collapsed && !mobile ? "text-center" : "px-2")}>
