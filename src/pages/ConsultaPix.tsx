@@ -229,7 +229,12 @@ export default function ConsultaPix() {
         }
 
         if (data?.transactions) {
-          allTx.push(...data.transactions);
+          // Override instituicao with cofre name for consistent filtering
+          const txsWithBank = data.transactions.map((tx: PixTransaction) => ({
+            ...tx,
+            instituicao: bank.nome,
+          }));
+          allTx.push(...txsWithBank);
         }
       } catch (err: any) {
         console.error(`Erro cofre ${bank.nome}:`, err);
