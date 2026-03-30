@@ -337,20 +337,20 @@ export default function ConsultaPix() {
       {/* Filters */}
       {showFilters && (
         <Card>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               <div>
                 <Label className="text-xs">Data Inicial</Label>
-                <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="mt-1" />
+                <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="mt-1 h-8 text-xs" />
               </div>
               <div>
                 <Label className="text-xs">Data Final</Label>
-                <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="mt-1" />
+                <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="mt-1 h-8 text-xs" />
               </div>
               <div>
                 <Label className="text-xs">Tipo</Label>
                 <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="entrada">Recebido</SelectItem>
@@ -361,7 +361,7 @@ export default function ConsultaPix() {
               <div>
                 <Label className="text-xs">Status</Label>
                 <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="confirmado">Confirmado</SelectItem>
@@ -372,12 +372,12 @@ export default function ConsultaPix() {
               </div>
               <div>
                 <Label className="text-xs">Chave PIX</Label>
-                <Input placeholder="CPF, CNPJ, e-mail, telefone..." value={filtroChave} onChange={e => setFiltroChave(e.target.value)} className="mt-1" />
+                <Input placeholder="CPF, CNPJ, e-mail..." value={filtroChave} onChange={e => setFiltroChave(e.target.value)} className="mt-1 h-8 text-xs" />
               </div>
               <div>
                 <Label className="text-xs">Cofre / Banco</Label>
                 <Select value={filtroBanco} onValueChange={setFiltroBanco}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os Cofres</SelectItem>
                     {bankConfigs.map(b => (
@@ -387,13 +387,13 @@ export default function ConsultaPix() {
                 </Select>
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-4">
-              <Button onClick={handleConsultar} disabled={loading}>
-                {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+            <div className="flex items-center gap-2 mt-3">
+              <Button size="sm" onClick={handleConsultar} disabled={loading}>
+                {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1" /> : <Search className="h-3.5 w-3.5 mr-1" />}
                 Consultar
               </Button>
-              <Button variant="outline" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-1" /> Limpar
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="h-3.5 w-3.5 mr-1" /> Limpar
               </Button>
             </div>
           </CardContent>
