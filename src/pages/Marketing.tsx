@@ -1254,6 +1254,9 @@ export default function Marketing() {
           </Card>
         </div>
       </div>
+
+      {/* Campanhas Agendadas */}
+      <CampanhasAgendadas unidades={unidades} />
     </div>
   );
 }
