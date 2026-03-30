@@ -124,10 +124,7 @@ export default function ConsultaPix() {
     if (filtroTipo !== "todos") result = result.filter(t => t.tipo === filtroTipo);
     if (filtroStatus !== "todos") result = result.filter(t => t.status === filtroStatus);
     if (filtroChave) result = result.filter(t => t.chavePix.toLowerCase().includes(filtroChave.toLowerCase()));
-    if (filtroTxId) result = result.filter(t => t.txId.toLowerCase().includes(filtroTxId.toLowerCase()));
     if (filtroBanco !== "todos") result = result.filter(t => t.instituicao === filtroBanco);
-    if (filtroValorMin) result = result.filter(t => t.valor >= Number(filtroValorMin));
-    if (filtroValorMax) result = result.filter(t => t.valor <= Number(filtroValorMax));
 
     // Date filter using proper Date comparison
     if (dataInicial) {
