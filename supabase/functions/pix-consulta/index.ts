@@ -13,16 +13,20 @@ interface PixRequest {
   fim: string;
 }
 
-async function getOAuthToken(urlToken: string, clientId: string, clientSecret: string): Promise<string> {
+async function getOAuthToken(urlToken: string, clientId: string, clientSecret: string, isItau = false): Promise<string> {
   const credentials = btoa(`${clientId}:${clientSecret}`);
   
+  const scope = isItau 
+    ? 'pix.read pix.write cob.read cob.write cobv.read cobv.write' 
+    : 'cob.read cob.write pix.read pix.write';
+
   const response = await fetch(urlToken, {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${credentials}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: 'grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write',
+    body: `grant_type=client_credentials&scope=${encodeURIComponent(scope)}`,
   });
 
   if (!response.ok) {
@@ -84,15 +88,18 @@ Deno.serve(async (req) => {
 
     // Step 1: Get OAuth2 token
     const isBB = urlApi.toLowerCase().includes('bb.com');
+    const isItau = urlApi.toLowerCase().includes('itau');
     let token = '';
     
-    // Determine OAuth URL: use provided urlToken, or default for BB
-    const oauthUrl = urlToken || (isBB ? 'https://oauth.bb.com.br/oauth/token' : '');
+    // Determine OAuth URL: use provided urlToken, or defaults
+    let oauthUrl = urlToken || '';
+    if (!oauthUrl && isBB) oauthUrl = 'https://oauth.bb.com.br/oauth/token';
+    if (!oauthUrl && isItau) oauthUrl = 'https://sts.itau.com.br/api/cfauth/oauth/token';
     
     if (oauthUrl) {
       try {
-        token = await getOAuthToken(oauthUrl, clientId, clientSecret);
-        console.log('OAuth token obtained successfully');
+        token = await getOAuthToken(oauthUrl, clientId, clientSecret, isItau);
+        console.log(`OAuth token obtained successfully for ${isItau ? 'Itau' : isBB ? 'BB' : 'bank'}`);
       } catch (tokenErr) {
         console.error('OAuth token error:', tokenErr);
         return new Response(
@@ -105,7 +112,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 2: Query PIX received
-    const isBBStyle = isBB || urlApi.toLowerCase().includes('/pix');
+    const isBBStyle = isBB;
     
     let pixUrl: string;
     const pixHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -121,8 +128,16 @@ Deno.serve(async (req) => {
       if (token) {
         pixHeaders['Authorization'] = `Bearer ${token}`;
       }
+    } else if (isItau) {
+      // Itau style: urlApi already points to /pix_recebimentos/v2/pix
+      const separator = urlApi.includes('?') ? '&' : '?';
+      pixUrl = `${urlApi}${separator}inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
+      pixHeaders['Authorization'] = `Bearer ${token}`;
+      if (apiKey) {
+        pixHeaders['x-itau-apikey'] = apiKey;
+      }
     } else {
-      // Standard style: urlApi is the base, append /pix path
+      // Standard BACEN style: urlApi is the base, append /pix path
       pixUrl = `${urlApi}/pix?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
       pixHeaders['Authorization'] = `Bearer ${token}`;
     }

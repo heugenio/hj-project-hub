@@ -50,6 +50,21 @@ interface BankConfig {
   tipoChave: string;
 }
 
+// Default URLs for banks without COFR_URL_API configured
+function getDefaultUrlApi(nome: string): string {
+  const n = nome.toUpperCase();
+  if (n.includes('ITAU') || n.includes('ITAÚ')) return 'https://secure.api.itau/pix_recebimentos/v2/pix';
+  if (n.includes('BRASIL') || n.includes(' BB')) return 'https://api.bb.com.br/pix/v1/pix';
+  return '';
+}
+
+function getDefaultUrlToken(nome: string): string {
+  const n = nome.toUpperCase();
+  if (n.includes('ITAU') || n.includes('ITAÚ')) return 'https://sts.itau.com.br/api/cfauth/oauth/token';
+  if (n.includes('BRASIL') || n.includes(' BB')) return 'https://oauth.bb.com.br/oauth/token';
+  return '';
+}
+
 // No more mock data - starts empty
 const statusConfig = {
   confirmado: { label: "Confirmado", variant: "default" as const, className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/25" },
@@ -101,8 +116,8 @@ export default function ConsultaPix() {
           clientId: c.COFR_CLIENT_ID || "",
           clientSecret: c.COFR_CLIENT_SECRET || "",
           chavePix: c.COFR_CHAVE_PIX || "",
-          urlApi: c.COFR_URL_API || "",
-          urlToken: c.COFR_URL_TOKEN || "",
+          urlApi: c.COFR_URL_API || getDefaultUrlApi(c.COFR_NOME || ""),
+          urlToken: c.COFR_URL_TOKEN || getDefaultUrlToken(c.COFR_NOME || ""),
           ambientePix: c.COFR_AMBIENTE_PIX || "",
           tipoChave: c.COFR_TIPO_CHAVE || "",
         }));
