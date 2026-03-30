@@ -56,6 +56,10 @@ const marketingItems = [
   { title: "Campanhas", url: "/marketing/campanhas", icon: Megaphone },
 ];
 
+const financeiroItems = [
+  { title: "Consulta PIX", url: "/financeiro/pix", icon: CreditCard },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
