@@ -80,6 +80,37 @@ export default function CampanhasAgendadas({ unidades }: Props) {
     filtro_unem_id: "__todas__",
     todas_unidades: true,
   });
+  const [loadingMsg, setLoadingMsg] = useState(false);
+
+  function getBaseUrl(): string {
+    return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
+  }
+
+  // Auto-fetch message template when tipo changes
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const fetchMensagem = async () => {
+      setLoadingMsg(true);
+      try {
+        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${form.tipo}`;
+        const { data, error } = await supabase.functions.invoke('api-proxy', {
+          body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
+        });
+        if (error) throw new Error(error.message);
+        let result: any = null;
+        if (Array.isArray(data) && data.length > 0) result = data[0];
+        else if (data && typeof data === 'object' && !Array.isArray(data)) result = data;
+        if (result?.MSWA_MENSAGEM) {
+          setForm(f => ({ ...f, mensagem: result.MSWA_MENSAGEM }));
+        }
+      } catch (err: any) {
+        console.error('Erro ao buscar mensagem template:', err);
+      } finally {
+        setLoadingMsg(false);
+      }
+    };
+    fetchMensagem();
+  }, [form.tipo, dialogOpen]);
 
   const fetchCampanhas = useCallback(async () => {
     setLoading(true);
