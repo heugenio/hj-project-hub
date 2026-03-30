@@ -39,10 +39,14 @@ interface PixTransaction {
 interface BankConfig {
   id: string;
   nome: string;
-  baseUrl: string;
+  apiKey: string;
   clientId: string;
   clientSecret: string;
-  token: string;
+  chavePix: string;
+  urlApi: string;
+  urlToken: string;
+  ambientePix: string;
+  tipoChave: string;
 }
 
 // Mock data for demonstration
