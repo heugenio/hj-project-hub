@@ -431,7 +431,9 @@ export default function CampanhasAgendadas({ unidades }: Props) {
                       {c.todas_unidades ? (
                         <Badge variant="secondary" className="text-[9px]">Todas</Badge>
                       ) : (
-                        <span className="text-muted-foreground">{c.filtro_unem_id || '—'}</span>
+                        <span className="text-muted-foreground">
+                          {unidades.find(u => u.unem_Id === c.filtro_unem_id)?.unem_Fantasia || c.filtro_unem_id || '—'}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell className="text-[10px] text-muted-foreground">{formatDateTime(c.ultima_execucao)}</TableCell>
