@@ -17,6 +17,7 @@ import SalesDemo from "@/pages/SalesDemo";
 import MovementSummary from "@/pages/MovementSummary";
 import Configuracoes from "@/pages/Configuracoes";
 import Marketing from "@/pages/Marketing";
+import ConsultaPix from "@/pages/ConsultaPix";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
