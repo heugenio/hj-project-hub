@@ -108,7 +108,8 @@ Deno.serve(async (req) => {
       const separator = urlApi.includes('?') ? '&' : '?';
       pixUrl = `${urlApi}${separator}inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&paginacao.itensPorPagina=100`;
       if (apiKey) {
-        pixUrl += `&gw-dev-app-key=${encodeURIComponent(apiKey)}`;
+        pixUrl += `&gw-dev-app-key=${apiKey}`;
+        pixHeaders['X-Developer-Application-Key'] = apiKey;
       }
       if (token) {
         pixHeaders['Authorization'] = `Bearer ${token}`;
