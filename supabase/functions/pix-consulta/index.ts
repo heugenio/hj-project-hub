@@ -13,16 +13,20 @@ interface PixRequest {
   fim: string;
 }
 
-async function getOAuthToken(urlToken: string, clientId: string, clientSecret: string): Promise<string> {
+async function getOAuthToken(urlToken: string, clientId: string, clientSecret: string, isItau = false): Promise<string> {
   const credentials = btoa(`${clientId}:${clientSecret}`);
   
+  const scope = isItau 
+    ? 'pix.read pix.write cob.read cob.write cobv.read cobv.write' 
+    : 'cob.read cob.write pix.read pix.write';
+
   const response = await fetch(urlToken, {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${credentials}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: 'grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write',
+    body: `grant_type=client_credentials&scope=${encodeURIComponent(scope)}`,
   });
 
   if (!response.ok) {
