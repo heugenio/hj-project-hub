@@ -149,22 +149,25 @@ Deno.serve(async (req) => {
 
     // Also try to get cobranças (cob)
     let cobTransactions: any[] = [];
-    try {
-      const cobUrl = `${urlApi}/cob?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
-      const cobResponse = await fetch(cobUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (cobResponse.ok) {
-        const cobData = await cobResponse.json();
-        const cobArray = cobData.cobs || cobData.cobsVencimento || [];
-        cobTransactions = mapPixResponse(Array.isArray(cobArray) ? cobArray : [], banco);
+    if (!isBBStyle) {
+      // Only query /cob for non-BB style APIs
+      try {
+        const cobUrl = `${urlApi}/cob?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
+        const cobResponse = await fetch(cobUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (cobResponse.ok) {
+          const cobData = await cobResponse.json();
+          const cobArray = cobData.cobs || cobData.cobsVencimento || [];
+          cobTransactions = mapPixResponse(Array.isArray(cobArray) ? cobArray : [], banco);
+        }
+      } catch (cobErr) {
+        console.warn('Cob query failed (non-critical):', cobErr);
       }
-    } catch (cobErr) {
-      console.warn('Cob query failed (non-critical):', cobErr);
     }
 
     const allTransactions = [...transactions, ...cobTransactions];
