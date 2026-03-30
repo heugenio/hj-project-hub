@@ -61,8 +61,11 @@ export default function ConsultaPix() {
   const { toast } = useToast();
 
   // Filters
-  const [dataInicial, setDataInicial] = useState("");
-  const [dataFinal, setDataFinal] = useState("");
+  const today = new Date();
+  const twoDaysAgo = new Date(today);
+  twoDaysAgo.setDate(today.getDate() - 2);
+  const [dataInicial, setDataInicial] = useState(format(twoDaysAgo, "yyyy-MM-dd"));
+  const [dataFinal, setDataFinal] = useState(format(today, "yyyy-MM-dd"));
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroChave, setFiltroChave] = useState("");
