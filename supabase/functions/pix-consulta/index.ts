@@ -83,10 +83,16 @@ Deno.serve(async (req) => {
     }
 
     // Step 1: Get OAuth2 token
-    let token = apiKey || '';
-    if (urlToken) {
+    const isBB = urlApi.toLowerCase().includes('bb.com');
+    let token = '';
+    
+    // Determine OAuth URL: use provided urlToken, or default for BB
+    const oauthUrl = urlToken || (isBB ? 'https://oauth.bb.com.br/oauth/token' : '');
+    
+    if (oauthUrl) {
       try {
-        token = await getOAuthToken(urlToken, clientId, clientSecret);
+        token = await getOAuthToken(oauthUrl, clientId, clientSecret);
+        console.log('OAuth token obtained successfully');
       } catch (tokenErr) {
         console.error('OAuth token error:', tokenErr);
         return new Response(
@@ -94,11 +100,12 @@ Deno.serve(async (req) => {
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+    } else if (apiKey) {
+      token = apiKey;
     }
 
     // Step 2: Query PIX received
-    // Detect if urlApi already contains the full path (e.g. BB: https://api.bb.com.br/pix/v1/pix)
-    const isBBStyle = urlApi.toLowerCase().includes('/pix') || urlApi.toLowerCase().includes('bb.com');
+    const isBBStyle = isBB || urlApi.toLowerCase().includes('/pix');
     
     let pixUrl: string;
     const pixHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
