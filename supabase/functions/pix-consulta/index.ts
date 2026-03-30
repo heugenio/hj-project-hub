@@ -97,14 +97,31 @@ Deno.serve(async (req) => {
     }
 
     // Step 2: Query PIX received
-    const pixUrl = `${urlApi}/pix?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
+    // Detect if urlApi already contains the full path (e.g. BB: https://api.bb.com.br/pix/v1/pix)
+    const isBBStyle = urlApi.toLowerCase().includes('/pix') || urlApi.toLowerCase().includes('bb.com');
+    
+    let pixUrl: string;
+    const pixHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+
+    if (isBBStyle) {
+      // BB style: urlApi IS the full endpoint, append gw-dev-app-key and params directly
+      const separator = urlApi.includes('?') ? '&' : '?';
+      pixUrl = `${urlApi}${separator}inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&paginacao.itensPorPagina=100`;
+      if (apiKey) {
+        pixUrl += `&gw-dev-app-key=${encodeURIComponent(apiKey)}`;
+      }
+      if (token) {
+        pixHeaders['Authorization'] = `Bearer ${token}`;
+      }
+    } else {
+      // Standard style: urlApi is the base, append /pix path
+      pixUrl = `${urlApi}/pix?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
+      pixHeaders['Authorization'] = `Bearer ${token}`;
+    }
     
     const pixResponse = await fetch(pixUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      headers: pixHeaders,
     });
 
     if (!pixResponse.ok) {
@@ -132,22 +149,25 @@ Deno.serve(async (req) => {
 
     // Also try to get cobranças (cob)
     let cobTransactions: any[] = [];
-    try {
-      const cobUrl = `${urlApi}/cob?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
-      const cobResponse = await fetch(cobUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (cobResponse.ok) {
-        const cobData = await cobResponse.json();
-        const cobArray = cobData.cobs || cobData.cobsVencimento || [];
-        cobTransactions = mapPixResponse(Array.isArray(cobArray) ? cobArray : [], banco);
+    if (!isBBStyle) {
+      // Only query /cob for non-BB style APIs
+      try {
+        const cobUrl = `${urlApi}/cob?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`;
+        const cobResponse = await fetch(cobUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (cobResponse.ok) {
+          const cobData = await cobResponse.json();
+          const cobArray = cobData.cobs || cobData.cobsVencimento || [];
+          cobTransactions = mapPixResponse(Array.isArray(cobArray) ? cobArray : [], banco);
+        }
+      } catch (cobErr) {
+        console.warn('Cob query failed (non-critical):', cobErr);
       }
-    } catch (cobErr) {
-      console.warn('Cob query failed (non-critical):', cobErr);
     }
 
     const allTransactions = [...transactions, ...cobTransactions];
