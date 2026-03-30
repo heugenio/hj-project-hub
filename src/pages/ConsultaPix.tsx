@@ -154,7 +154,7 @@ export default function ConsultaPix() {
     }
 
     return result;
-  }, [transactions, filtroTipo, filtroStatus, filtroChave, filtroTxId, filtroBanco, filtroValorMin, filtroValorMax, dataInicial, dataFinal, buscaRapida]);
+  }, [transactions, filtroTipo, filtroStatus, filtroChave, filtroBanco, dataInicial, dataFinal, buscaRapida]);
 
   const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const totalPages = Math.ceil(filtered.length / pageSize);
