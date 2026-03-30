@@ -92,7 +92,9 @@ export default function ConsultaPix() {
       setLoadingCofres(true);
       try {
         const cofres = await getCofres();
-        const configs: BankConfig[] = cofres.map((c, idx) => ({
+        const configs: BankConfig[] = cofres
+          .filter(c => c.COFR_CLIENT_SECRET && c.COFR_CLIENT_SECRET.trim() !== '')
+          .map((c, idx) => ({
           id: String(idx + 1),
           nome: c.COFR_NOME || `Cofre ${idx + 1}`,
           apiKey: c.COFR_API_KEY || "",
