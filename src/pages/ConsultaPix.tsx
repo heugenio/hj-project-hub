@@ -69,9 +69,6 @@ export default function ConsultaPix() {
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroChave, setFiltroChave] = useState("");
-  const [filtroValorMin, setFiltroValorMin] = useState("");
-  const [filtroValorMax, setFiltroValorMax] = useState("");
-  const [filtroTxId, setFiltroTxId] = useState("");
   const [filtroBanco, setFiltroBanco] = useState("todos");
   const [buscaRapida, setBuscaRapida] = useState("");
   const [showFilters, setShowFilters] = useState(true);
@@ -127,10 +124,7 @@ export default function ConsultaPix() {
     if (filtroTipo !== "todos") result = result.filter(t => t.tipo === filtroTipo);
     if (filtroStatus !== "todos") result = result.filter(t => t.status === filtroStatus);
     if (filtroChave) result = result.filter(t => t.chavePix.toLowerCase().includes(filtroChave.toLowerCase()));
-    if (filtroTxId) result = result.filter(t => t.txId.toLowerCase().includes(filtroTxId.toLowerCase()));
     if (filtroBanco !== "todos") result = result.filter(t => t.instituicao === filtroBanco);
-    if (filtroValorMin) result = result.filter(t => t.valor >= Number(filtroValorMin));
-    if (filtroValorMax) result = result.filter(t => t.valor <= Number(filtroValorMax));
 
     // Date filter using proper Date comparison
     if (dataInicial) {
@@ -160,7 +154,7 @@ export default function ConsultaPix() {
     }
 
     return result;
-  }, [transactions, filtroTipo, filtroStatus, filtroChave, filtroTxId, filtroBanco, filtroValorMin, filtroValorMax, dataInicial, dataFinal, buscaRapida]);
+  }, [transactions, filtroTipo, filtroStatus, filtroChave, filtroBanco, dataInicial, dataFinal, buscaRapida]);
 
   const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const totalPages = Math.ceil(filtered.length / pageSize);
@@ -244,9 +238,7 @@ export default function ConsultaPix() {
     setFiltroTipo("todos");
     setFiltroStatus("todos");
     setFiltroChave("");
-    setFiltroValorMin("");
-    setFiltroValorMax("");
-    setFiltroTxId("");
+    setFiltroBanco("todos");
     setFiltroBanco("todos");
     setBuscaRapida("");
   };
@@ -345,20 +337,20 @@ export default function ConsultaPix() {
       {/* Filters */}
       {showFilters && (
         <Card>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               <div>
                 <Label className="text-xs">Data Inicial</Label>
-                <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="mt-1" />
+                <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="mt-1 h-8 text-xs" />
               </div>
               <div>
                 <Label className="text-xs">Data Final</Label>
-                <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="mt-1" />
+                <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="mt-1 h-8 text-xs" />
               </div>
               <div>
                 <Label className="text-xs">Tipo</Label>
                 <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="entrada">Recebido</SelectItem>
@@ -369,7 +361,7 @@ export default function ConsultaPix() {
               <div>
                 <Label className="text-xs">Status</Label>
                 <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="confirmado">Confirmado</SelectItem>
@@ -380,24 +372,12 @@ export default function ConsultaPix() {
               </div>
               <div>
                 <Label className="text-xs">Chave PIX</Label>
-                <Input placeholder="CPF, CNPJ, e-mail, telefone..." value={filtroChave} onChange={e => setFiltroChave(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Valor Mínimo</Label>
-                <Input type="number" placeholder="0,00" value={filtroValorMin} onChange={e => setFiltroValorMin(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Valor Máximo</Label>
-                <Input type="number" placeholder="0,00" value={filtroValorMax} onChange={e => setFiltroValorMax(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">TxId</Label>
-                <Input placeholder="ID da transação" value={filtroTxId} onChange={e => setFiltroTxId(e.target.value)} className="mt-1" />
+                <Input placeholder="CPF, CNPJ, e-mail..." value={filtroChave} onChange={e => setFiltroChave(e.target.value)} className="mt-1 h-8 text-xs" />
               </div>
               <div>
                 <Label className="text-xs">Cofre / Banco</Label>
                 <Select value={filtroBanco} onValueChange={setFiltroBanco}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os Cofres</SelectItem>
                     {bankConfigs.map(b => (
@@ -407,13 +387,13 @@ export default function ConsultaPix() {
                 </Select>
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-4">
-              <Button onClick={handleConsultar} disabled={loading}>
-                {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+            <div className="flex items-center gap-2 mt-3">
+              <Button size="sm" onClick={handleConsultar} disabled={loading}>
+                {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1" /> : <Search className="h-3.5 w-3.5 mr-1" />}
                 Consultar
               </Button>
-              <Button variant="outline" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-1" /> Limpar
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="h-3.5 w-3.5 mr-1" /> Limpar
               </Button>
             </div>
           </CardContent>
@@ -424,7 +404,7 @@ export default function ConsultaPix() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <CardTitle className="text-base">Transações ({filtered.length})</CardTitle>
+            <CardTitle className="text-base">Transações ({filtered.length}{transactions.length !== filtered.length ? ` / ${transactions.length}` : ''})</CardTitle>
             <Input
               placeholder="Busca rápida..."
               value={buscaRapida}
