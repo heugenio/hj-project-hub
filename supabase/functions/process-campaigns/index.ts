@@ -74,31 +74,98 @@ Deno.serve(async (req) => {
       return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
     };
 
-    // ── Get unidades ──
-    let unidadeIds: string[] = [];
-    if (campaign.todas_unidades && campaign.empr_id) {
-      const unidades = await proxyCall(`/getUnidadesEmpresariais?empr_id=${campaign.empr_id}`);
-      if (Array.isArray(unidades)) {
-        unidadeIds = unidades.map((u: any) => u.unem_Id || u.UNEM_ID || '').filter(Boolean);
-      }
-      console.log(`Todas unidades: ${unidadeIds.length} encontradas`);
-    } else if (campaign.filtro_unem_id) {
-      unidadeIds = [campaign.filtro_unem_id];
-    }
-
-    if (unidadeIds.length === 0) {
-      await reschedule(sb, campaign, now);
-      return jsonResp({ id: campaign.id, status: 'no_unidades' });
+    // ── Date range ──
+    const hoje = new Date();
+    const fmtDate = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const dataFim = fmtDate(hoje);
+    let dataIni = dataFim; // diaria: same day
+    if (campaign.recorrencia === 'semanal') {
+      const ini = new Date(hoje);
+      ini.setDate(ini.getDate() - 7);
+      dataIni = fmtDate(ini);
     }
 
     let totalEnviados = 0;
     let totalErros = 0;
     let sendCount = 0;
 
-    for (const unemId of unidadeIds) {
-      if (sendCount >= MAX_SENDS_PER_RUN) break;
+    if (campaign.todas_unidades && campaign.empr_id) {
+      // ── Todas unidades: use first 8 chars of empr_id as UNEM_ID ──
+      const unemIdBase = campaign.empr_id.substring(0, 8);
+      console.log(`Todas unidades: usando UNEM_ID base=${unemIdBase}, DATAINI=${dataIni}, DATAFIM=${dataFim}`);
 
-      // ── Fetch WhatsApp params in parallel – same as Marketing ──
+      const params = new URLSearchParams({
+        MSWA_TIPO: campaign.tipo,
+        UNEM_ID: unemIdBase,
+        DATAINI: dataIni,
+        DATAFIM: dataFim,
+      });
+      if (campaign.filtro_grupo) params.set('Grupo', campaign.filtro_grupo);
+      if (campaign.filtro_produto) params.set('Produto', campaign.filtro_produto);
+
+      const contatosRaw = await proxyCall(`/getContatosMsg?${params.toString()}`);
+      let allContatos: any[] = [];
+      if (typeof contatosRaw === 'string') {
+        try { allContatos = JSON.parse(contatosRaw); } catch { allContatos = []; }
+      } else if (Array.isArray(contatosRaw)) {
+        allContatos = contatosRaw;
+      }
+
+      // Filter valid mobile numbers
+      allContatos = allContatos.filter((r: any) => {
+        const num = (r.TELE_NUMERO || '').replace(/\D/g, '');
+        if (num.length < 8) return false;
+        const firstDigit = parseInt(num.charAt(0), 10);
+        return !isNaN(firstDigit) && firstDigit > 6;
+      });
+
+      console.log(`Todas unidades: ${allContatos.length} contatos válidos`);
+
+      // Group contacts by their UNEM_ID to fetch params per unit
+      const contatosByUnem: Record<string, any[]> = {};
+      for (const c of allContatos) {
+        const uid = c.UNEM_ID || c.unem_Id || unemIdBase;
+        if (!contatosByUnem[uid]) contatosByUnem[uid] = [];
+        contatosByUnem[uid].push(c);
+      }
+
+      // Cache params per UNEM_ID
+      const paramsCache: Record<string, { provider: string; token: string; device: string; phoneId: string }> = {};
+
+      for (const [unemId, contatos] of Object.entries(contatosByUnem)) {
+        if (sendCount >= MAX_SENDS_PER_RUN) break;
+
+        // Fetch params for this unit (cached)
+        if (!paramsCache[unemId]) {
+          const [servidorRaw, token, device, phoneId] = await Promise.all([
+            fetchParametro(unemId, 'SERVIDORWHATS'),
+            fetchParametro(unemId, 'TOKENWHATS'),
+            fetchParametro(unemId, 'DEVICEWHATS'),
+            fetchParametro(unemId, 'PHONENUMBERID'),
+          ]);
+          paramsCache[unemId] = { provider: sanitizeProvider(servidorRaw), token, device, phoneId };
+        }
+
+        const { provider, token, device, phoneId } = paramsCache[unemId];
+        if (!provider || !token) {
+          console.log(`Unidade ${unemId}: provider ou token vazio – pulando`);
+          continue;
+        }
+        console.log(`Unidade ${unemId}: provider=${provider}, ${contatos.length} contatos`);
+
+        for (const contato of contatos) {
+          if (sendCount >= MAX_SENDS_PER_RUN) break;
+          await sendContato(contato, campaign, provider, token, device, phoneId, unemId, supabaseUrl, anonKey);
+          sendCount++;
+          if (sendResultSuccess) totalEnviados++; else totalErros++;
+          await new Promise(r => setTimeout(r, SEND_DELAY_MS));
+        }
+      }
+    } else if (campaign.filtro_unem_id) {
+      // ── Single unit ──
+      const unemId = campaign.filtro_unem_id;
+
       const [servidorRaw, token, device, phoneId] = await Promise.all([
         fetchParametro(unemId, 'SERVIDORWHATS'),
         fetchParametro(unemId, 'TOKENWHATS'),
@@ -109,29 +176,21 @@ Deno.serve(async (req) => {
       const provider = sanitizeProvider(servidorRaw);
       if (!provider || !token) {
         console.log(`Unidade ${unemId}: provider="${servidorRaw}" token=${token ? 'OK' : 'VAZIO'} – pulando`);
-        continue;
+        await reschedule(sb, campaign, now);
+        return jsonResp({ id: campaign.id, status: 'no_provider' });
       }
       console.log(`Unidade ${unemId}: provider=${provider}, token=OK`);
 
-      // ── Date range – same calculation as Marketing ──
-      const hoje = new Date();
-      const ini = new Date(hoje);
-      ini.setDate(ini.getDate() - (campaign.recorrencia === 'semanal' ? 7 : 1));
-      const fmtDate = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-      // ── getContatosMsg – identical to Marketing.tsx gerarLista() ──
       const params = new URLSearchParams({
         MSWA_TIPO: campaign.tipo,
         UNEM_ID: unemId,
-        DATAINI: fmtDate(ini),
-        DATAFIM: fmtDate(hoje),
+        DATAINI: dataIni,
+        DATAFIM: dataFim,
       });
       if (campaign.filtro_grupo) params.set('Grupo', campaign.filtro_grupo);
       if (campaign.filtro_produto) params.set('Produto', campaign.filtro_produto);
 
       const contatosRaw = await proxyCall(`/getContatosMsg?${params.toString()}`);
-
       let contatos: any[] = [];
       if (typeof contatosRaw === 'string') {
         try { contatos = JSON.parse(contatosRaw); } catch { contatos = []; }
@@ -139,7 +198,6 @@ Deno.serve(async (req) => {
         contatos = contatosRaw;
       }
 
-      // ── Filter valid mobile numbers – same as Marketing ──
       contatos = contatos.filter((r: any) => {
         const num = (r.TELE_NUMERO || '').replace(/\D/g, '');
         if (num.length < 8) return false;
