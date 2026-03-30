@@ -573,6 +573,10 @@ export default function Marketing() {
       const now = new Date();
       const dataEnvio = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
+      // Send full phone with country code 55 to avoid truncation
+      const foneCompleto = fone.replace(/\D/g, '');
+      const foneFinal = foneCompleto.startsWith('55') ? foneCompleto : '55' + foneCompleto;
+
       await supabase.functions.invoke('api-proxy', {
         body: {
           baseUrl: getBaseUrl(),
@@ -582,7 +586,7 @@ export default function Marketing() {
             MSWE_ID: '',
             MSWE_MENSAGEM: texto,
             MSWE_TIPO: tipo,
-            MSWE_FONE: fone,
+            MSWE_FONE: foneFinal,
             MSWE_DATA: dataEnvio,
             MSWE_ENVIADA: enviada,
             UNEM_ID: unemId,
