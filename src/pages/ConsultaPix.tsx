@@ -75,7 +75,7 @@ export default function ConsultaPix() {
 
   // State
   const [loading, setLoading] = useState(false);
-  const [transactions, setTransactions] = useState<PixTransaction[]>(mockTransactions);
+  const [transactions, setTransactions] = useState<PixTransaction[]>([]);
   const [selectedTx, setSelectedTx] = useState<PixTransaction | null>(null);
   const [showJsonRaw, setShowJsonRaw] = useState(false);
   const [showBankConfig, setShowBankConfig] = useState(false);
