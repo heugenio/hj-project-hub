@@ -105,8 +105,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 2: Query PIX received
-    // Detect if urlApi already contains the full path (e.g. BB: https://api.bb.com.br/pix/v1/pix)
-    const isBBStyle = urlApi.toLowerCase().includes('/pix') || urlApi.toLowerCase().includes('bb.com');
+    const isBBStyle = isBB || urlApi.toLowerCase().includes('/pix');
     
     let pixUrl: string;
     const pixHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
