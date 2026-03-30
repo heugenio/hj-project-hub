@@ -12,6 +12,7 @@ import {
   Search,
   Warehouse,
   Megaphone,
+  CreditCard,
 } from "lucide-react";
 import verttriceLogo from "@/assets/verttice-logo.png";
 import { NavLink } from "@/components/NavLink";
@@ -53,6 +54,10 @@ const reportItems = [
 
 const marketingItems = [
   { title: "Campanhas", url: "/marketing/campanhas", icon: Megaphone },
+];
+
+const financeiroItems = [
+  { title: "Consulta PIX", url: "/financeiro/pix", icon: CreditCard },
 ];
 
 export function AppSidebar() {
@@ -135,6 +140,24 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {reportItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {financeiroItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
