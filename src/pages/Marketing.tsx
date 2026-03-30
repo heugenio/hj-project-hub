@@ -568,18 +568,20 @@ export default function Marketing() {
   // Register sent message in API
   const registrarEnvio = async (texto: string, tipo: string, fone: string, enviada: string) => {
     try {
-      const storedUnidade = localStorage.getItem('hj_unidade');
-      let unemId = '';
-      if (storedUnidade) { try { unemId = JSON.parse(storedUnidade).unem_Id || JSON.parse(storedUnidade).UNEM_ID || ''; } catch {} }
+      // Use the unit selected in the campaign, not from localStorage
+      const unemId = filtroUnemId || '';
 
       const now = new Date();
-      const dataEnvio = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      // Format as yyyy/MM/dd HH:mm:ss for SQL Server compatibility
+      const dataEnvio = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
       // Send full phone with country code 55 to avoid truncation
       const foneCompleto = fone.replace(/\D/g, '');
       const foneFinal = foneCompleto.startsWith('55') ? foneCompleto : '55' + foneCompleto;
 
-      await supabase.functions.invoke('api-proxy', {
+      console.log('registrarEnvio setMsgWths:', { MSWE_TIPO: tipo, MSWE_FONE: foneFinal, MSWE_DATA: dataEnvio, UNEM_ID: unemId, MSWE_ENVIADA: enviada });
+
+      const resp = await supabase.functions.invoke('api-proxy', {
         body: {
           baseUrl: getBaseUrl(),
           endpoint: '/setMsgWths',
@@ -595,6 +597,7 @@ export default function Marketing() {
           },
         },
       });
+      console.log('setMsgWths response:', resp.data);
     } catch (err) {
       console.error('Erro ao registrar envio:', err);
     }
