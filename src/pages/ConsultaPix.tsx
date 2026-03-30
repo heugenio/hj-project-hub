@@ -594,44 +594,44 @@ export default function ConsultaPix() {
              ) : bankConfigs.length === 0 ? (
                <p className="text-sm text-muted-foreground text-center py-8">Nenhum cofre encontrado na API.</p>
              ) : (
-               bankConfigs.map((bank) => (
-                 <Card key={bank.id}>
-                   <CardHeader className="pb-2">
-                     <CardTitle className="text-sm flex items-center justify-between">
-                       {bank.chavePix || bank.nome}
-                       <Badge variant="outline" className="text-xs">{bank.ambientePix || "N/A"}</Badge>
-                     </CardTitle>
-                   </CardHeader>
-                   <CardContent className="space-y-2">
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                       <div>
-                         <p className="text-xs text-muted-foreground">URL API</p>
-                         <p className="font-mono text-xs truncate">{bank.urlApi || "—"}</p>
-                       </div>
-                       <div>
-                         <p className="text-xs text-muted-foreground">URL Token</p>
-                         <p className="font-mono text-xs truncate">{bank.urlToken || "—"}</p>
-                       </div>
-                       <div>
-                         <p className="text-xs text-muted-foreground">Client ID</p>
-                         <p className="font-mono text-xs truncate">{bank.clientId || "—"}</p>
-                       </div>
-                       <div>
-                         <p className="text-xs text-muted-foreground">Chave PIX</p>
-                         <p className="font-mono text-xs truncate">{bank.chavePix || "—"}</p>
-                       </div>
-                       <div>
-                         <p className="text-xs text-muted-foreground">Tipo Chave</p>
-                         <p className="text-xs">{bank.tipoChave || "—"}</p>
-                       </div>
-                       <div>
-                         <p className="text-xs text-muted-foreground">Ambiente</p>
-                         <p className="text-xs">{bank.ambientePix || "—"}</p>
-                       </div>
-                     </div>
-                   </CardContent>
-                 </Card>
-               ))
+                bankConfigs.map((bank) => (
+                  <Card key={bank.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center justify-between">
+                        {bank.nome}
+                        <Badge variant="outline" className="text-xs">{bank.ambientePix || "N/A"}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Chave PIX</p>
+                          <p className="font-mono text-xs truncate">{bank.chavePix || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Tipo Chave</p>
+                          <p className="text-xs">{bank.tipoChave || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">URL API</p>
+                          <p className="font-mono text-xs truncate">{bank.urlApi || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">URL Token</p>
+                          <p className="font-mono text-xs truncate">{bank.urlToken || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Client ID</p>
+                          <p className="font-mono text-xs truncate">{bank.clientId || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Ambiente</p>
+                          <p className="text-xs">{bank.ambientePix || "—"}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
              )}
              <Button className="w-full" onClick={() => setShowBankConfig(false)}>
                Fechar
