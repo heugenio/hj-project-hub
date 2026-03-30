@@ -649,5 +649,3 @@ export default function ConsultaPix() {
   );
 }
 
-// Re-export Settings icon used in header
-import { Settings } from "lucide-react";
