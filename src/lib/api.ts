@@ -274,3 +274,18 @@ export interface OrdemServico {
 
 export const getOrdemServicos = (unem_id: string) =>
   apiGet<OrdemServico[]>(`/getOrdemServicos?unem_id=${encodeURIComponent(unem_id)}`);
+
+// Cofres (configuração PIX dos bancos)
+export interface Cofre {
+  COFR_API_KEY?: string;
+  COFR_CLIENT_ID?: string;
+  COFR_CLIENT_SECRET?: string;
+  COFR_CHAVE_PIX?: string;
+  COFR_URL_API?: string;
+  COFR_URL_TOKEN?: string;
+  COFR_AMBIENTE_PIX?: string;
+  COFR_TIPO_CHAVE?: string;
+  [key: string]: string | undefined;
+}
+
+export const getCofres = () => apiGet<Cofre[]>('/getCofres');

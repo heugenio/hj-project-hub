@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCofres, type Cofre } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,10 +39,14 @@ interface PixTransaction {
 interface BankConfig {
   id: string;
   nome: string;
-  baseUrl: string;
+  apiKey: string;
   clientId: string;
   clientSecret: string;
-  token: string;
+  chavePix: string;
+  urlApi: string;
+  urlToken: string;
+  ambientePix: string;
+  tipoChave: string;
 }
 
 // Mock data for demonstration
@@ -151,12 +156,37 @@ export default function ConsultaPix() {
   const pageSize = 20;
 
   // Bank configs
-  const [bankConfigs, setBankConfigs] = useState<BankConfig[]>([
-    { id: "1", nome: "Banco do Brasil", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-    { id: "2", nome: "Itaú", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-    { id: "3", nome: "Bradesco", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-    { id: "4", nome: "Santander", baseUrl: "", clientId: "", clientSecret: "", token: "" },
-  ]);
+  const [bankConfigs, setBankConfigs] = useState<BankConfig[]>([]);
+  const [loadingCofres, setLoadingCofres] = useState(false);
+
+  // Load cofres from API
+  useEffect(() => {
+    const loadCofres = async () => {
+      setLoadingCofres(true);
+      try {
+        const cofres = await getCofres();
+        const configs: BankConfig[] = cofres.map((c, idx) => ({
+          id: String(idx + 1),
+          nome: c.COFR_CHAVE_PIX || `Cofre ${idx + 1}`,
+          apiKey: c.COFR_API_KEY || "",
+          clientId: c.COFR_CLIENT_ID || "",
+          clientSecret: c.COFR_CLIENT_SECRET || "",
+          chavePix: c.COFR_CHAVE_PIX || "",
+          urlApi: c.COFR_URL_API || "",
+          urlToken: c.COFR_URL_TOKEN || "",
+          ambientePix: c.COFR_AMBIENTE_PIX || "",
+          tipoChave: c.COFR_TIPO_CHAVE || "",
+        }));
+        setBankConfigs(configs);
+      } catch (err) {
+        console.error("Erro ao carregar cofres:", err);
+        toast({ title: "Erro", description: "Não foi possível carregar as configurações dos cofres.", variant: "destructive" });
+      } finally {
+        setLoadingCofres(false);
+      }
+    };
+    loadCofres();
+  }, []);
 
   // Filtered data
   const filtered = useMemo(() => {
@@ -573,76 +603,57 @@ export default function ConsultaPix() {
           <DialogHeader>
             <DialogTitle>Configuração de Bancos</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {bankConfigs.map((bank, idx) => (
-              <Card key={bank.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">{bank.nome}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Base URL</Label>
-                      <Input
-                        placeholder="https://api.banco.com.br/pix/v2"
-                        value={bank.baseUrl}
-                        onChange={e => {
-                          const updated = [...bankConfigs];
-                          updated[idx].baseUrl = e.target.value;
-                          setBankConfigs(updated);
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Client ID</Label>
-                      <Input
-                        placeholder="Client ID"
-                        value={bank.clientId}
-                        onChange={e => {
-                          const updated = [...bankConfigs];
-                          updated[idx].clientId = e.target.value;
-                          setBankConfigs(updated);
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Client Secret</Label>
-                      <Input
-                        type="password"
-                        placeholder="Client Secret"
-                        value={bank.clientSecret}
-                        onChange={e => {
-                          const updated = [...bankConfigs];
-                          updated[idx].clientSecret = e.target.value;
-                          setBankConfigs(updated);
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Token (Bearer)</Label>
-                      <Input
-                        type="password"
-                        placeholder="Token"
-                        value={bank.token}
-                        onChange={e => {
-                          const updated = [...bankConfigs];
-                          updated[idx].token = e.target.value;
-                          setBankConfigs(updated);
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            <Button className="w-full" onClick={() => { setShowBankConfig(false); toast({ title: "Configuração salva" }); }}>
-              Salvar Configuração
-            </Button>
-          </div>
+           <div className="space-y-4">
+             {loadingCofres ? (
+               <div className="space-y-3">
+                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+               </div>
+             ) : bankConfigs.length === 0 ? (
+               <p className="text-sm text-muted-foreground text-center py-8">Nenhum cofre encontrado na API.</p>
+             ) : (
+               bankConfigs.map((bank) => (
+                 <Card key={bank.id}>
+                   <CardHeader className="pb-2">
+                     <CardTitle className="text-sm flex items-center justify-between">
+                       {bank.chavePix || bank.nome}
+                       <Badge variant="outline" className="text-xs">{bank.ambientePix || "N/A"}</Badge>
+                     </CardTitle>
+                   </CardHeader>
+                   <CardContent className="space-y-2">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                       <div>
+                         <p className="text-xs text-muted-foreground">URL API</p>
+                         <p className="font-mono text-xs truncate">{bank.urlApi || "—"}</p>
+                       </div>
+                       <div>
+                         <p className="text-xs text-muted-foreground">URL Token</p>
+                         <p className="font-mono text-xs truncate">{bank.urlToken || "—"}</p>
+                       </div>
+                       <div>
+                         <p className="text-xs text-muted-foreground">Client ID</p>
+                         <p className="font-mono text-xs truncate">{bank.clientId || "—"}</p>
+                       </div>
+                       <div>
+                         <p className="text-xs text-muted-foreground">Chave PIX</p>
+                         <p className="font-mono text-xs truncate">{bank.chavePix || "—"}</p>
+                       </div>
+                       <div>
+                         <p className="text-xs text-muted-foreground">Tipo Chave</p>
+                         <p className="text-xs">{bank.tipoChave || "—"}</p>
+                       </div>
+                       <div>
+                         <p className="text-xs text-muted-foreground">Ambiente</p>
+                         <p className="text-xs">{bank.ambientePix || "—"}</p>
+                       </div>
+                     </div>
+                   </CardContent>
+                 </Card>
+               ))
+             )}
+             <Button className="w-full" onClick={() => setShowBankConfig(false)}>
+               Fechar
+             </Button>
+           </div>
         </DialogContent>
       </Dialog>
     </div>
