@@ -98,8 +98,8 @@ Deno.serve(async (req) => {
     
     if (oauthUrl) {
       try {
-        token = await getOAuthToken(oauthUrl, clientId, clientSecret);
-        console.log('OAuth token obtained successfully');
+        token = await getOAuthToken(oauthUrl, clientId, clientSecret, isItau);
+        console.log(`OAuth token obtained successfully for ${isItau ? 'Itau' : isBB ? 'BB' : 'bank'}`);
       } catch (tokenErr) {
         console.error('OAuth token error:', tokenErr);
         return new Response(
