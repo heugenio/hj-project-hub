@@ -375,18 +375,6 @@ export default function ConsultaPix() {
                 <Input placeholder="CPF, CNPJ, e-mail, telefone..." value={filtroChave} onChange={e => setFiltroChave(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs">Valor Mínimo</Label>
-                <Input type="number" placeholder="0,00" value={filtroValorMin} onChange={e => setFiltroValorMin(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Valor Máximo</Label>
-                <Input type="number" placeholder="0,00" value={filtroValorMax} onChange={e => setFiltroValorMax(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">TxId</Label>
-                <Input placeholder="ID da transação" value={filtroTxId} onChange={e => setFiltroTxId(e.target.value)} className="mt-1" />
-              </div>
-              <div>
                 <Label className="text-xs">Cofre / Banco</Label>
                 <Select value={filtroBanco} onValueChange={setFiltroBanco}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
