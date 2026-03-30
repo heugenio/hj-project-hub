@@ -543,9 +543,11 @@ export default function Marketing() {
   // Check if message was already sent via API
   const checkJaEnviada = async (tipo: string, fone: string): Promise<boolean> => {
     try {
+      const foneLimpo = fone.replace(/\D/g, '');
+      const foneConsulta = foneLimpo.startsWith('55') ? foneLimpo : '55' + foneLimpo;
       const now = new Date();
       const dataBr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-      const params = new URLSearchParams({ MSWE_TIPO: tipo, MSWE_FONE: fone, MSWE_DATA: dataBr });
+      const params = new URLSearchParams({ MSWE_TIPO: tipo, MSWE_FONE: foneConsulta, MSWE_DATA: dataBr });
       const { data: result, error } = await supabase.functions.invoke('api-proxy', {
         body: { baseUrl: getBaseUrl(), endpoint: `/getMsgWths?${params.toString()}`, method: 'GET' },
       });
@@ -573,6 +575,10 @@ export default function Marketing() {
       const now = new Date();
       const dataEnvio = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
+      // Send full phone with country code 55 to avoid truncation
+      const foneCompleto = fone.replace(/\D/g, '');
+      const foneFinal = foneCompleto.startsWith('55') ? foneCompleto : '55' + foneCompleto;
+
       await supabase.functions.invoke('api-proxy', {
         body: {
           baseUrl: getBaseUrl(),
@@ -582,7 +588,7 @@ export default function Marketing() {
             MSWE_ID: '',
             MSWE_MENSAGEM: texto,
             MSWE_TIPO: tipo,
-            MSWE_FONE: fone,
+            MSWE_FONE: foneFinal,
             MSWE_DATA: dataEnvio,
             MSWE_ENVIADA: enviada,
             UNEM_ID: unemId,
