@@ -376,15 +376,14 @@ export default function ConsultaPix() {
                 <Input placeholder="ID da transação" value={filtroTxId} onChange={e => setFiltroTxId(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs">Banco</Label>
+                <Label className="text-xs">Cofre / Banco</Label>
                 <Select value={filtroBanco} onValueChange={setFiltroBanco}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="Banco do Brasil">Banco do Brasil</SelectItem>
-                    <SelectItem value="Itaú">Itaú</SelectItem>
-                    <SelectItem value="Bradesco">Bradesco</SelectItem>
-                    <SelectItem value="Santander">Santander</SelectItem>
+                    <SelectItem value="todos">Todos os Cofres</SelectItem>
+                    {bankConfigs.map(b => (
+                      <SelectItem key={b.id} value={b.chavePix || b.nome}>{b.chavePix || b.nome}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
