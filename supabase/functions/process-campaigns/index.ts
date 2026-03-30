@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_SENDS_PER_RUN = 5; // limit per invocation to avoid timeout
-const SEND_DELAY_MS = 800;
+const MAX_SENDS_PER_RUN = 3;
+const SEND_DELAY_MS = 500;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,50 +26,67 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('ativo', true)
       .lte('proxima_execucao', now.toISOString())
-      .limit(1); // process one campaign per run
+      .limit(1);
 
     if (fetchErr) throw fetchErr;
     if (!campaigns || campaigns.length === 0) {
-      return new Response(JSON.stringify({ message: 'No campaigns due', processed: 0 }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResp({ message: 'No campaigns due', processed: 0 });
     }
 
     const campaign = campaigns[0];
-    console.log(`Processing campaign: ${campaign.nome} (${campaign.id})`);
+    console.log(`Processing campaign: ${campaign.nome} (${campaign.id}), tipo: ${campaign.tipo}`);
 
     const baseUrl = campaign.base_url || 'http://3.214.255.198:8085';
 
-    const proxyCall = async (endpoint: string, method = 'GET', body?: any) => {
+    // ── Proxy call identical to Marketing/Campanhas frontend ──
+    const proxyCall = async (endpoint: string, method = 'GET', body?: any): Promise<any> => {
+      console.log(`proxyCall: ${method} ${endpoint}`);
       const resp = await fetch(`${supabaseUrl}/functions/v1/api-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${anonKey}` },
         body: JSON.stringify({ baseUrl, endpoint, method, ...(body ? { body } : {}) }),
       });
-      return resp.json();
+      const raw = await resp.text();
+      try {
+        return JSON.parse(raw);
+      } catch {
+        console.log('proxyCall non-JSON response:', raw.substring(0, 200));
+        return null;
+      }
     };
 
-    const fetchParam = async (unemId: string, nome: string): Promise<string> => {
+    // ── fetchParametro – same logic as Marketing.tsx fetchParametro() ──
+    const fetchParametro = async (unemId: string, nome: string): Promise<string> => {
       try {
         const data = await proxyCall(`/getParametros?UNEM_ID=${unemId}&nome=${encodeURIComponent(nome)}`);
-        if (Array.isArray(data) && data.length > 0) return (data[0].PRMT_VALOR || '').trim();
+        if (!data) return '';
+        let result = data;
+        if (typeof data === 'string') { try { result = JSON.parse(data); } catch { return ''; } }
+        if (Array.isArray(result) && result.length > 0) return (result[0].PRMT_VALOR || '').trim();
+        if (result && result.PRMT_VALOR) return (result.PRMT_VALOR || '').trim();
         return '';
       } catch { return ''; }
     };
 
-    // Get unidades
+    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI'];
+    const sanitizeProvider = (v: string) => {
+      const trimmed = v.trim();
+      return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
+    };
+
+    // ── Get unidades ──
     let unidadeIds: string[] = [];
     if (campaign.todas_unidades && campaign.empr_id) {
       const unidades = await proxyCall(`/getUnidadesEmpresariais?empr_id=${campaign.empr_id}`);
       if (Array.isArray(unidades)) {
         unidadeIds = unidades.map((u: any) => u.unem_Id || u.UNEM_ID || '').filter(Boolean);
       }
+      console.log(`Todas unidades: ${unidadeIds.length} encontradas`);
     } else if (campaign.filtro_unem_id) {
       unidadeIds = [campaign.filtro_unem_id];
     }
 
     if (unidadeIds.length === 0) {
-      // No unidades, skip and reschedule
       await reschedule(sb, campaign, now);
       return jsonResp({ id: campaign.id, status: 'no_unidades' });
     }
@@ -81,25 +98,29 @@ Deno.serve(async (req) => {
     for (const unemId of unidadeIds) {
       if (sendCount >= MAX_SENDS_PER_RUN) break;
 
-      const [servidor, token, device, phoneId] = await Promise.all([
-        fetchParam(unemId, 'SERVIDORWHATS'),
-        fetchParam(unemId, 'TOKENWHATS'),
-        fetchParam(unemId, 'DEVICEWHATS'),
-        fetchParam(unemId, 'PHONENUMBERID'),
+      // ── Fetch WhatsApp params in parallel – same as Marketing ──
+      const [servidorRaw, token, device, phoneId] = await Promise.all([
+        fetchParametro(unemId, 'SERVIDORWHATS'),
+        fetchParametro(unemId, 'TOKENWHATS'),
+        fetchParametro(unemId, 'DEVICEWHATS'),
+        fetchParametro(unemId, 'PHONENUMBERID'),
       ]);
 
-      const provider = servidor.trim();
+      const provider = sanitizeProvider(servidorRaw);
       if (!provider || !token) {
-        console.log(`Unidade ${unemId}: sem provedor, pulando`);
+        console.log(`Unidade ${unemId}: provider="${servidorRaw}" token=${token ? 'OK' : 'VAZIO'} – pulando`);
         continue;
       }
+      console.log(`Unidade ${unemId}: provider=${provider}, token=OK`);
 
-      // Date range
+      // ── Date range – same calculation as Marketing ──
       const hoje = new Date();
       const ini = new Date(hoje);
       ini.setDate(ini.getDate() - (campaign.recorrencia === 'semanal' ? 7 : 1));
-      const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const fmtDate = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+      // ── getContatosMsg – identical to Marketing.tsx gerarLista() ──
       const params = new URLSearchParams({
         MSWA_TIPO: campaign.tipo,
         UNEM_ID: unemId,
@@ -109,32 +130,50 @@ Deno.serve(async (req) => {
       if (campaign.filtro_grupo) params.set('Grupo', campaign.filtro_grupo);
       if (campaign.filtro_produto) params.set('Produto', campaign.filtro_produto);
 
-      const contatos = await proxyCall(`/getContatosMsg?${params.toString()}`);
-      if (!Array.isArray(contatos)) continue;
+      const contatosRaw = await proxyCall(`/getContatosMsg?${params.toString()}`);
 
-      console.log(`Unidade ${unemId}: ${contatos.length} contatos`);
+      let contatos: any[] = [];
+      if (typeof contatosRaw === 'string') {
+        try { contatos = JSON.parse(contatosRaw); } catch { contatos = []; }
+      } else if (Array.isArray(contatosRaw)) {
+        contatos = contatosRaw;
+      }
+
+      // ── Filter valid mobile numbers – same as Marketing ──
+      contatos = contatos.filter((r: any) => {
+        const num = (r.TELE_NUMERO || '').replace(/\D/g, '');
+        if (num.length < 8) return false;
+        const firstDigit = parseInt(num.charAt(0), 10);
+        return !isNaN(firstDigit) && firstDigit > 6;
+      });
+
+      console.log(`Unidade ${unemId}: ${contatos.length} contatos válidos`);
 
       for (const contato of contatos) {
         if (sendCount >= MAX_SENDS_PER_RUN) break;
 
         const num = (contato.TELE_NUMERO || '').replace(/\D/g, '');
-        if (num.length < 8) continue;
-        const firstDigit = parseInt(num.charAt(0), 10);
-        if (isNaN(firstDigit) || firstDigit <= 6) continue;
-
         const ddd = (contato.TELE_DDD || '').replace(/\D/g, '');
         const phone = ddd + num;
         const foneFull = phone.startsWith('55') ? phone : '55' + phone;
 
-        // Check already sent
+        // ── Check already sent – same as Marketing checkJaEnviada() ──
         const nowDate = new Date();
-        const dataBr = `${String(nowDate.getDate()).padStart(2,'0')}/${String(nowDate.getMonth()+1).padStart(2,'0')}/${nowDate.getFullYear()}`;
+        const dataBr = `${String(nowDate.getDate()).padStart(2, '0')}/${String(nowDate.getMonth() + 1).padStart(2, '0')}/${nowDate.getFullYear()}`;
         try {
-          const checkData = await proxyCall(`/getMsgWths?MSWE_TIPO=${campaign.tipo}&MSWE_FONE=${foneFull}&MSWE_DATA=${dataBr}`);
-          if (Array.isArray(checkData) && checkData.some((r: any) => (r.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim')) continue;
+          const checkParams = new URLSearchParams({
+            MSWE_TIPO: campaign.tipo,
+            MSWE_FONE: foneFull,
+            MSWE_DATA: dataBr,
+          });
+          const checkData = await proxyCall(`/getMsgWths?${checkParams.toString()}`);
+          if (Array.isArray(checkData) && checkData.some((r: any) => (r.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim')) {
+            console.log(`${foneFull}: já enviada hoje, pulando`);
+            continue;
+          }
         } catch {}
 
-        // Build message
+        // ── Build message – same as Marketing ──
         const isFisica = (contato.PESS_FISICO_JURIDICO || '').toUpperCase().includes('FISIC');
         const sexo = (contato.PESS_SEXO || '').toUpperCase();
         const tratamento = isFisica ? (sexo === 'F' ? 'Sra' : 'Sr') : '';
@@ -149,13 +188,23 @@ Deno.serve(async (req) => {
           .replace('{ENDLOJA}', contato.UNEM_ENDERECO || '')
           .replace(/\\n/g, '\n');
 
-        // Send
-        const payload: any = { provider, token, number: phone, text: texto, type: campaign.imagem_url ? 'media' : 'text' };
-        if (campaign.imagem_url) { payload.mediaType = 'image'; payload.file = campaign.imagem_url; }
+        // ── Send via send-message – same payload as Marketing ──
+        const payload: any = {
+          provider,
+          token,
+          number: phone,
+          text: texto,
+          type: campaign.imagem_url ? 'media' : 'text',
+        };
+        if (campaign.imagem_url) {
+          payload.mediaType = 'image';
+          payload.file = campaign.imagem_url;
+        }
         if (provider === 'BrasilAPI') payload.device = device;
         if (provider === 'WhatsAppOficial') payload.phoneNumberId = phoneId;
 
         try {
+          console.log(`Enviando para ${foneFull} via ${provider}...`);
           const sendResp = await fetch(`${supabaseUrl}/functions/v1/send-message`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${anonKey}` },
@@ -163,27 +212,36 @@ Deno.serve(async (req) => {
           });
           const sendData = await sendResp.json();
           const enviada = sendData.success ? 'Sim' : 'Nao';
+          console.log(`Resultado ${foneFull}: ${enviada}`, sendData.success ? '' : JSON.stringify(sendData).substring(0, 200));
+
           if (sendData.success) totalEnviados++; else totalErros++;
 
-          // Register
+          // ── Register in API – same as Marketing registrarEnvio() ──
           const regNow = new Date();
-          const dataEnvio = `${regNow.getFullYear()}/${String(regNow.getMonth()+1).padStart(2,'0')}/${String(regNow.getDate()).padStart(2,'0')} ${String(regNow.getHours()).padStart(2,'0')}:${String(regNow.getMinutes()).padStart(2,'0')}:${String(regNow.getSeconds()).padStart(2,'0')}`;
+          const dataEnvio = `${regNow.getFullYear()}/${String(regNow.getMonth() + 1).padStart(2, '0')}/${String(regNow.getDate()).padStart(2, '0')} ${String(regNow.getHours()).padStart(2, '0')}:${String(regNow.getMinutes()).padStart(2, '0')}:${String(regNow.getSeconds()).padStart(2, '0')}`;
           await proxyCall('/setMsgWths', 'POST', {
-            MSWE_ID: '', MSWE_MENSAGEM: texto, MSWE_TIPO: campaign.tipo,
-            MSWE_FONE: foneFull, MSWE_DATA: dataEnvio, MSWE_ENVIADA: enviada, UNEM_ID: unemId,
+            MSWE_ID: '',
+            MSWE_MENSAGEM: texto,
+            MSWE_TIPO: campaign.tipo,
+            MSWE_FONE: foneFull,
+            MSWE_DATA: dataEnvio,
+            MSWE_ENVIADA: enviada,
+            UNEM_ID: unemId,
           });
+
           sendCount++;
           await new Promise(r => setTimeout(r, SEND_DELAY_MS));
         } catch (err) {
-          console.error(`Erro envio ${phone}:`, err);
+          console.error(`Erro envio ${foneFull}:`, err);
           totalErros++;
           sendCount++;
         }
       }
     }
 
-    // Reschedule
+    // ── Reschedule ──
     await reschedule(sb, campaign, now, totalEnviados, totalErros);
+    console.log(`Campaign ${campaign.nome} done: enviados=${totalEnviados}, erros=${totalErros}, sendCount=${sendCount}`);
 
     return jsonResp({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros });
   } catch (err: any) {
@@ -213,10 +271,6 @@ async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros
 
 function jsonResp(data: any) {
   return new Response(JSON.stringify(data), {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      'Content-Type': 'application/json',
-    },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
