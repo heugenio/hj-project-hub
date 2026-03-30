@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Search, RefreshCw, Eye, Download, ChevronDown, ArrowUpRight, ArrowDownLeft,
   DollarSign, TrendingUp, TrendingDown, Activity, AlertTriangle, FileSpreadsheet, FileText,
-  Filter, X, CreditCard
+  Filter, X, CreditCard, Settings
 } from "lucide-react";
 import { format } from "date-fns";
 
