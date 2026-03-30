@@ -136,10 +136,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Relatórios</SidebarGroupLabel>
+          <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {reportItems.map((item) => (
+              {financeiroItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
@@ -154,10 +154,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
+          <SidebarGroupLabel>Relatórios</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {financeiroItems.map((item) => (
+              {reportItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
