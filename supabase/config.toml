@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.pix-consulta]
 verify_jwt = false
+
+[functions.process-campaigns]
+verify_jwt = false

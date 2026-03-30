@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      campanhas_agendadas: {
+        Row: {
+          ativo: boolean | null
+          base_url: string | null
+          canal: string
+          created_at: string | null
+          dia_semana: number | null
+          empr_id: string | null
+          filtro_grupo: string | null
+          filtro_produto: string | null
+          filtro_unem_id: string | null
+          horario: string | null
+          id: string
+          imagem_url: string | null
+          mensagem: string
+          nome: string
+          proxima_execucao: string | null
+          recorrencia: string
+          tipo: string
+          todas_unidades: boolean | null
+          total_enviados: number | null
+          total_erros: number | null
+          ultima_execucao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          base_url?: string | null
+          canal?: string
+          created_at?: string | null
+          dia_semana?: number | null
+          empr_id?: string | null
+          filtro_grupo?: string | null
+          filtro_produto?: string | null
+          filtro_unem_id?: string | null
+          horario?: string | null
+          id?: string
+          imagem_url?: string | null
+          mensagem?: string
+          nome: string
+          proxima_execucao?: string | null
+          recorrencia?: string
+          tipo?: string
+          todas_unidades?: boolean | null
+          total_enviados?: number | null
+          total_erros?: number | null
+          ultima_execucao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          base_url?: string | null
+          canal?: string
+          created_at?: string | null
+          dia_semana?: number | null
+          empr_id?: string | null
+          filtro_grupo?: string | null
+          filtro_produto?: string | null
+          filtro_unem_id?: string | null
+          horario?: string | null
+          id?: string
+          imagem_url?: string | null
+          mensagem?: string
+          nome?: string
+          proxima_execucao?: string | null
+          recorrencia?: string
+          tipo?: string
+          todas_unidades?: boolean | null
+          total_enviados?: number | null
+          total_erros?: number | null
+          ultima_execucao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

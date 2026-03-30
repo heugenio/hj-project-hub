@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import CampanhasAgendadas from "@/components/marketing/CampanhasAgendadas";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1253,6 +1254,9 @@ export default function Marketing() {
           </Card>
         </div>
       </div>
+
+      {/* Campanhas Agendadas */}
+      <CampanhasAgendadas unidades={unidades} />
     </div>
   );
 }
