@@ -131,8 +131,22 @@ export default function ConsultaPix() {
     if (filtroBanco !== "todos") result = result.filter(t => t.instituicao === filtroBanco);
     if (filtroValorMin) result = result.filter(t => t.valor >= Number(filtroValorMin));
     if (filtroValorMax) result = result.filter(t => t.valor <= Number(filtroValorMax));
-    if (dataInicial) result = result.filter(t => t.dataHora >= dataInicial);
-    if (dataFinal) result = result.filter(t => t.dataHora <= dataFinal + "T23:59:59");
+
+    // Date filter using proper Date comparison
+    if (dataInicial) {
+      const dtIni = new Date(dataInicial + "T00:00:00");
+      result = result.filter(t => {
+        const txDate = new Date(t.dataHora);
+        return !isNaN(txDate.getTime()) && txDate >= dtIni;
+      });
+    }
+    if (dataFinal) {
+      const dtFim = new Date(dataFinal + "T23:59:59");
+      result = result.filter(t => {
+        const txDate = new Date(t.dataHora);
+        return !isNaN(txDate.getTime()) && txDate <= dtFim;
+      });
+    }
 
     if (buscaRapida) {
       const q = buscaRapida.toLowerCase();
