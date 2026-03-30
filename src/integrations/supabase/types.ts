@@ -17,9 +17,11 @@ export type Database = {
       campanhas_agendadas: {
         Row: {
           ativo: boolean | null
+          base_url: string | null
           canal: string
           created_at: string | null
           dia_semana: number | null
+          empr_id: string | null
           filtro_grupo: string | null
           filtro_produto: string | null
           filtro_unem_id: string | null
@@ -39,9 +41,11 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          base_url?: string | null
           canal?: string
           created_at?: string | null
           dia_semana?: number | null
+          empr_id?: string | null
           filtro_grupo?: string | null
           filtro_produto?: string | null
           filtro_unem_id?: string | null
@@ -61,9 +65,11 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          base_url?: string | null
           canal?: string
           created_at?: string | null
           dia_semana?: number | null
+          empr_id?: string | null
           filtro_grupo?: string | null
           filtro_produto?: string | null
           filtro_unem_id?: string | null
