@@ -101,8 +101,8 @@ export default function ConsultaPix() {
           clientId: c.COFR_CLIENT_ID || "",
           clientSecret: c.COFR_CLIENT_SECRET || "",
           chavePix: c.COFR_CHAVE_PIX || "",
-          urlApi: c.COFR_URL_API || "",
-          urlToken: c.COFR_URL_TOKEN || "",
+          urlApi: c.COFR_URL_API || getDefaultUrlApi(c.COFR_NOME || ""),
+          urlToken: c.COFR_URL_TOKEN || getDefaultUrlToken(c.COFR_NOME || ""),
           ambientePix: c.COFR_AMBIENTE_PIX || "",
           tipoChave: c.COFR_TIPO_CHAVE || "",
         }));
