@@ -43,6 +43,10 @@ const marketingItems = [
   { title: "Campanhas", url: "/marketing/campanhas", icon: Megaphone },
 ];
 
+const financeiroItems = [
+  { title: "Consulta PIX", url: "/financeiro/pix", icon: CreditCard },
+];
+
 function formatCNPJ(cnpj: string): string {
   const d = cnpj.replace(/\D/g, "");
   if (d.length !== 14) return cnpj;
