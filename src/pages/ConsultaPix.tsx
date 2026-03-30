@@ -94,7 +94,7 @@ export default function ConsultaPix() {
         const cofres = await getCofres();
         const configs: BankConfig[] = cofres.map((c, idx) => ({
           id: String(idx + 1),
-          nome: c.COFR_CHAVE_PIX || `Cofre ${idx + 1}`,
+          nome: c.COFR_NOME || `Cofre ${idx + 1}`,
           apiKey: c.COFR_API_KEY || "",
           clientId: c.COFR_CLIENT_ID || "",
           clientSecret: c.COFR_CLIENT_SECRET || "",
@@ -382,7 +382,7 @@ export default function ConsultaPix() {
                   <SelectContent>
                     <SelectItem value="todos">Todos os Cofres</SelectItem>
                     {bankConfigs.map(b => (
-                      <SelectItem key={b.id} value={b.chavePix || b.nome}>{b.chavePix || b.nome}</SelectItem>
+                      <SelectItem key={b.id} value={b.nome}>{b.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

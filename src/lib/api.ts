@@ -277,6 +277,7 @@ export const getOrdemServicos = (unem_id: string) =>
 
 // Cofres (configuração PIX dos bancos)
 export interface Cofre {
+  COFR_NOME?: string;
   COFR_API_KEY?: string;
   COFR_CLIENT_ID?: string;
   COFR_CLIENT_SECRET?: string;
