@@ -73,32 +73,13 @@ Deno.serve(async (req) => {
       return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
     };
 
-    // ── Date range: fetch MSWA_QTD_DIAS from getMenssagensWhts ──
+    // ── Date range ──
     const hoje = new Date();
     const fmtDate = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const dataFim = fmtDate(hoje);
-
-    let qtdDias = 0;
-    try {
-      const msgData = await proxyCall(`/getMenssagensWhts?MSWA_TIPO=${encodeURIComponent(campaign.tipo)}`);
-      let msgs: any[] = [];
-      if (typeof msgData === 'string') { try { msgs = JSON.parse(msgData); } catch {} }
-      else if (Array.isArray(msgData)) msgs = msgData;
-      if (msgs.length > 0 && msgs[0].MSWA_QTD_DIAS) {
-        qtdDias = parseInt(msgs[0].MSWA_QTD_DIAS, 10) || 0;
-      }
-      console.log(`getMenssagensWhts tipo=${campaign.tipo}: MSWA_QTD_DIAS=${qtdDias}`);
-    } catch (e) {
-      console.error('Erro ao buscar MSWA_QTD_DIAS:', e);
-    }
-
-    let dataIni = dataFim;
-    if (qtdDias > 0) {
-      const ini = new Date(hoje);
-      ini.setDate(ini.getDate() - qtdDias);
-      dataIni = fmtDate(ini);
-    } else if (campaign.recorrencia === 'semanal') {
+    let dataIni = dataFim; // diaria: DATAINI = DATAFIM
+    if (campaign.recorrencia === 'semanal') {
       const ini = new Date(hoje);
       ini.setDate(ini.getDate() - 7);
       dataIni = fmtDate(ini);
