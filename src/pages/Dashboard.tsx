@@ -197,40 +197,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Summary cards — 6 KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <SummaryCard
-          icon={DollarSign}
-          title="Faturamento do Mês"
-          value={formatBRL(vlrAtual)}
-          change={crescimento}
-        />
-        <SummaryCard
-          icon={Package}
-          title="Pneus Vendidos"
-          value={totalQtdVendida.toLocaleString("pt-BR")}
-          change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined}
-        />
-        <SummaryCard
-          icon={Receipt}
-          title="Ticket Médio"
-          value={formatBRL(ticketMedio)}
-        />
-        <SummaryCard
-          icon={Percent}
-          title="Margem Média"
-          value={`${margemMedia.toFixed(1)}%`}
-        />
-        <SummaryCard
-          icon={BadgeDollarSign}
-          title="Lucro Líquido"
-          value={formatBRL(totalLucro)}
-        />
-        <SummaryCard
-          icon={RefreshCw}
-          title="Taxa Recompra"
-          value={`${taxaRecompra.toFixed(1)}%`}
-        />
+      {/* Summary cards — 6 KPIs modernos */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} change={crescimento} color="primary" />
+        <KpiCard icon={Package} title="Pneus Vendidos" value={totalQtdVendida.toLocaleString("pt-BR")} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} color="accent" />
+        <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} color="primary" />
+        <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} color="accent" />
+        <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} color="primary" />
+        <KpiCard icon={RefreshCw} title="Recompra" value={`${taxaRecompra.toFixed(1)}%`} color="accent" />
       </div>
 
       {/* Multi-lojas — ADM only */}
