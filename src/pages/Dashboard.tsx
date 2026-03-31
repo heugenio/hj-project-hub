@@ -109,9 +109,16 @@ export default function Dashboard() {
     return Array.from(tipos).sort();
   }, [comparativo]);
 
+  // Auto-detectar "Pneus" no primeiro carregamento
+  useEffect(() => {
+    if (filtroGrpoTipo !== "__pending__" || grpoTipos.length === 0) return;
+    const pneusTipo = grpoTipos.find((t) => t.toLowerCase().includes("pneu"));
+    setFiltroGrpoTipo(pneusTipo || "__all__");
+  }, [grpoTipos, filtroGrpoTipo]);
+
   // Dados filtrados
   const comparativoFiltrado = useMemo(() => {
-    if (filtroGrpoTipo === "__all__") return comparativo;
+    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativo;
     return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativo, filtroGrpoTipo]);
 
