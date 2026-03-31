@@ -38,6 +38,16 @@ function parseGrowth(val: string | undefined): number {
   return parseFloat(val.replace(",", ".")) || 0;
 }
 
+function normalizeGroupName(value: string | undefined): string {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/^\d+\s*-\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
 type Perfil = "ADM" | "Vendas" | "FINANCEIRO" | string;
 
 export default function Dashboard() {
@@ -131,24 +141,26 @@ export default function Dashboard() {
     return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativoGeral, filtroGrpoTipo]);
 
-  // Filtrar salesData pelo mesmo GRPO_TIPO do filtro (match por GRPO_ID e nome)
-  const grpoIdsFiltrados = useMemo(() => {
+  // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
+  const gruposFiltrados = useMemo(() => {
     if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return null;
-    // Coletar nomes dos grupos do tipo filtrado para cruzar com salesData.GRUPO
+
     const nomes = new Set<string>();
     comparativoFiltrado.forEach((item) => {
-      if (item.GRPO_NOME) nomes.add(item.GRPO_NOME.trim().toUpperCase());
+      const nomeNormalizado = normalizeGroupName(item.GRPO_NOME);
+      if (nomeNormalizado) nomes.add(nomeNormalizado);
     });
+
+    const tipoNormalizado = normalizeGroupName(filtroGrpoTipo);
+    if (tipoNormalizado) nomes.add(tipoNormalizado);
+
     return nomes;
   }, [comparativoFiltrado, filtroGrpoTipo]);
 
   const salesDataFiltrado = useMemo(() => {
-    if (!grpoIdsFiltrados) return salesData;
-    return salesData.filter((item) => {
-      const grupo = (item.GRUPO || "").trim().toUpperCase();
-      return grpoIdsFiltrados.has(grupo);
-    });
-  }, [salesData, grpoIdsFiltrados]);
+    if (!gruposFiltrados) return salesData;
+    return salesData.filter((item) => gruposFiltrados.has(normalizeGroupName(item.GRUPO)));
+  }, [salesData, gruposFiltrados]);
 
   if (loading) {
     return (
@@ -169,13 +181,19 @@ export default function Dashboard() {
   const totalFaturamento = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
   const totalQtdVendida = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_FATURADA), 0);
   const ticketMedio = totalQtdVendida > 0 ? totalFaturamento / totalQtdVendida : 0;
-  const totalLucro = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_LUCRO), 0);
+  const totalLucro = salesDataFiltrado.reduce(
+    (s, item) => s + (parseCurrency(item.ITFT_VLR_LUCRO) || (parseCurrency(item.ITFT_VLR_CONTABIL) - parseCurrency(item.ITFT_CUSTO_NA_OPERACAO))),
+    0
+  );
   const margemMedia = totalFaturamento > 0 ? (totalLucro / totalFaturamento) * 100 : 0;
 
-  // Clientes únicos e recompra
-  const totalNotas = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.DCFS_QTD), 0);
+  // Recompra: usa DCFS_QTD quando disponível; senão faz fallback para quantidade faturada
+  const totalBaseRecompra = salesDataFiltrado.reduce(
+    (s, item) => s + (parseCurrency(item.DCFS_QTD) || parseCurrency(item.ITFT_QTDE_FATURADA)),
+    0
+  );
   const totalDev = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.QTDE_DEV), 0);
-  const taxaRecompra = totalNotas > 0 ? ((totalNotas - totalDev) / totalNotas) * 100 : 0;
+  const taxaRecompra = totalBaseRecompra > 0 ? ((totalBaseRecompra - totalDev) / totalBaseRecompra) * 100 : 0;
 
   // Separar comparativo por GRPO_TIPO e ordenar por valor
   const tiposMap = new Map<string, Comparativo[]>();
@@ -571,24 +589,26 @@ function KpiCard({ icon: Icon, title, value, subtitle, change }: {
 
   return (
     <Card className="border-border/40 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden">
-      <CardContent className="p-3 h-full flex flex-col gap-1.5 bg-gradient-to-br from-primary/8 to-primary/3 rounded-lg">
-        <div className="flex items-center gap-1.5">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
-            <Icon className="h-3 w-3" />
-          </div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-tight min-w-0">{title}</p>
-        </div>
-        <div className="flex items-end justify-between gap-1">
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground leading-tight truncate">{value}</p>
-            {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+      <CardContent className="p-3 h-full bg-gradient-to-br from-primary/8 to-primary/3 rounded-lg">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
+              <Icon className="h-3 w-3" />
+            </div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-tight truncate">
+              {title}
+            </p>
           </div>
           {change !== undefined && (
-            <span className={`flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+            <span className={`mt-0.5 flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
               {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
               {Math.abs(change).toFixed(1)}%
             </span>
           )}
+        </div>
+        <div className="mt-2 min-w-0">
+          <p className="text-sm font-bold text-foreground leading-tight break-words">{value}</p>
+          {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
         </div>
       </CardContent>
     </Card>
