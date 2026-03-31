@@ -182,7 +182,7 @@ export default function Dashboard() {
         {grpoTipos.length > 1 && (
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
+            <Select value={filtroGrpoTipo === "__pending__" ? "__all__" : filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filtrar tipo" />
               </SelectTrigger>
