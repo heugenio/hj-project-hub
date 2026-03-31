@@ -113,7 +113,8 @@ export default function CampanhasAgendadas({ unidades }: Props) {
     const fetchMensagem = async () => {
       setLoadingMsg(true);
       try {
-        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${encodeURIComponent(form.tipo)}`;
+        const mswaTipo = tipoToMswaTipo[form.tipo] || form.tipo;
+        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${encodeURIComponent(mswaTipo)}`;
         console.log('[CampanhasAgendadas] Buscando template:', endpoint);
         const { data, error } = await supabase.functions.invoke('api-proxy', {
           body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
