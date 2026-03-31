@@ -92,22 +92,49 @@ export default function CampanhasAgendadas({ unidades }: Props) {
     return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
   }
 
-  // Auto-fetch message template when tipo changes (only for new campaigns)
+  // Track tipo changes to auto-fetch template
+  const [lastFetchedTipo, setLastFetchedTipo] = useState<string | null>(null);
+
+  // Auto-fetch message template when tipo changes
   useEffect(() => {
-    if (!dialogOpen || editingId) return;
+    if (!dialogOpen) return;
+    // For editing, only fetch if user changed the tipo from what was loaded
+    if (editingId && form.tipo === lastFetchedTipo) return;
+    // For new, always fetch
+    if (!editingId && form.tipo === lastFetchedTipo) return;
+
     const fetchMensagem = async () => {
       setLoadingMsg(true);
       try {
-        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${form.tipo}`;
+        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${encodeURIComponent(form.tipo)}`;
+        console.log('[CampanhasAgendadas] Buscando template:', endpoint);
         const { data, error } = await supabase.functions.invoke('api-proxy', {
           body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
         });
         if (error) throw new Error(error.message);
+        console.log('[CampanhasAgendadas] Resposta getMenssagensWhts:', JSON.stringify(data));
+
+        // Parse response - data may be string, array, or object
+        let parsed: any = data;
+        if (typeof data === 'string') {
+          try { parsed = JSON.parse(data); } catch { parsed = data; }
+        }
+
         let result: any = null;
-        if (Array.isArray(data) && data.length > 0) result = data[0];
-        else if (data && typeof data === 'object' && !Array.isArray(data)) result = data;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          result = parsed[0];
+        } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          // Could be a single object or wrapped response
+          if (parsed.MSWA_MENSAGEM) {
+            result = parsed;
+          }
+        }
+
         if (result?.MSWA_MENSAGEM) {
           setForm(f => ({ ...f, mensagem: result.MSWA_MENSAGEM }));
+          setLastFetchedTipo(form.tipo);
+        } else {
+          console.warn('[CampanhasAgendadas] MSWA_MENSAGEM não encontrado na resposta');
         }
       } catch (err: any) {
         console.error('Erro ao buscar mensagem template:', err);
@@ -116,7 +143,7 @@ export default function CampanhasAgendadas({ unidades }: Props) {
       }
     };
     fetchMensagem();
-  }, [form.tipo, dialogOpen, editingId]);
+  }, [form.tipo, dialogOpen]);
 
   const fetchCampanhas = useCallback(async () => {
     setLoading(true);
