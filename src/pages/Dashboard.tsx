@@ -210,8 +210,8 @@ export default function Dashboard() {
 
       {/* Summary cards — 6 KPIs modernos */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} change={crescimento} color="primary" />
-        <KpiCard icon={Package} title="Pneus Vendidos" value={totalQtdVendida.toLocaleString("pt-BR")} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} color="accent" />
+        <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} subtitle={`Ant: ${formatBRL(vlrAnterior)}`} change={crescimento} color="primary" />
+        <KpiCard icon={Package} title="Pneus Vendidos" value={totalQtdVendida.toLocaleString("pt-BR")} subtitle={`Ant: ${qtdAnterior.toLocaleString("pt-BR")}`} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} color="accent" />
         <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} color="primary" />
         <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} color="accent" />
         <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} color="primary" />
@@ -220,15 +220,15 @@ export default function Dashboard() {
 
       {/* Multi-lojas — ADM only */}
       {perfil === "ADM" && resumoLojas.length > 1 && (() => {
-        // Agregar por UNEM_ID (somar tipos da mesma loja)
+        // Agregar comparativoFiltrado por UNEM_ID (respeita o filtro de tipo)
         const lojasAgregadas = Object.values(
-          resumoLojas.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, loja) => {
-            const id = loja.UNEM_ID;
+          comparativoFiltrado.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, item) => {
+            const id = item.UNEM_ID;
             if (!acc[id]) acc[id] = { UNEM_ID: id, vlr: 0, vlrAnt: 0, qtd: 0, qtdAnt: 0 };
-            acc[id].vlr += parseCurrency(loja.ITFT_VLR_CONTABIL);
-            acc[id].vlrAnt += parseCurrency(loja.ITFT_VLR_CONTABIL_ANT);
-            acc[id].qtd += parseCurrency(loja.ITFT_QTDE);
-            acc[id].qtdAnt += parseCurrency(loja.ITFT_QTDE_ANT);
+            acc[id].vlr += parseCurrency(item.ITFT_VLR_CONTABIL);
+            acc[id].vlrAnt += parseCurrency(item.ITFT_VLR_CONTABIL_ANT);
+            acc[id].qtd += parseCurrency(item.ITFT_QTDE);
+            acc[id].qtdAnt += parseCurrency(item.ITFT_QTDE_ANT);
             return acc;
           }, {})
         );
@@ -536,10 +536,11 @@ export default function Dashboard() {
   );
 }
 
-function KpiCard({ icon: Icon, title, value, change, color = "primary" }: {
+function KpiCard({ icon: Icon, title, value, subtitle, change, color = "primary" }: {
   icon: React.ElementType;
   title: string;
   value: string;
+  subtitle?: string;
   change?: number;
   color?: "primary" | "accent";
 }) {
@@ -551,20 +552,21 @@ function KpiCard({ icon: Icon, title, value, change, color = "primary" }: {
 
   return (
     <Card className="border-border/40 bg-gradient-to-br backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-      <CardContent className={`p-4 bg-gradient-to-br ${bgGradient} rounded-lg`}>
-        <div className="flex items-center gap-2 mb-2">
-          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${iconBg}`}>
-            <Icon className="h-3.5 w-3.5" />
+      <CardContent className={`p-3 bg-gradient-to-br ${bgGradient} rounded-lg`}>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${iconBg}`}>
+            <Icon className="h-3 w-3" />
           </div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium truncate">{title}</p>
           {change !== undefined && (
-            <span className={`ml-auto flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+            <span className={`ml-auto flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
               {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
               {Math.abs(change).toFixed(1)}%
             </span>
           )}
         </div>
-        <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wide font-medium">{title}</p>
+        <p className="text-sm font-bold text-foreground leading-tight">{value}</p>
+        {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
       </CardContent>
     </Card>
   );
