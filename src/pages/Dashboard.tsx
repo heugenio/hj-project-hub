@@ -122,6 +122,17 @@ export default function Dashboard() {
     return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativo, filtroGrpoTipo]);
 
+  // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
+  const grpoNomesFiltrados = useMemo(() => {
+    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return null;
+    return new Set(comparativoFiltrado.map((item) => item.GRPO_NOME));
+  }, [comparativoFiltrado, filtroGrpoTipo]);
+
+  const salesDataFiltrado = useMemo(() => {
+    if (!grpoNomesFiltrados) return salesData;
+    return salesData.filter((item) => grpoNomesFiltrados.has(item.GRUPO));
+  }, [salesData, grpoNomesFiltrados]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -137,17 +148,6 @@ export default function Dashboard() {
   const qtdAnterior = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_ANT), 0);
   const crescimento = vlrAnterior > 0 ? ((vlrAtual - vlrAnterior) / vlrAnterior) * 100 : 0;
 
-  // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
-  const grpoNomesFiltrados = useMemo(() => {
-    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return null;
-    return new Set(comparativoFiltrado.map((item) => item.GRPO_NOME));
-  }, [comparativoFiltrado, filtroGrpoTipo]);
-
-  const salesDataFiltrado = useMemo(() => {
-    if (!grpoNomesFiltrados) return salesData;
-    return salesData.filter((item) => grpoNomesFiltrados.has(item.GRUPO));
-  }, [salesData, grpoNomesFiltrados]);
-
   // KPIs derivados do demonstrativo de vendas (filtrado)
   const totalFaturamento = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
   const totalQtdVendida = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_FATURADA), 0);
@@ -155,7 +155,7 @@ export default function Dashboard() {
   const totalLucro = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_LUCRO), 0);
   const margemMedia = totalFaturamento > 0 ? (totalLucro / totalFaturamento) * 100 : 0;
 
-  // Clientes únicos e recompra (baseado em DCFS_QTD = notas por produto)
+  // Clientes únicos e recompra
   const totalNotas = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.DCFS_QTD), 0);
   const totalDev = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.QTDE_DEV), 0);
   const taxaRecompra = totalNotas > 0 ? ((totalNotas - totalDev) / totalNotas) * 100 : 0;
