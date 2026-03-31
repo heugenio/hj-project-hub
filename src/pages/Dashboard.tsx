@@ -61,9 +61,15 @@ export default function Dashboard() {
     if (!unemId) return;
     setLoading(true);
 
+    // Datas do mês atual
+    const now = new Date();
+    const dtInicial = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/01`;
+    const dtFinal = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+
     const fetches: Promise<unknown>[] = [
       getComparativo(unemId),
       getComparativoResumo(resumoId),
+      getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }),
     ];
 
     // Para ADM, buscar unidades para mapear UNEM_ID → Sigla
@@ -72,10 +78,11 @@ export default function Dashboard() {
     }
 
     Promise.all(fetches)
-      .then(([comp, res, unidades]) => {
+      .then(([comp, res, sales, unidades]) => {
         setComparativo((comp as Comparativo[]) || []);
         const lojas = (res as ComparativoResumo[]) || [];
         setResumoLojas(lojas);
+        setSalesData((sales as SalesDemo[]) || []);
 
         // Resumo da unidade logada
         const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
