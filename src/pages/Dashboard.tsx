@@ -415,7 +415,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {comparativo.length === 0 ? (
+            {comparativoFiltrado.length === 0 ? (
               <p className="text-muted-foreground text-sm text-center py-10">Sem dados disponíveis</p>
             ) : (
               <div className="overflow-x-auto">
