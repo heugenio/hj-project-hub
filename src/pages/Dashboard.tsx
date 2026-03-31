@@ -129,6 +129,19 @@ export default function Dashboard() {
   const qtdAnterior = parseCurrency(resumo?.ITFT_QTDE_ANT);
   const crescimento = parseGrowth(resumo?.CRECIMENTO);
 
+  // KPIs derivados do demonstrativo de vendas
+  const totalFaturamento = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
+  const totalQtdVendida = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_FATURADA), 0);
+  const ticketMedio = totalQtdVendida > 0 ? totalFaturamento / totalQtdVendida : 0;
+  const totalLucro = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_LUCRO), 0);
+  const totalCusto = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_CUSTO_NA_OPERACAO), 0);
+  const margemMedia = totalFaturamento > 0 ? (totalLucro / totalFaturamento) * 100 : 0;
+
+  // Clientes únicos e recompra (baseado em DCFS_QTD = notas por produto)
+  const totalNotas = salesData.reduce((s, item) => s + parseCurrency(item.DCFS_QTD), 0);
+  const totalDev = salesData.reduce((s, item) => s + parseCurrency(item.QTDE_DEV), 0);
+  const taxaRecompra = totalNotas > 0 ? ((totalNotas - totalDev) / totalNotas) * 100 : 0;
+
   // Separar comparativo por GRPO_TIPO e ordenar por valor
   const tiposMap = new Map<string, Comparativo[]>();
   comparativoFiltrado.forEach((item) => {
@@ -177,29 +190,39 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Summary cards — always shown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Summary cards — 6 KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <SummaryCard
           icon={DollarSign}
-          title="Faturamento Atual"
+          title="Faturamento do Mês"
           value={formatBRL(vlrAtual)}
           change={crescimento}
         />
         <SummaryCard
-          icon={Wallet}
-          title="Faturamento Anterior"
-          value={formatBRL(vlrAnterior)}
-        />
-        <SummaryCard
           icon={Package}
-          title="Qtd. Atual"
-          value={qtdAtual.toLocaleString("pt-BR")}
-          change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : 0}
+          title="Pneus Vendidos"
+          value={totalQtdVendida.toLocaleString("pt-BR")}
+          change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined}
         />
         <SummaryCard
-          icon={ShoppingCart}
-          title="Qtd. Anterior"
-          value={qtdAnterior.toLocaleString("pt-BR")}
+          icon={Receipt}
+          title="Ticket Médio"
+          value={formatBRL(ticketMedio)}
+        />
+        <SummaryCard
+          icon={Percent}
+          title="Margem Média"
+          value={`${margemMedia.toFixed(1)}%`}
+        />
+        <SummaryCard
+          icon={BadgeDollarSign}
+          title="Lucro Líquido"
+          value={formatBRL(totalLucro)}
+        />
+        <SummaryCard
+          icon={RefreshCw}
+          title="Taxa Recompra"
+          value={`${taxaRecompra.toFixed(1)}%`}
         />
       </div>
 
