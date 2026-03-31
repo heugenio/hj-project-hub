@@ -106,9 +106,22 @@ export default function Dashboard() {
   const qtdAnterior = parseCurrency(resumo?.ITFT_QTDE_ANT);
   const crescimento = parseGrowth(resumo?.CRECIMENTO);
 
+  // Lista única de GRPO_TIPO para o filtro
+  const grpoTipos = useMemo(() => {
+    const tipos = new Set<string>();
+    comparativo.forEach((item) => tipos.add(item.GRPO_TIPO || "Geral"));
+    return Array.from(tipos).sort();
+  }, [comparativo]);
+
+  // Dados filtrados
+  const comparativoFiltrado = useMemo(() => {
+    if (filtroGrpoTipo === "__all__") return comparativo;
+    return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
+  }, [comparativo, filtroGrpoTipo]);
+
   // Separar comparativo por GRPO_TIPO e ordenar por valor
   const tiposMap = new Map<string, Comparativo[]>();
-  comparativo.forEach((item) => {
+  comparativoFiltrado.forEach((item) => {
     const tipo = item.GRPO_TIPO || "Geral";
     if (!tiposMap.has(tipo)) tiposMap.set(tipo, []);
     tiposMap.get(tipo)!.push(item);
@@ -120,7 +133,7 @@ export default function Dashboard() {
     items: [...items].sort((a, b) => parseCurrency(b.ITFT_VLR_CONTABIL) - parseCurrency(a.ITFT_VLR_CONTABIL)),
   }));
 
-  const pieData = comparativo
+  const pieData = comparativoFiltrado
     .filter((item) => parseCurrency(item.ITFT_VLR_CONTABIL) > 0)
     .map((item) => ({
       name: item.GRPO_NOME || "N/A",
