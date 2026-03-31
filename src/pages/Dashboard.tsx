@@ -458,7 +458,7 @@ export default function Dashboard() {
       )}
 
       {/* Vendas profile: growth ranking */}
-      {perfil === "Vendas" && comparativo.length > 0 && (
+      {perfil === "Vendas" && comparativoFiltrado.length > 0 && (
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -468,7 +468,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[...comparativo]
+              {[...comparativoFiltrado]
                 .sort((a, b) => parseGrowth(b.CRECIMENTO) - parseGrowth(a.CRECIMENTO))
                 .slice(0, 8)
                 .map((item, i) => {
