@@ -218,14 +218,21 @@ export default function Dashboard() {
       </div>
 
       {/* Summary cards — 6 KPIs modernos */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} subtitle={`Ant: ${formatBRL(vlrAnterior)}`} change={crescimento} color="primary" />
-        <KpiCard icon={Package} title="Pneus Vendidos" value={totalQtdVendida.toLocaleString("pt-BR")} subtitle={`Ant: ${qtdAnterior.toLocaleString("pt-BR")}`} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} color="accent" />
-        <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} color="primary" />
-        <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} color="accent" />
-        <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} color="primary" />
-        <KpiCard icon={RefreshCw} title="Recompra" value={`${taxaRecompra.toFixed(1)}%`} color="accent" />
-      </div>
+      {(() => {
+        const tipoLabel = filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__"
+          ? "Quantidades"
+          : `${filtroGrpoTipo} Vendidos`;
+        return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} subtitle={`Ant: ${formatBRL(vlrAnterior)}`} change={crescimento} />
+          <KpiCard icon={Package} title={tipoLabel} value={qtdAtual.toLocaleString("pt-BR")} subtitle={`Ant: ${qtdAnterior.toLocaleString("pt-BR")}`} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} />
+          <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} />
+          <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} />
+          <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} />
+          <KpiCard icon={RefreshCw} title="Recompra" value={`${taxaRecompra.toFixed(1)}%`} />
+        </div>
+        );
+      })()}
 
       {/* Multi-lojas — ADM only */}
       {perfil === "ADM" && resumoLojas.length > 1 && (() => {
@@ -545,28 +552,23 @@ export default function Dashboard() {
   );
 }
 
-function KpiCard({ icon: Icon, title, value, subtitle, change, color = "primary" }: {
+function KpiCard({ icon: Icon, title, value, subtitle, change }: {
   icon: React.ElementType;
   title: string;
   value: string;
   subtitle?: string;
   change?: number;
-  color?: "primary" | "accent";
 }) {
   const up = (change ?? 0) >= 0;
-  const bgGradient = color === "primary"
-    ? "from-primary/10 to-primary/5"
-    : "from-accent/10 to-accent/5";
-  const iconBg = color === "primary" ? "bg-primary/15 text-primary" : "bg-accent/15 text-accent";
 
   return (
-    <Card className="border-border/40 bg-gradient-to-br backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-      <CardContent className={`p-3 bg-gradient-to-br ${bgGradient} rounded-lg`}>
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${iconBg}`}>
+    <Card className="border-border/40 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+      <CardContent className="p-3 h-full flex flex-col justify-between bg-gradient-to-br from-primary/8 to-primary/3 rounded-lg">
+        <div className="flex items-center gap-1.5 mb-2">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
             <Icon className="h-3 w-3" />
           </div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium truncate">{title}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-tight">{title}</p>
           {change !== undefined && (
             <span className={`ml-auto flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
               {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
@@ -574,8 +576,10 @@ function KpiCard({ icon: Icon, title, value, subtitle, change, color = "primary"
             </span>
           )}
         </div>
-        <p className="text-sm font-bold text-foreground leading-tight">{value}</p>
-        {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
+        <div>
+          <p className="text-base font-bold text-foreground leading-tight">{value}</p>
+          {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
       </CardContent>
     </Card>
   );
