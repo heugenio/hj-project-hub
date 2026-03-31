@@ -43,6 +43,7 @@ type Perfil = "ADM" | "Vendas" | "FINANCEIRO" | string;
 export default function Dashboard() {
   const { auth } = useAuth();
   const [comparativo, setComparativo] = useState<Comparativo[]>([]);
+  const [comparativoGeral, setComparativoGeral] = useState<Comparativo[]>([]);
   const [resumo, setResumo] = useState<ComparativoResumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
