@@ -73,17 +73,55 @@ Deno.serve(async (req) => {
       return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
     };
 
+    const parseProxyData = (data: any) => {
+      if (!data) return null;
+      if (typeof data === 'string') {
+        try { return JSON.parse(data); } catch { return data; }
+      }
+      return data;
+    };
+
     // ── Date range ──
     const hoje = new Date();
     const fmtDate = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const dataFim = fmtDate(hoje);
-    let dataIni = dataFim; // diaria: DATAINI = DATAFIM
-    if (campaign.recorrencia === 'semanal') {
-      const ini = new Date(hoje);
-      ini.setDate(ini.getDate() - 7);
-      dataIni = fmtDate(ini);
-    }
+
+    const resolveDateRange = async () => {
+      const hojeFmt = fmtDate(hoje);
+      const isRodizioDiario = campaign.recorrencia === 'diaria' && (campaign.tipo || '').trim().toUpperCase() === 'RODIZIO';
+
+      if (isRodizioDiario) {
+        try {
+          const msgRaw = await proxyCall(`/getMenssagensWhts?MSWA_TIPO=${encodeURIComponent(campaign.tipo)}`);
+          const msgParsed = parseProxyData(msgRaw);
+          const msgConfig = Array.isArray(msgParsed) ? msgParsed[0] : msgParsed;
+          const qtdDias = Number(msgConfig?.MSWA_QTD_DIAS) || 0;
+
+          if (qtdDias > 0) {
+            const dataAlvo = new Date(hoje);
+            dataAlvo.setDate(dataAlvo.getDate() - qtdDias);
+            const dataAlvoFmt = fmtDate(dataAlvo);
+            console.log(`Campanha ${campaign.nome}: RODIZIO diário com MSWA_QTD_DIAS=${qtdDias}, DATAINI=${dataAlvoFmt}, DATAFIM=${dataAlvoFmt}`);
+            return { dataIni: dataAlvoFmt, dataFim: dataAlvoFmt };
+          }
+        } catch (err) {
+          console.warn(`Campanha ${campaign.nome}: erro ao buscar MSWA_QTD_DIAS do RODIZIO, usando data atual`, err);
+        }
+      }
+
+      if (campaign.recorrencia === 'semanal') {
+        const ini = new Date(hoje);
+        ini.setDate(ini.getDate() - 7);
+        const dataIni = fmtDate(ini);
+        console.log(`Campanha ${campaign.nome}: recorrencia=semanal, DATAINI=${dataIni}, DATAFIM=${hojeFmt}`);
+        return { dataIni, dataFim: hojeFmt };
+      }
+
+      console.log(`Campanha ${campaign.nome}: recorrencia=${campaign.recorrencia}, DATAINI=${hojeFmt}, DATAFIM=${hojeFmt}`);
+      return { dataIni: hojeFmt, dataFim: hojeFmt };
+    };
+
+    const { dataIni, dataFim } = await resolveDateRange();
 
     let totalEnviados = 0;
     let totalErros = 0;
