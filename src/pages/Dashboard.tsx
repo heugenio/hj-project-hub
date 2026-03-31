@@ -125,6 +125,12 @@ export default function Dashboard() {
     return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativo, filtroGrpoTipo]);
 
+  // Comparativo geral (todas as lojas) filtrado por tipo
+  const comparativoGeralFiltrado = useMemo(() => {
+    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativoGeral;
+    return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
+  }, [comparativoGeral, filtroGrpoTipo]);
+
   // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
   const grpoNomesFiltrados = useMemo(() => {
     if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return null;
