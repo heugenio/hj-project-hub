@@ -43,6 +43,7 @@ type Perfil = "ADM" | "Vendas" | "FINANCEIRO" | string;
 export default function Dashboard() {
   const { auth } = useAuth();
   const [comparativo, setComparativo] = useState<Comparativo[]>([]);
+  const [comparativoGeral, setComparativoGeral] = useState<Comparativo[]>([]);
   const [resumo, setResumo] = useState<ComparativoResumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
@@ -72,17 +73,19 @@ export default function Dashboard() {
       getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }),
     ];
 
-    // Para ADM, buscar unidades para mapear UNEM_ID → Sigla
+    // Para ADM, buscar comparativo e unidades de todas as lojas
     if (perfil === "ADM" && emprId) {
       fetches.push(getUnidadesEmpresariais(emprId));
+      fetches.push(getComparativo(resumoId)); // comparativo de todas as lojas com GRPO_TIPO
     }
 
     Promise.all(fetches)
-      .then(([comp, res, sales, unidades]) => {
+      .then(([comp, res, sales, unidades, compGeral]) => {
         setComparativo((comp as Comparativo[]) || []);
         const lojas = (res as ComparativoResumo[]) || [];
         setResumoLojas(lojas);
         setSalesData((sales as SalesDemo[]) || []);
+        setComparativoGeral((compGeral as Comparativo[]) || []);
 
         // Resumo da unidade logada
         const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
@@ -121,6 +124,12 @@ export default function Dashboard() {
     if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativo;
     return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativo, filtroGrpoTipo]);
+
+  // Comparativo geral (todas as lojas) filtrado por tipo
+  const comparativoGeralFiltrado = useMemo(() => {
+    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativoGeral;
+    return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
+  }, [comparativoGeral, filtroGrpoTipo]);
 
   // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
   const grpoNomesFiltrados = useMemo(() => {
@@ -220,9 +229,9 @@ export default function Dashboard() {
 
       {/* Multi-lojas — ADM only */}
       {perfil === "ADM" && resumoLojas.length > 1 && (() => {
-        // Agregar comparativoFiltrado por UNEM_ID (respeita o filtro de tipo)
+        // Agregar comparativoGeralFiltrado por UNEM_ID (respeita o filtro de tipo, todas as lojas)
         const lojasAgregadas = Object.values(
-          comparativoFiltrado.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, item) => {
+          comparativoGeralFiltrado.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, item) => {
             const id = item.UNEM_ID;
             if (!acc[id]) acc[id] = { UNEM_ID: id, vlr: 0, vlrAnt: 0, qtd: 0, qtdAnt: 0 };
             acc[id].vlr += parseCurrency(item.ITFT_VLR_CONTABIL);
