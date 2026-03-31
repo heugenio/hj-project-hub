@@ -431,7 +431,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {comparativo.map((item, i) => {
+                    {comparativoFiltrado.map((item, i) => {
                       const growth = parseGrowth(item.CRECIMENTO);
                       return (
                         <TableRow key={i}>
