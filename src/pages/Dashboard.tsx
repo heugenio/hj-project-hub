@@ -536,10 +536,11 @@ export default function Dashboard() {
   );
 }
 
-function KpiCard({ icon: Icon, title, value, change, color = "primary" }: {
+function KpiCard({ icon: Icon, title, value, subtitle, change, color = "primary" }: {
   icon: React.ElementType;
   title: string;
   value: string;
+  subtitle?: string;
   change?: number;
   color?: "primary" | "accent";
 }) {
@@ -551,20 +552,21 @@ function KpiCard({ icon: Icon, title, value, change, color = "primary" }: {
 
   return (
     <Card className="border-border/40 bg-gradient-to-br backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-      <CardContent className={`p-4 bg-gradient-to-br ${bgGradient} rounded-lg`}>
-        <div className="flex items-center gap-2 mb-2">
-          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${iconBg}`}>
-            <Icon className="h-3.5 w-3.5" />
+      <CardContent className={`p-3 bg-gradient-to-br ${bgGradient} rounded-lg`}>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${iconBg}`}>
+            <Icon className="h-3 w-3" />
           </div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium truncate">{title}</p>
           {change !== undefined && (
-            <span className={`ml-auto flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+            <span className={`ml-auto flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
               {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
               {Math.abs(change).toFixed(1)}%
             </span>
           )}
         </div>
-        <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wide font-medium">{title}</p>
+        <p className="text-sm font-bold text-foreground leading-tight">{value}</p>
+        {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
       </CardContent>
     </Card>
   );
