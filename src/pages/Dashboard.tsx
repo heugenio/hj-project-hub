@@ -131,16 +131,24 @@ export default function Dashboard() {
     return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativoGeral, filtroGrpoTipo]);
 
-  // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
-  const grpoNomesFiltrados = useMemo(() => {
+  // Filtrar salesData pelo mesmo GRPO_TIPO do filtro (match por GRPO_ID e nome)
+  const grpoIdsFiltrados = useMemo(() => {
     if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return null;
-    return new Set(comparativoFiltrado.map((item) => item.GRPO_NOME));
+    // Coletar nomes dos grupos do tipo filtrado para cruzar com salesData.GRUPO
+    const nomes = new Set<string>();
+    comparativoFiltrado.forEach((item) => {
+      if (item.GRPO_NOME) nomes.add(item.GRPO_NOME.trim().toUpperCase());
+    });
+    return nomes;
   }, [comparativoFiltrado, filtroGrpoTipo]);
 
   const salesDataFiltrado = useMemo(() => {
-    if (!grpoNomesFiltrados) return salesData;
-    return salesData.filter((item) => grpoNomesFiltrados.has(item.GRUPO));
-  }, [salesData, grpoNomesFiltrados]);
+    if (!grpoIdsFiltrados) return salesData;
+    return salesData.filter((item) => {
+      const grupo = (item.GRUPO || "").trim().toUpperCase();
+      return grpoIdsFiltrados.has(grupo);
+    });
+  }, [salesData, grpoIdsFiltrados]);
 
   if (loading) {
     return (
