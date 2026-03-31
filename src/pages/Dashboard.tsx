@@ -304,26 +304,27 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Fat. Atual</span>
-                    <span className="text-sm font-bold text-foreground">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL), 0))}</span>
+                    <span className="text-sm font-bold text-foreground">{formatBRL(lojasAgregadas.reduce((s, l) => s + l.vlr, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Fat. Anterior</span>
-                    <span className="text-xs text-muted-foreground">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL_ANT), 0))}</span>
+                    <span className="text-xs text-muted-foreground">{formatBRL(lojasAgregadas.reduce((s, l) => s + l.vlrAnt, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Qtd. Atual</span>
-                    <span className="text-xs text-foreground">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE), 0).toLocaleString("pt-BR")}</span>
+                    <span className="text-xs text-foreground">{lojasAgregadas.reduce((s, l) => s + l.qtd, 0).toLocaleString("pt-BR")}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
-                    <span className="text-xs text-muted-foreground">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE_ANT), 0).toLocaleString("pt-BR")}</span>
+                    <span className="text-xs text-muted-foreground">{lojasAgregadas.reduce((s, l) => s + l.qtdAnt, 0).toLocaleString("pt-BR")}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Profile-specific sections — Chart split by GRPO_TIPO */}
       {(perfil === "ADM" || perfil === "Vendas") && (
