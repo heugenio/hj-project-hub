@@ -229,9 +229,9 @@ export default function Dashboard() {
 
       {/* Multi-lojas — ADM only */}
       {perfil === "ADM" && resumoLojas.length > 1 && (() => {
-        // Agregar comparativoFiltrado por UNEM_ID (respeita o filtro de tipo)
+        // Agregar comparativoGeralFiltrado por UNEM_ID (respeita o filtro de tipo, todas as lojas)
         const lojasAgregadas = Object.values(
-          comparativoFiltrado.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, item) => {
+          comparativoGeralFiltrado.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, item) => {
             const id = item.UNEM_ID;
             if (!acc[id]) acc[id] = { UNEM_ID: id, vlr: 0, vlrAnt: 0, qtd: 0, qtdAnt: 0 };
             acc[id].vlr += parseCurrency(item.ITFT_VLR_CONTABIL);
