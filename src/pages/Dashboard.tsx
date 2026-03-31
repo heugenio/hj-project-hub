@@ -514,31 +514,35 @@ export default function Dashboard() {
   );
 }
 
-function SummaryCard({ icon: Icon, title, value, change }: {
+function KpiCard({ icon: Icon, title, value, change, color = "primary" }: {
   icon: React.ElementType;
   title: string;
   value: string;
   change?: number;
+  color?: "primary" | "accent";
 }) {
   const up = (change ?? 0) >= 0;
+  const bgGradient = color === "primary"
+    ? "from-primary/10 to-primary/5"
+    : "from-accent/10 to-accent/5";
+  const iconBg = color === "primary" ? "bg-primary/15 text-primary" : "bg-accent/15 text-accent";
+
   return (
-    <Card className="border-border/50">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="h-5 w-5 text-primary" />
+    <Card className="border-border/40 bg-gradient-to-br backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+      <CardContent className={`p-4 bg-gradient-to-br ${bgGradient} rounded-lg`}>
+        <div className="flex items-center gap-2 mb-2">
+          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${iconBg}`}>
+            <Icon className="h-3.5 w-3.5" />
           </div>
           {change !== undefined && (
-            <span className={`flex items-center gap-1 text-xs font-medium ${up ? "text-accent" : "text-destructive"}`}>
-              {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {change.toFixed(1)}%
+            <span className={`ml-auto flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+              {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
+              {Math.abs(change).toFixed(1)}%
             </span>
           )}
         </div>
-        <div className="mt-3">
-          <p className="text-2xl font-bold text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
-        </div>
+        <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wide font-medium">{title}</p>
       </CardContent>
     </Card>
   );
