@@ -57,7 +57,7 @@ export default function Dashboard() {
   const [resumo, setResumo] = useState<ComparativoResumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
-  const [unidadesMap, setUnidadesMap] = useState<Record<string, string>>({});
+  const [unidadesMap, setUnidadesMap] = useState<Record<string, { sigla: string; uf: string }>>({});
   const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__pending__");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
 
@@ -101,11 +101,14 @@ export default function Dashboard() {
         const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
         setResumo(lojaLogada || lojas[0] || null);
 
-        // Mapear UNEM_ID → unem_Sigla
+        // Mapear UNEM_ID → { sigla, uf }
         if (unidades && Array.isArray(unidades)) {
-          const map: Record<string, string> = {};
+          const map: Record<string, { sigla: string; uf: string }> = {};
           (unidades as UnidadeEmpresarial[]).forEach((u) => {
-            map[u.unem_Id] = u.unem_Sigla || u.unem_Fantasia || u.unem_Id;
+            map[u.unem_Id] = {
+              sigla: u.unem_Sigla || u.unem_Fantasia || u.unem_Id,
+              uf: u.unem_Uf || "",
+            };
           });
           setUnidadesMap(map);
         }
@@ -275,6 +278,19 @@ export default function Dashboard() {
           }, {})
         );
 
+        // Ordenar: UF da loja logada primeiro, depois por UF e sigla
+        const ufLogada = unidadesMap[unemId]?.uf || "";
+        const lojasOrdenadas = [...lojasAgregadas].sort((a, b) => {
+          const ufA = unidadesMap[a.UNEM_ID]?.uf || "";
+          const ufB = unidadesMap[b.UNEM_ID]?.uf || "";
+          if (ufA === ufLogada && ufB !== ufLogada) return -1;
+          if (ufB === ufLogada && ufA !== ufLogada) return 1;
+          if (ufA !== ufB) return ufA.localeCompare(ufB);
+          const siglaA = unidadesMap[a.UNEM_ID]?.sigla || a.UNEM_ID;
+          const siglaB = unidadesMap[b.UNEM_ID]?.sigla || b.UNEM_ID;
+          return siglaA.localeCompare(siglaB);
+        });
+
         return (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -282,10 +298,12 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-foreground">Visão Multi-Lojas</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {lojasAgregadas.map((loja, i) => {
+            {lojasOrdenadas.map((loja, i) => {
               const growth = loja.vlrAnt > 0 ? ((loja.vlr - loja.vlrAnt) / loja.vlrAnt) * 100 : 0;
               const isLogada = loja.UNEM_ID === unemId;
-              const sigla = unidadesMap[loja.UNEM_ID] || loja.UNEM_ID || `Loja ${i + 1}`;
+              const info = unidadesMap[loja.UNEM_ID];
+              const uf = info?.uf || "";
+              const sigla = uf ? `${uf} - ${info?.sigla || loja.UNEM_ID}` : (info?.sigla || loja.UNEM_ID || `Loja ${i + 1}`);
 
               return (
                 <Card
@@ -357,19 +375,19 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Fat. Atual</span>
-                    <span className="text-sm font-bold text-foreground">{formatBRL(lojasAgregadas.reduce((s, l) => s + l.vlr, 0))}</span>
+                    <span className="text-sm font-bold text-foreground">{formatBRL(lojasOrdenadas.reduce((s, l) => s + l.vlr, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Fat. Anterior</span>
-                    <span className="text-xs text-muted-foreground">{formatBRL(lojasAgregadas.reduce((s, l) => s + l.vlrAnt, 0))}</span>
+                    <span className="text-xs text-muted-foreground">{formatBRL(lojasOrdenadas.reduce((s, l) => s + l.vlrAnt, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Qtd. Atual</span>
-                    <span className="text-xs text-foreground">{lojasAgregadas.reduce((s, l) => s + l.qtd, 0).toLocaleString("pt-BR")}</span>
+                    <span className="text-xs text-foreground">{lojasOrdenadas.reduce((s, l) => s + l.qtd, 0).toLocaleString("pt-BR")}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
-                    <span className="text-xs text-muted-foreground">{lojasAgregadas.reduce((s, l) => s + l.qtdAnt, 0).toLocaleString("pt-BR")}</span>
+                    <span className="text-xs text-muted-foreground">{lojasOrdenadas.reduce((s, l) => s + l.qtdAnt, 0).toLocaleString("pt-BR")}</span>
                   </div>
                 </div>
               </CardContent>
@@ -589,26 +607,24 @@ function KpiCard({ icon: Icon, title, value, subtitle, change }: {
 
   return (
     <Card className="border-border/40 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden">
-      <CardContent className="p-3 h-full bg-gradient-to-br from-primary/8 to-primary/3 rounded-lg">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
-              <Icon className="h-3 w-3" />
-            </div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-tight truncate">
-              {title}
-            </p>
+      <CardContent className="p-3 h-full bg-gradient-to-br from-primary/8 to-primary/3 rounded-lg space-y-1">
+        <div className="flex items-center gap-1.5">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
+            <Icon className="h-3 w-3" />
           </div>
-          {change !== undefined && (
-            <span className={`mt-0.5 flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
-              {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
-              {Math.abs(change).toFixed(1)}%
-            </span>
-          )}
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-tight truncate">
+            {title}
+          </p>
         </div>
-        <div className="mt-2 min-w-0">
+        {change !== undefined && (
+          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+            {up ? <ArrowUpRight className="h-2 w-2" /> : <ArrowDownRight className="h-2 w-2" />}
+            {Math.abs(change).toFixed(1)}%
+          </span>
+        )}
+        <div className="min-w-0">
           <p className="text-sm font-bold text-foreground leading-tight break-words">{value}</p>
-          {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+          {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
       </CardContent>
     </Card>
