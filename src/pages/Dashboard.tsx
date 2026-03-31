@@ -570,23 +570,25 @@ function KpiCard({ icon: Icon, title, value, subtitle, change }: {
   const up = (change ?? 0) >= 0;
 
   return (
-    <Card className="border-border/40 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-      <CardContent className="p-3 h-full flex flex-col justify-between bg-gradient-to-br from-primary/8 to-primary/3 rounded-lg">
-        <div className="flex items-center gap-1.5 mb-2">
+    <Card className="border-border/40 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden">
+      <CardContent className="p-3 h-full flex flex-col gap-1.5 bg-gradient-to-br from-primary/8 to-primary/3 rounded-lg">
+        <div className="flex items-center gap-1.5">
           <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
             <Icon className="h-3 w-3" />
           </div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-tight">{title}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-tight min-w-0">{title}</p>
+        </div>
+        <div className="flex items-end justify-between gap-1">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground leading-tight truncate">{value}</p>
+            {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+          </div>
           {change !== undefined && (
-            <span className={`ml-auto flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+            <span className={`flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
               {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
               {Math.abs(change).toFixed(1)}%
             </span>
           )}
-        </div>
-        <div>
-          <p className="text-base font-bold text-foreground leading-tight">{value}</p>
-          {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
       </CardContent>
     </Card>
