@@ -143,13 +143,29 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Visão geral — Perfil: <Badge variant="secondary" className="ml-1">{perfil}</Badge>
           </p>
         </div>
+        {grpoTipos.length > 1 && (
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos os Tipos</SelectItem>
+                {grpoTipos.map((tipo) => (
+                  <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Summary cards — always shown */}
