@@ -289,7 +289,8 @@ async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros
   else next.setDate(next.getDate() + 1);
   if (campaign.horario) {
     const [h, m] = campaign.horario.split(':');
-    next.setHours(parseInt(h), parseInt(m), 0, 0);
+    // Horário é em BRT (UTC-3), converter para UTC adicionando 3 horas
+    next.setUTCHours(parseInt(h) + 3, parseInt(m), 0, 0);
   }
   await sb.from('campanhas_agendadas').update({
     ultima_execucao: now.toISOString(),
