@@ -182,7 +182,7 @@ export default function Dashboard() {
         {grpoTipos.length > 1 && (
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
+            <Select value={filtroGrpoTipo === "__pending__" ? "__all__" : filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filtrar tipo" />
               </SelectTrigger>
@@ -208,25 +208,35 @@ export default function Dashboard() {
       </div>
 
       {/* Multi-lojas — ADM only */}
-      {perfil === "ADM" && resumoLojas.length > 1 && (
+      {perfil === "ADM" && resumoLojas.length > 1 && (() => {
+        // Agregar por UNEM_ID (somar tipos da mesma loja)
+        const lojasAgregadas = Object.values(
+          resumoLojas.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, loja) => {
+            const id = loja.UNEM_ID;
+            if (!acc[id]) acc[id] = { UNEM_ID: id, vlr: 0, vlrAnt: 0, qtd: 0, qtdAnt: 0 };
+            acc[id].vlr += parseCurrency(loja.ITFT_VLR_CONTABIL);
+            acc[id].vlrAnt += parseCurrency(loja.ITFT_VLR_CONTABIL_ANT);
+            acc[id].qtd += parseCurrency(loja.ITFT_QTDE);
+            acc[id].qtdAnt += parseCurrency(loja.ITFT_QTDE_ANT);
+            return acc;
+          }, {})
+        );
+
+        return (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Store className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">Visão Multi-Lojas</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {resumoLojas.map((loja, i) => {
-              const growth = parseGrowth(loja.CRECIMENTO);
-              const vlr = parseCurrency(loja.ITFT_VLR_CONTABIL);
-              const vlrAnt = parseCurrency(loja.ITFT_VLR_CONTABIL_ANT);
-              const qtd = parseCurrency(loja.ITFT_QTDE);
-              const qtdAnt = parseCurrency(loja.ITFT_QTDE_ANT);
+            {lojasAgregadas.map((loja, i) => {
+              const growth = loja.vlrAnt > 0 ? ((loja.vlr - loja.vlrAnt) / loja.vlrAnt) * 100 : 0;
               const isLogada = loja.UNEM_ID === unemId;
               const sigla = unidadesMap[loja.UNEM_ID] || loja.UNEM_ID || `Loja ${i + 1}`;
 
               return (
                 <Card
-                  key={i}
+                  key={loja.UNEM_ID}
                   className={`border-border/50 relative overflow-hidden transition-shadow hover:shadow-lg ${isLogada ? "ring-2 ring-primary/60" : ""}`}
                 >
                   {isLogada && (
@@ -245,19 +255,19 @@ export default function Dashboard() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-muted-foreground">Fat. Atual</span>
-                        <span className="text-sm font-bold text-foreground">{formatBRL(vlr)}</span>
+                        <span className="text-sm font-bold text-foreground">{formatBRL(loja.vlr)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-muted-foreground">Fat. Anterior</span>
-                        <span className="text-xs text-muted-foreground">{formatBRL(vlrAnt)}</span>
+                        <span className="text-xs text-muted-foreground">{formatBRL(loja.vlrAnt)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-muted-foreground">Qtd. Atual</span>
-                        <span className="text-xs text-foreground">{qtd.toLocaleString("pt-BR")}</span>
+                        <span className="text-xs text-foreground">{loja.qtd.toLocaleString("pt-BR")}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
-                        <span className="text-xs text-muted-foreground">{qtdAnt.toLocaleString("pt-BR")}</span>
+                        <span className="text-xs text-muted-foreground">{loja.qtdAnt.toLocaleString("pt-BR")}</span>
                       </div>
                     </div>
 
@@ -294,26 +304,27 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Fat. Atual</span>
-                    <span className="text-sm font-bold text-foreground">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL), 0))}</span>
+                    <span className="text-sm font-bold text-foreground">{formatBRL(lojasAgregadas.reduce((s, l) => s + l.vlr, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Fat. Anterior</span>
-                    <span className="text-xs text-muted-foreground">{formatBRL(resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_VLR_CONTABIL_ANT), 0))}</span>
+                    <span className="text-xs text-muted-foreground">{formatBRL(lojasAgregadas.reduce((s, l) => s + l.vlrAnt, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Qtd. Atual</span>
-                    <span className="text-xs text-foreground">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE), 0).toLocaleString("pt-BR")}</span>
+                    <span className="text-xs text-foreground">{lojasAgregadas.reduce((s, l) => s + l.qtd, 0).toLocaleString("pt-BR")}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
-                    <span className="text-xs text-muted-foreground">{resumoLojas.reduce((s, l) => s + parseCurrency(l.ITFT_QTDE_ANT), 0).toLocaleString("pt-BR")}</span>
+                    <span className="text-xs text-muted-foreground">{lojasAgregadas.reduce((s, l) => s + l.qtdAnt, 0).toLocaleString("pt-BR")}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Profile-specific sections — Chart split by GRPO_TIPO */}
       {(perfil === "ADM" || perfil === "Vendas") && (
