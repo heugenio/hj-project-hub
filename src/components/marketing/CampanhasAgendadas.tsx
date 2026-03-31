@@ -193,6 +193,7 @@ export default function CampanhasAgendadas({ unidades }: Props) {
   const openNew = () => {
     setEditingId(null);
     setForm({ ...defaultForm });
+    setLastFetchedTipo(null);
     setDialogOpen(true);
   };
 
