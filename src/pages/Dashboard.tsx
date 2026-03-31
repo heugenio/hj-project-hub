@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial } from "@/lib/api";
+import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, getDemonstrativoVendas, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
-  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store, Filter
+  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store, Filter,
+  Receipt, Percent, BadgeDollarSign, RefreshCw
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
   const [unidadesMap, setUnidadesMap] = useState<Record<string, string>>({});
   const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__all__");
+  const [salesData, setSalesData] = useState<SalesDemo[]>([]);
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
@@ -59,9 +61,15 @@ export default function Dashboard() {
     if (!unemId) return;
     setLoading(true);
 
+    // Datas do mês atual
+    const now = new Date();
+    const dtInicial = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/01`;
+    const dtFinal = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+
     const fetches: Promise<unknown>[] = [
       getComparativo(unemId),
       getComparativoResumo(resumoId),
+      getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }),
     ];
 
     // Para ADM, buscar unidades para mapear UNEM_ID → Sigla
@@ -70,10 +78,11 @@ export default function Dashboard() {
     }
 
     Promise.all(fetches)
-      .then(([comp, res, unidades]) => {
+      .then(([comp, res, sales, unidades]) => {
         setComparativo((comp as Comparativo[]) || []);
         const lojas = (res as ComparativoResumo[]) || [];
         setResumoLojas(lojas);
+        setSalesData((sales as SalesDemo[]) || []);
 
         // Resumo da unidade logada
         const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
@@ -119,6 +128,19 @@ export default function Dashboard() {
   const qtdAtual = parseCurrency(resumo?.ITFT_QTDE);
   const qtdAnterior = parseCurrency(resumo?.ITFT_QTDE_ANT);
   const crescimento = parseGrowth(resumo?.CRECIMENTO);
+
+  // KPIs derivados do demonstrativo de vendas
+  const totalFaturamento = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
+  const totalQtdVendida = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_FATURADA), 0);
+  const ticketMedio = totalQtdVendida > 0 ? totalFaturamento / totalQtdVendida : 0;
+  const totalLucro = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_LUCRO), 0);
+  const totalCusto = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_CUSTO_NA_OPERACAO), 0);
+  const margemMedia = totalFaturamento > 0 ? (totalLucro / totalFaturamento) * 100 : 0;
+
+  // Clientes únicos e recompra (baseado em DCFS_QTD = notas por produto)
+  const totalNotas = salesData.reduce((s, item) => s + parseCurrency(item.DCFS_QTD), 0);
+  const totalDev = salesData.reduce((s, item) => s + parseCurrency(item.QTDE_DEV), 0);
+  const taxaRecompra = totalNotas > 0 ? ((totalNotas - totalDev) / totalNotas) * 100 : 0;
 
   // Separar comparativo por GRPO_TIPO e ordenar por valor
   const tiposMap = new Map<string, Comparativo[]>();
@@ -168,29 +190,39 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Summary cards — always shown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Summary cards — 6 KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <SummaryCard
           icon={DollarSign}
-          title="Faturamento Atual"
+          title="Faturamento do Mês"
           value={formatBRL(vlrAtual)}
           change={crescimento}
         />
         <SummaryCard
-          icon={Wallet}
-          title="Faturamento Anterior"
-          value={formatBRL(vlrAnterior)}
-        />
-        <SummaryCard
           icon={Package}
-          title="Qtd. Atual"
-          value={qtdAtual.toLocaleString("pt-BR")}
-          change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : 0}
+          title="Pneus Vendidos"
+          value={totalQtdVendida.toLocaleString("pt-BR")}
+          change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined}
         />
         <SummaryCard
-          icon={ShoppingCart}
-          title="Qtd. Anterior"
-          value={qtdAnterior.toLocaleString("pt-BR")}
+          icon={Receipt}
+          title="Ticket Médio"
+          value={formatBRL(ticketMedio)}
+        />
+        <SummaryCard
+          icon={Percent}
+          title="Margem Média"
+          value={`${margemMedia.toFixed(1)}%`}
+        />
+        <SummaryCard
+          icon={BadgeDollarSign}
+          title="Lucro Líquido"
+          value={formatBRL(totalLucro)}
+        />
+        <SummaryCard
+          icon={RefreshCw}
+          title="Taxa Recompra"
+          value={`${taxaRecompra.toFixed(1)}%`}
         />
       </div>
 
