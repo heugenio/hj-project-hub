@@ -220,15 +220,15 @@ export default function Dashboard() {
 
       {/* Multi-lojas — ADM only */}
       {perfil === "ADM" && resumoLojas.length > 1 && (() => {
-        // Agregar por UNEM_ID (somar tipos da mesma loja)
+        // Agregar comparativoFiltrado por UNEM_ID (respeita o filtro de tipo)
         const lojasAgregadas = Object.values(
-          resumoLojas.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, loja) => {
-            const id = loja.UNEM_ID;
+          comparativoFiltrado.reduce<Record<string, { UNEM_ID: string; vlr: number; vlrAnt: number; qtd: number; qtdAnt: number }>>((acc, item) => {
+            const id = item.UNEM_ID;
             if (!acc[id]) acc[id] = { UNEM_ID: id, vlr: 0, vlrAnt: 0, qtd: 0, qtdAnt: 0 };
-            acc[id].vlr += parseCurrency(loja.ITFT_VLR_CONTABIL);
-            acc[id].vlrAnt += parseCurrency(loja.ITFT_VLR_CONTABIL_ANT);
-            acc[id].qtd += parseCurrency(loja.ITFT_QTDE);
-            acc[id].qtdAnt += parseCurrency(loja.ITFT_QTDE_ANT);
+            acc[id].vlr += parseCurrency(item.ITFT_VLR_CONTABIL);
+            acc[id].vlrAnt += parseCurrency(item.ITFT_VLR_CONTABIL_ANT);
+            acc[id].qtd += parseCurrency(item.ITFT_QTDE);
+            acc[id].qtdAnt += parseCurrency(item.ITFT_QTDE_ANT);
             return acc;
           }, {})
         );
