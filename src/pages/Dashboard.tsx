@@ -474,7 +474,7 @@ export default function Dashboard() {
                 .map((item, i) => {
                   const growth = parseGrowth(item.CRECIMENTO);
                   const maxAbsGrowth = Math.max(
-                    ...comparativo.map((c) => Math.abs(parseGrowth(c.CRECIMENTO))),
+                    ...comparativoFiltrado.map((c) => Math.abs(parseGrowth(c.CRECIMENTO))),
                     1
                   );
                   const barWidth = Math.min(Math.abs(growth) / maxAbsGrowth * 100, 100);
