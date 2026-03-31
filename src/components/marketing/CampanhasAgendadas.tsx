@@ -55,8 +55,15 @@ const diasSemana = [
 const tiposCampanha = [
   { value: "RODIZIO", label: "Rodízio de Pneus" },
   { value: "ANIVERSARIO", label: "Aniversário" },
-  { value: "MARKETING", label: "Promoção / Marketing" },
+  { value: "VENDAS", label: "Promoção / Marketing" },
 ];
+
+// Map campaign tipo to MSWA_TIPO for getMenssagensWhts
+const tipoToMswaTipo: Record<string, string> = {
+  RODIZIO: "RODIZIO",
+  ANIVERSARIO: "ANIVERSARIO",
+  VENDAS: "VENDAS",
+};
 
 interface Props {
   unidades: { unem_Id: string; unem_Fantasia: string }[];
@@ -106,7 +113,8 @@ export default function CampanhasAgendadas({ unidades }: Props) {
     const fetchMensagem = async () => {
       setLoadingMsg(true);
       try {
-        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${encodeURIComponent(form.tipo)}`;
+        const mswaTipo = tipoToMswaTipo[form.tipo] || form.tipo;
+        const endpoint = `/getMenssagensWhts?MSWA_TIPO=${encodeURIComponent(mswaTipo)}`;
         console.log('[CampanhasAgendadas] Buscando template:', endpoint);
         const { data, error } = await supabase.functions.invoke('api-proxy', {
           body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
