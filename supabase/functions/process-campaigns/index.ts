@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         const checkData = await proxyCall(`/getMsgWths?${checkParams.toString()}`);
         if (Array.isArray(checkData) && checkData.some((r: any) => (r.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim')) {
           console.log(`${foneFull}: já enviada hoje, pulando`);
-          return false; // skipped, don't count
+          return 'skipped';
         }
       } catch {}
 
