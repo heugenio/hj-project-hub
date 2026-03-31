@@ -130,23 +130,34 @@ export default function Dashboard() {
     );
   }
 
-  const vlrAtual = parseCurrency(resumo?.ITFT_VLR_CONTABIL);
-  const vlrAnterior = parseCurrency(resumo?.ITFT_VLR_CONTABIL_ANT);
-  const qtdAtual = parseCurrency(resumo?.ITFT_QTDE);
-  const qtdAnterior = parseCurrency(resumo?.ITFT_QTDE_ANT);
-  const crescimento = parseGrowth(resumo?.CRECIMENTO);
+  // KPIs do comparativo filtrado (somando todos os grupos do filtro ativo)
+  const vlrAtual = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
+  const vlrAnterior = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL_ANT), 0);
+  const qtdAtual = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE), 0);
+  const qtdAnterior = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_ANT), 0);
+  const crescimento = vlrAnterior > 0 ? ((vlrAtual - vlrAnterior) / vlrAnterior) * 100 : 0;
 
-  // KPIs derivados do demonstrativo de vendas
-  const totalFaturamento = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
-  const totalQtdVendida = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_FATURADA), 0);
+  // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
+  const grpoNomesFiltrados = useMemo(() => {
+    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return null;
+    return new Set(comparativoFiltrado.map((item) => item.GRPO_NOME));
+  }, [comparativoFiltrado, filtroGrpoTipo]);
+
+  const salesDataFiltrado = useMemo(() => {
+    if (!grpoNomesFiltrados) return salesData;
+    return salesData.filter((item) => grpoNomesFiltrados.has(item.GRUPO));
+  }, [salesData, grpoNomesFiltrados]);
+
+  // KPIs derivados do demonstrativo de vendas (filtrado)
+  const totalFaturamento = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
+  const totalQtdVendida = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_FATURADA), 0);
   const ticketMedio = totalQtdVendida > 0 ? totalFaturamento / totalQtdVendida : 0;
-  const totalLucro = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_LUCRO), 0);
-  const totalCusto = salesData.reduce((s, item) => s + parseCurrency(item.ITFT_CUSTO_NA_OPERACAO), 0);
+  const totalLucro = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_LUCRO), 0);
   const margemMedia = totalFaturamento > 0 ? (totalLucro / totalFaturamento) * 100 : 0;
 
   // Clientes únicos e recompra (baseado em DCFS_QTD = notas por produto)
-  const totalNotas = salesData.reduce((s, item) => s + parseCurrency(item.DCFS_QTD), 0);
-  const totalDev = salesData.reduce((s, item) => s + parseCurrency(item.QTDE_DEV), 0);
+  const totalNotas = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.DCFS_QTD), 0);
+  const totalDev = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.QTDE_DEV), 0);
   const taxaRecompra = totalNotas > 0 ? ((totalNotas - totalDev) / totalNotas) * 100 : 0;
 
   // Separar comparativo por GRPO_TIPO e ordenar por valor
