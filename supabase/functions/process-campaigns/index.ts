@@ -89,12 +89,12 @@ Deno.serve(async (req) => {
     let totalErros = 0;
     let sendCount = 0;
 
-    // Helper to send a single contact
+    // Helper to send a single contact – returns 'sent' | 'skipped' | 'error'
     const sendOne = async (
       contato: any, campaign: any,
       provider: string, token: string, device: string, phoneId: string,
       unemId: string
-    ): Promise<boolean> => {
+    ): Promise<'sent' | 'skipped' | 'error'> => {
       const num = (contato.TELE_NUMERO || '').replace(/\D/g, '');
       const ddd = (contato.TELE_DDD || '').replace(/\D/g, '');
       const phone = ddd + num;
