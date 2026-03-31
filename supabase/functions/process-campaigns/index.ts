@@ -159,10 +159,10 @@ Deno.serve(async (req) => {
           MSWE_FONE: foneFull, MSWE_DATA: dataEnvio, MSWE_ENVIADA: enviada, UNEM_ID: unemId,
         });
 
-        return success;
+        return success ? 'sent' : 'error';
       } catch (err) {
         console.error(`Erro envio ${foneFull}:`, err);
-        return false;
+        return 'error';
       }
     };
 
