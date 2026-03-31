@@ -218,14 +218,21 @@ export default function Dashboard() {
       </div>
 
       {/* Summary cards — 6 KPIs modernos */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} subtitle={`Ant: ${formatBRL(vlrAnterior)}`} change={crescimento} color="primary" />
-        <KpiCard icon={Package} title="Pneus Vendidos" value={totalQtdVendida.toLocaleString("pt-BR")} subtitle={`Ant: ${qtdAnterior.toLocaleString("pt-BR")}`} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} color="accent" />
-        <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} color="primary" />
-        <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} color="accent" />
-        <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} color="primary" />
-        <KpiCard icon={RefreshCw} title="Recompra" value={`${taxaRecompra.toFixed(1)}%`} color="accent" />
-      </div>
+      {(() => {
+        const tipoLabel = filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__"
+          ? "Quantidades"
+          : `${filtroGrpoTipo} Vendidos`;
+        return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} subtitle={`Ant: ${formatBRL(vlrAnterior)}`} change={crescimento} />
+          <KpiCard icon={Package} title={tipoLabel} value={qtdAtual.toLocaleString("pt-BR")} subtitle={`Ant: ${qtdAnterior.toLocaleString("pt-BR")}`} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} />
+          <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} />
+          <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} />
+          <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} />
+          <KpiCard icon={RefreshCw} title="Recompra" value={`${taxaRecompra.toFixed(1)}%`} />
+        </div>
+        );
+      })()}
 
       {/* Multi-lojas — ADM only */}
       {perfil === "ADM" && resumoLojas.length > 1 && (() => {
