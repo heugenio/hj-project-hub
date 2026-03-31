@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, getDemonstrativoVendas, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
-  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store, Filter
+  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store, Filter,
+  Receipt, Percent, BadgeDollarSign, RefreshCw
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
