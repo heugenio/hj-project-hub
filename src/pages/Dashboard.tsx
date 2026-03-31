@@ -73,17 +73,19 @@ export default function Dashboard() {
       getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }),
     ];
 
-    // Para ADM, buscar unidades para mapear UNEM_ID → Sigla
+    // Para ADM, buscar comparativo e unidades de todas as lojas
     if (perfil === "ADM" && emprId) {
       fetches.push(getUnidadesEmpresariais(emprId));
+      fetches.push(getComparativo(resumoId)); // comparativo de todas as lojas com GRPO_TIPO
     }
 
     Promise.all(fetches)
-      .then(([comp, res, sales, unidades]) => {
+      .then(([comp, res, sales, unidades, compGeral]) => {
         setComparativo((comp as Comparativo[]) || []);
         const lojas = (res as ComparativoResumo[]) || [];
         setResumoLojas(lojas);
         setSalesData((sales as SalesDemo[]) || []);
+        setComparativoGeral((compGeral as Comparativo[]) || []);
 
         // Resumo da unidade logada
         const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
