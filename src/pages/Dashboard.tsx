@@ -47,7 +47,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
   const [unidadesMap, setUnidadesMap] = useState<Record<string, string>>({});
-  const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__all__");
+  const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__pending__");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
@@ -109,9 +109,16 @@ export default function Dashboard() {
     return Array.from(tipos).sort();
   }, [comparativo]);
 
+  // Auto-detectar "Pneus" no primeiro carregamento
+  useEffect(() => {
+    if (filtroGrpoTipo !== "__pending__" || grpoTipos.length === 0) return;
+    const pneusTipo = grpoTipos.find((t) => t.toLowerCase().includes("pneu"));
+    setFiltroGrpoTipo(pneusTipo || "__all__");
+  }, [grpoTipos, filtroGrpoTipo]);
+
   // Dados filtrados
   const comparativoFiltrado = useMemo(() => {
-    if (filtroGrpoTipo === "__all__") return comparativo;
+    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativo;
     return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativo, filtroGrpoTipo]);
 
@@ -190,40 +197,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Summary cards — 6 KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <SummaryCard
-          icon={DollarSign}
-          title="Faturamento do Mês"
-          value={formatBRL(vlrAtual)}
-          change={crescimento}
-        />
-        <SummaryCard
-          icon={Package}
-          title="Pneus Vendidos"
-          value={totalQtdVendida.toLocaleString("pt-BR")}
-          change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined}
-        />
-        <SummaryCard
-          icon={Receipt}
-          title="Ticket Médio"
-          value={formatBRL(ticketMedio)}
-        />
-        <SummaryCard
-          icon={Percent}
-          title="Margem Média"
-          value={`${margemMedia.toFixed(1)}%`}
-        />
-        <SummaryCard
-          icon={BadgeDollarSign}
-          title="Lucro Líquido"
-          value={formatBRL(totalLucro)}
-        />
-        <SummaryCard
-          icon={RefreshCw}
-          title="Taxa Recompra"
-          value={`${taxaRecompra.toFixed(1)}%`}
-        />
+      {/* Summary cards — 6 KPIs modernos */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} change={crescimento} color="primary" />
+        <KpiCard icon={Package} title="Pneus Vendidos" value={totalQtdVendida.toLocaleString("pt-BR")} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} color="accent" />
+        <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} color="primary" />
+        <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} color="accent" />
+        <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} color="primary" />
+        <KpiCard icon={RefreshCw} title="Recompra" value={`${taxaRecompra.toFixed(1)}%`} color="accent" />
       </div>
 
       {/* Multi-lojas — ADM only */}
@@ -533,31 +514,35 @@ export default function Dashboard() {
   );
 }
 
-function SummaryCard({ icon: Icon, title, value, change }: {
+function KpiCard({ icon: Icon, title, value, change, color = "primary" }: {
   icon: React.ElementType;
   title: string;
   value: string;
   change?: number;
+  color?: "primary" | "accent";
 }) {
   const up = (change ?? 0) >= 0;
+  const bgGradient = color === "primary"
+    ? "from-primary/10 to-primary/5"
+    : "from-accent/10 to-accent/5";
+  const iconBg = color === "primary" ? "bg-primary/15 text-primary" : "bg-accent/15 text-accent";
+
   return (
-    <Card className="border-border/50">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="h-5 w-5 text-primary" />
+    <Card className="border-border/40 bg-gradient-to-br backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+      <CardContent className={`p-4 bg-gradient-to-br ${bgGradient} rounded-lg`}>
+        <div className="flex items-center gap-2 mb-2">
+          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${iconBg}`}>
+            <Icon className="h-3.5 w-3.5" />
           </div>
           {change !== undefined && (
-            <span className={`flex items-center gap-1 text-xs font-medium ${up ? "text-accent" : "text-destructive"}`}>
-              {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {change.toFixed(1)}%
+            <span className={`ml-auto flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+              {up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
+              {Math.abs(change).toFixed(1)}%
             </span>
           )}
         </div>
-        <div className="mt-3">
-          <p className="text-2xl font-bold text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
-        </div>
+        <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wide font-medium">{title}</p>
       </CardContent>
     </Card>
   );
