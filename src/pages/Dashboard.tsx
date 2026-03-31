@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial } from "@/lib/api";
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
-  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store
+  ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store, Filter
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
   const [unidadesMap, setUnidadesMap] = useState<Record<string, string>>({});
+  const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__all__");
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
@@ -90,6 +92,20 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [unemId, resumoId, perfil, emprId]);
 
+
+  // Lista única de GRPO_TIPO para o filtro
+  const grpoTipos = useMemo(() => {
+    const tipos = new Set<string>();
+    comparativo.forEach((item) => tipos.add(item.GRPO_TIPO || "Geral"));
+    return Array.from(tipos).sort();
+  }, [comparativo]);
+
+  // Dados filtrados
+  const comparativoFiltrado = useMemo(() => {
+    if (filtroGrpoTipo === "__all__") return comparativo;
+    return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
+  }, [comparativo, filtroGrpoTipo]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -106,7 +122,7 @@ export default function Dashboard() {
 
   // Separar comparativo por GRPO_TIPO e ordenar por valor
   const tiposMap = new Map<string, Comparativo[]>();
-  comparativo.forEach((item) => {
+  comparativoFiltrado.forEach((item) => {
     const tipo = item.GRPO_TIPO || "Geral";
     if (!tiposMap.has(tipo)) tiposMap.set(tipo, []);
     tiposMap.get(tipo)!.push(item);
@@ -118,7 +134,7 @@ export default function Dashboard() {
     items: [...items].sort((a, b) => parseCurrency(b.ITFT_VLR_CONTABIL) - parseCurrency(a.ITFT_VLR_CONTABIL)),
   }));
 
-  const pieData = comparativo
+  const pieData = comparativoFiltrado
     .filter((item) => parseCurrency(item.ITFT_VLR_CONTABIL) > 0)
     .map((item) => ({
       name: item.GRPO_NOME || "N/A",
@@ -127,13 +143,29 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Visão geral — Perfil: <Badge variant="secondary" className="ml-1">{perfil}</Badge>
           </p>
         </div>
+        {grpoTipos.length > 1 && (
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos os Tipos</SelectItem>
+                {grpoTipos.map((tipo) => (
+                  <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Summary cards — always shown */}
@@ -383,7 +415,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {comparativo.length === 0 ? (
+            {comparativoFiltrado.length === 0 ? (
               <p className="text-muted-foreground text-sm text-center py-10">Sem dados disponíveis</p>
             ) : (
               <div className="overflow-x-auto">
@@ -399,7 +431,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {comparativo.map((item, i) => {
+                    {comparativoFiltrado.map((item, i) => {
                       const growth = parseGrowth(item.CRECIMENTO);
                       return (
                         <TableRow key={i}>
@@ -426,7 +458,7 @@ export default function Dashboard() {
       )}
 
       {/* Vendas profile: growth ranking */}
-      {perfil === "Vendas" && comparativo.length > 0 && (
+      {perfil === "Vendas" && comparativoFiltrado.length > 0 && (
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -436,13 +468,13 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[...comparativo]
+              {[...comparativoFiltrado]
                 .sort((a, b) => parseGrowth(b.CRECIMENTO) - parseGrowth(a.CRECIMENTO))
                 .slice(0, 8)
                 .map((item, i) => {
                   const growth = parseGrowth(item.CRECIMENTO);
                   const maxAbsGrowth = Math.max(
-                    ...comparativo.map((c) => Math.abs(parseGrowth(c.CRECIMENTO))),
+                    ...comparativoFiltrado.map((c) => Math.abs(parseGrowth(c.CRECIMENTO))),
                     1
                   );
                   const barWidth = Math.min(Math.abs(growth) / maxAbsGrowth * 100, 100);
