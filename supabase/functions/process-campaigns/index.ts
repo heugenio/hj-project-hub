@@ -89,12 +89,12 @@ Deno.serve(async (req) => {
     let totalErros = 0;
     let sendCount = 0;
 
-    // Helper to send a single contact
+    // Helper to send a single contact – returns 'sent' | 'skipped' | 'error'
     const sendOne = async (
       contato: any, campaign: any,
       provider: string, token: string, device: string, phoneId: string,
       unemId: string
-    ): Promise<boolean> => {
+    ): Promise<'sent' | 'skipped' | 'error'> => {
       const num = (contato.TELE_NUMERO || '').replace(/\D/g, '');
       const ddd = (contato.TELE_DDD || '').replace(/\D/g, '');
       const phone = ddd + num;
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         const checkData = await proxyCall(`/getMsgWths?${checkParams.toString()}`);
         if (Array.isArray(checkData) && checkData.some((r: any) => (r.MSWE_ENVIADA || '').trim().toLowerCase() === 'sim')) {
           console.log(`${foneFull}: já enviada hoje, pulando`);
-          return false; // skipped, don't count
+          return 'skipped';
         }
       } catch {}
 
@@ -159,10 +159,10 @@ Deno.serve(async (req) => {
           MSWE_FONE: foneFull, MSWE_DATA: dataEnvio, MSWE_ENVIADA: enviada, UNEM_ID: unemId,
         });
 
-        return success;
+        return success ? 'sent' : 'error';
       } catch (err) {
         console.error(`Erro envio ${foneFull}:`, err);
-        return false;
+        return 'error';
       }
     };
 
@@ -210,11 +210,9 @@ Deno.serve(async (req) => {
       for (const contato of contatos) {
         if (sendCount >= MAX_SENDS_PER_RUN) break;
         const result = await sendOne(contato, campaign, provider, token, device, phoneId, unemId);
-        // sendOne returns false for skip (already sent) – don't count those
-        if (result === false && !(contato._skipped)) {
-          totalErros++;
-        }
-        if (result === true) totalEnviados++;
+        if (result === 'skipped') continue; // don't count skipped against quota
+        if (result === 'sent') totalEnviados++;
+        else totalErros++;
         sendCount++;
         await new Promise(r => setTimeout(r, SEND_DELAY_MS));
       }
