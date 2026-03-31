@@ -213,6 +213,7 @@ export default function CampanhasAgendadas({ unidades }: Props) {
       filtro_unem_id: c.todas_unidades ? "__todas__" : (c.filtro_unem_id || "__todas__"),
       todas_unidades: c.todas_unidades,
     });
+    setLastFetchedTipo(c.tipo);
     setDialogOpen(true);
   };
 
