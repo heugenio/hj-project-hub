@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_SENDS_PER_RUN = 3;
+const MAX_SENDS_PER_RUN = 150;
 const SEND_DELAY_MS = 500;
 
 let proxyCall: (endpoint: string, method?: string, body?: any) => Promise<any>;
