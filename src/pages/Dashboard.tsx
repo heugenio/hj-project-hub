@@ -618,10 +618,11 @@ function KpiCard({ icon: Icon, title, value, subtitle, change }: {
         </div>
         {change !== undefined && (
           <div className="flex justify-end">
-          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
-            {up ? <ArrowUpRight className="h-2 w-2" /> : <ArrowDownRight className="h-2 w-2" />}
-            {Math.abs(change).toFixed(1)}%
-          </span>
+            <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${up ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"}`}>
+              {up ? <ArrowUpRight className="h-2 w-2" /> : <ArrowDownRight className="h-2 w-2" />}
+              {Math.abs(change).toFixed(1)}%
+            </span>
+          </div>
         )}
         <div className="min-w-0">
           <p className="text-sm font-bold text-foreground leading-tight break-words">{value}</p>
