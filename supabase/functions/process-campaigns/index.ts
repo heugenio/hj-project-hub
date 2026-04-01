@@ -25,19 +25,23 @@ Deno.serve(async (req) => {
   try {
     const now = new Date();
 
-    const { data: campaigns, error: fetchErr } = await sb
+    const { data: allDueCampaigns, error: fetchErr } = await sb
       .from('campanhas_agendadas')
       .select('*')
       .eq('ativo', true)
       .lte('proxima_execucao', now.toISOString())
-      .limit(1);
+      .order('proxima_execucao', { ascending: true })
+      .limit(10);
 
     if (fetchErr) throw fetchErr;
-    if (!campaigns || campaigns.length === 0) {
+    if (!allDueCampaigns || allDueCampaigns.length === 0) {
       return jsonResp({ message: 'No campaigns due', processed: 0 });
     }
 
-    const campaign = campaigns[0];
+    console.log(`Found ${allDueCampaigns.length} campaigns due for processing`);
+    const allResults: any[] = [];
+
+    for (const campaign of allDueCampaigns) {
     console.log(`Processing campaign: ${campaign.nome} (${campaign.id}), tipo: ${campaign.tipo}`);
 
     const baseUrl = campaign.base_url || 'http://3.214.255.198:8085';
@@ -312,7 +316,10 @@ Deno.serve(async (req) => {
     await reschedule(sb, campaign, now, totalEnviados, totalErros);
     console.log(`Campaign ${campaign.nome} done: enviados=${totalEnviados}, erros=${totalErros}, sendCount=${sendCount}`);
 
-    return jsonResp({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros });
+    allResults.push({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros });
+    } // end for each campaign
+
+    return jsonResp({ processed: allResults.length, results: allResults });
   } catch (err: any) {
     console.error('Process campaigns error:', err);
     return new Response(JSON.stringify({ error: err.message }), {
