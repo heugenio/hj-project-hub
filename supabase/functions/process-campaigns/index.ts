@@ -316,7 +316,10 @@ Deno.serve(async (req) => {
     await reschedule(sb, campaign, now, totalEnviados, totalErros);
     console.log(`Campaign ${campaign.nome} done: enviados=${totalEnviados}, erros=${totalErros}, sendCount=${sendCount}`);
 
-    return jsonResp({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros });
+    allResults.push({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros });
+    } // end for each campaign
+
+    return jsonResp({ processed: allResults.length, results: allResults });
   } catch (err: any) {
     console.error('Process campaigns error:', err);
     return new Response(JSON.stringify({ error: err.message }), {
