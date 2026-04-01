@@ -91,11 +91,11 @@ export default function Dashboard() {
 
     Promise.all(fetches)
       .then(([comp, res, sales, unidades, compGeral]) => {
-        setComparativo((comp as Comparativo[]) || []);
-        const lojas = (res as ComparativoResumo[]) || [];
+        setComparativo(Array.isArray(comp) ? comp as Comparativo[] : []);
+        const lojas = Array.isArray(res) ? res as ComparativoResumo[] : [];
         setResumoLojas(lojas);
-        setSalesData((sales as SalesDemo[]) || []);
-        setComparativoGeral((compGeral as Comparativo[]) || []);
+        setSalesData(Array.isArray(sales) ? sales as SalesDemo[] : []);
+        setComparativoGeral(Array.isArray(compGeral) ? compGeral as Comparativo[] : []);
 
         // Resumo da unidade logada
         const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
