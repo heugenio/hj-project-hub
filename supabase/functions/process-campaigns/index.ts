@@ -6,7 +6,11 @@ const corsHeaders = {
 };
 
 const MAX_SENDS_PER_RUN = 150;
-const SEND_DELAY_MS = 500;
+// Random delay between messages: 60s, 90s or 120s to avoid blocking
+const MESSAGE_DELAYS = [60000, 90000, 120000];
+function getRandomMessageDelay(): number {
+  return MESSAGE_DELAYS[Math.floor(Math.random() * MESSAGE_DELAYS.length)];
+}
 
 let proxyCall: (endpoint: string, method?: string, body?: any) => Promise<any>;
 let fetchParametro: (unemId: string, nome: string) => Promise<string>;
@@ -256,9 +260,12 @@ Deno.serve(async (req) => {
         if (result === 'sent') totalEnviados++;
         else totalErros++;
         sendCount++;
-        await new Promise(r => setTimeout(r, SEND_DELAY_MS));
+        if (sendCount < MAX_SENDS_PER_RUN) {
+          const delay = getRandomMessageDelay();
+          console.log(`Aguardando ${delay / 1000}s antes do próximo envio...`);
+          await new Promise(r => setTimeout(r, delay));
+        }
       }
-    };
 
     if (campaign.todas_unidades && campaign.empr_id) {
       // ── Todas unidades: use first 8 chars of empr_id as UNEM_ID ──

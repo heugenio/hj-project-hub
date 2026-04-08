@@ -141,8 +141,11 @@ function notifyBgListeners() {
   bgSend.listeners.forEach(fn => fn());
 }
 
-const BATCH_SIZE = 10;
-const BATCH_DELAYS = [10000, 15000, 10000]; // cycle through these delays between batches
+// Random delay between messages: 60s, 90s or 120s to avoid blocking
+const MESSAGE_DELAYS = [60000, 90000, 120000];
+function getRandomMessageDelay(): number {
+  return MESSAGE_DELAYS[Math.floor(Math.random() * MESSAGE_DELAYS.length)];
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -708,25 +711,14 @@ export default function Marketing() {
     // Run in background (detached from component lifecycle)
     (async () => {
       let processados = 0;
-      let batchIndex = 0;
-      let delayIndex = 0;
-
-      // Split into batches of BATCH_SIZE
-      const batches: Contato[][] = [];
-      for (let i = 0; i < bgSend.contatos.length; i += BATCH_SIZE) {
-        batches.push(bgSend.contatos.slice(i, i + BATCH_SIZE));
-      }
-
-      for (const batch of batches) {
-        // Wait between batches (not before first)
-        if (batchIndex > 0) {
-          const delay = BATCH_DELAYS[delayIndex % BATCH_DELAYS.length];
-          console.log(`Aguardando ${delay / 1000}s antes do próximo lote...`);
+      for (const contato of bgSend.contatos) {
+        // Wait between messages (not before first) - random 1:00, 1:30 or 2:00 min
+        if (processados > 0) {
+          const delay = getRandomMessageDelay();
+          console.log(`Aguardando ${delay / 1000}s antes do próximo envio...`);
           await sleep(delay);
-          delayIndex++;
         }
 
-        for (const contato of batch) {
           const bgIdx = bgSend.contatos.findIndex(c => c.nome === contato.nome && 
             ((bgCanal === 'email' ? c.email : c.telefone.replace(/\D/g, '')) === 
              (bgCanal === 'email' ? contato.email : contato.telefone.replace(/\D/g, ''))));
@@ -859,8 +851,6 @@ export default function Marketing() {
           processados++;
           bgSend.progress.current = processados;
           notifyBgListeners();
-        }
-        batchIndex++;
       }
 
       // Done
