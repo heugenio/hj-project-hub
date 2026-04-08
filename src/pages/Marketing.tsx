@@ -141,8 +141,11 @@ function notifyBgListeners() {
   bgSend.listeners.forEach(fn => fn());
 }
 
-const BATCH_SIZE = 10;
-const BATCH_DELAYS = [10000, 15000, 10000]; // cycle through these delays between batches
+// Random delay between messages: 60s, 90s or 120s to avoid blocking
+const MESSAGE_DELAYS = [60000, 90000, 120000];
+function getRandomMessageDelay(): number {
+  return MESSAGE_DELAYS[Math.floor(Math.random() * MESSAGE_DELAYS.length)];
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
