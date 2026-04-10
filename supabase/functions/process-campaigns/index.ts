@@ -6,10 +6,13 @@ const corsHeaders = {
 };
 
 const MAX_SENDS_PER_RUN = 150;
-// Random delay between messages: 60s, 90s or 120s to avoid blocking
-const MESSAGE_DELAYS = [60000, 90000, 120000];
-function getRandomMessageDelay(): number {
-  return MESSAGE_DELAYS[Math.floor(Math.random() * MESSAGE_DELAYS.length)];
+// Random delay between messages to avoid blocking
+// n8n: 1s, 2s, 3s — others: 60s, 90s, 120s
+const MESSAGE_DELAYS_STANDARD = [60000, 90000, 120000];
+const MESSAGE_DELAYS_N8N = [1000, 2000, 3000];
+function getRandomMessageDelay(provider?: string): number {
+  const delays = provider === 'n8n' ? MESSAGE_DELAYS_N8N : MESSAGE_DELAYS_STANDARD;
+  return delays[Math.floor(Math.random() * delays.length)];
 }
 
 let proxyCall: (endpoint: string, method?: string, body?: any) => Promise<any>;
@@ -75,7 +78,7 @@ Deno.serve(async (req) => {
       } catch { return ''; }
     };
 
-    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI'];
+    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n'];
     sanitizeProvider = (v: string) => {
       const trimmed = v.trim();
       return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
