@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
           paramsCache[unemId] = await getProviderParams(unemId);
         }
         const { provider, token, device, phoneId } = paramsCache[unemId];
-        if (!provider || !token) {
+        if (!provider || (provider !== 'n8n' && !token)) {
           console.log(`Unidade ${unemId}: provider ou token vazio – pulando`);
           continue;
         }
@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
       const unemId = campaign.filtro_unem_id;
       const { provider, token, device, phoneId } = await getProviderParams(unemId);
 
-      if (!provider || !token) {
+      if (!provider || (provider !== 'n8n' && !token)) {
         console.log(`Unidade ${unemId}: provider ou token vazio – pulando`);
         await reschedule(sb, campaign, now);
         return jsonResp({ id: campaign.id, status: 'no_provider' });
