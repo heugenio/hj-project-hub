@@ -717,7 +717,7 @@ export default function Marketing() {
       for (const contato of bgSend.contatos) {
         // Wait between messages (not before first) - random 1:00, 1:30 or 2:00 min
         if (processados > 0) {
-          const delay = getRandomMessageDelay();
+          const delay = getRandomMessageDelay(bgWhatsProvider);
           console.log(`Aguardando ${delay / 1000}s antes do próximo envio...`);
           await sleep(delay);
         }
