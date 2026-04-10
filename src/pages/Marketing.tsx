@@ -668,7 +668,7 @@ export default function Marketing() {
         toast.error("Provedor WhatsApp não configurado. Verifique o parâmetro SERVIDORWHATS para esta unidade.");
         return;
       }
-      if (!whatsToken) {
+      if (whatsProvider !== 'n8n' && !whatsToken) {
         toast.error("Token WhatsApp não configurado. Verifique o parâmetro TOKENWHATS para esta unidade.");
         return;
       }
