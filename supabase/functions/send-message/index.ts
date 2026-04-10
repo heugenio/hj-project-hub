@@ -205,7 +205,7 @@ async function sendEmail(req: SendRequest): Promise<{ ok: boolean; status: numbe
 }
 
 async function sendN8n(req: SendRequest): Promise<Response> {
-  const webhookUrl = req.webhookUrl || 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-atendimento-griffe';
+  const webhookUrl = req.webhookUrl || 'https://n8n.srv1576408.hstgr.cloud/webhook/webhook-atendimento-griffe';
   let phone = req.number.replace(/\D/g, '');
   if (!phone.startsWith('55')) phone = '55' + phone;
 
