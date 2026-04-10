@@ -6,10 +6,13 @@ const corsHeaders = {
 };
 
 const MAX_SENDS_PER_RUN = 150;
-// Random delay between messages: 60s, 90s or 120s to avoid blocking
-const MESSAGE_DELAYS = [60000, 90000, 120000];
-function getRandomMessageDelay(): number {
-  return MESSAGE_DELAYS[Math.floor(Math.random() * MESSAGE_DELAYS.length)];
+// Random delay between messages to avoid blocking
+// n8n: 1s, 2s, 3s — others: 60s, 90s, 120s
+const MESSAGE_DELAYS_STANDARD = [60000, 90000, 120000];
+const MESSAGE_DELAYS_N8N = [1000, 2000, 3000];
+function getRandomMessageDelay(provider?: string): number {
+  const delays = provider === 'n8n' ? MESSAGE_DELAYS_N8N : MESSAGE_DELAYS_STANDARD;
+  return delays[Math.floor(Math.random() * delays.length)];
 }
 
 let proxyCall: (endpoint: string, method?: string, body?: any) => Promise<any>;
@@ -75,7 +78,7 @@ Deno.serve(async (req) => {
       } catch { return ''; }
     };
 
-    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI'];
+    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n'];
     sanitizeProvider = (v: string) => {
       const trimmed = v.trim();
       return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
@@ -184,6 +187,7 @@ Deno.serve(async (req) => {
       if (campaign.imagem_url) { payload.mediaType = 'image'; payload.file = campaign.imagem_url; }
       if (provider === 'BrasilAPI') payload.device = device;
       if (provider === 'WhatsAppOficial') payload.phoneNumberId = phoneId;
+      if (provider === 'n8n') payload.webhookUrl = 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-atendimento-griffe';
 
       try {
         console.log(`Enviando para ${foneFull} via ${provider}...`);
@@ -261,11 +265,12 @@ Deno.serve(async (req) => {
         else totalErros++;
         sendCount++;
         if (sendCount < MAX_SENDS_PER_RUN) {
-          const delay = getRandomMessageDelay();
+          const delay = getRandomMessageDelay(provider);
           console.log(`Aguardando ${delay / 1000}s antes do próximo envio...`);
           await new Promise(r => setTimeout(r, delay));
         }
       }
+    };
 
     if (campaign.todas_unidades && campaign.empr_id) {
       // ── Todas unidades: use first 8 chars of empr_id as UNEM_ID ──
@@ -292,7 +297,7 @@ Deno.serve(async (req) => {
           paramsCache[unemId] = await getProviderParams(unemId);
         }
         const { provider, token, device, phoneId } = paramsCache[unemId];
-        if (!provider || !token) {
+        if (!provider || (provider !== 'n8n' && !token)) {
           console.log(`Unidade ${unemId}: provider ou token vazio – pulando`);
           continue;
         }
@@ -304,7 +309,7 @@ Deno.serve(async (req) => {
       const unemId = campaign.filtro_unem_id;
       const { provider, token, device, phoneId } = await getProviderParams(unemId);
 
-      if (!provider || !token) {
+      if (!provider || (provider !== 'n8n' && !token)) {
         console.log(`Unidade ${unemId}: provider ou token vazio – pulando`);
         await reschedule(sb, campaign, now);
         return jsonResp({ id: campaign.id, status: 'no_provider' });

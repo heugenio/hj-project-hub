@@ -114,7 +114,7 @@ async function fetchParametro(unemId: string, nome: string): Promise<string> {
   }
 }
 
-const VALID_WHATS_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI'];
+const VALID_WHATS_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n'];
 
 function sanitizeProvider(value: string): string {
   const trimmed = value.trim();
@@ -141,10 +141,13 @@ function notifyBgListeners() {
   bgSend.listeners.forEach(fn => fn());
 }
 
-// Random delay between messages: 60s, 90s or 120s to avoid blocking
-const MESSAGE_DELAYS = [60000, 90000, 120000];
-function getRandomMessageDelay(): number {
-  return MESSAGE_DELAYS[Math.floor(Math.random() * MESSAGE_DELAYS.length)];
+// Random delay between messages to avoid blocking
+// n8n: 1s, 2s, 3s — others: 60s, 90s, 120s
+const MESSAGE_DELAYS_STANDARD = [60000, 90000, 120000];
+const MESSAGE_DELAYS_N8N = [1000, 2000, 3000];
+function getRandomMessageDelay(provider?: string): number {
+  const delays = provider === 'n8n' ? MESSAGE_DELAYS_N8N : MESSAGE_DELAYS_STANDARD;
+  return delays[Math.floor(Math.random() * delays.length)];
 }
 
 function sleep(ms: number): Promise<void> {
@@ -665,7 +668,7 @@ export default function Marketing() {
         toast.error("Provedor WhatsApp não configurado. Verifique o parâmetro SERVIDORWHATS para esta unidade.");
         return;
       }
-      if (!whatsToken) {
+      if (whatsProvider !== 'n8n' && !whatsToken) {
         toast.error("Token WhatsApp não configurado. Verifique o parâmetro TOKENWHATS para esta unidade.");
         return;
       }
@@ -714,7 +717,7 @@ export default function Marketing() {
       for (const contato of bgSend.contatos) {
         // Wait between messages (not before first) - random 1:00, 1:30 or 2:00 min
         if (processados > 0) {
-          const delay = getRandomMessageDelay();
+          const delay = getRandomMessageDelay(bgWhatsProvider);
           console.log(`Aguardando ${delay / 1000}s antes do próximo envio...`);
           await sleep(delay);
         }
