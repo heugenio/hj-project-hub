@@ -4,7 +4,7 @@ const corsHeaders = {
 };
 
 interface SendRequest {
-  provider: 'Nexus' | 'WhatsAppOficial' | 'BrasilAPI' | 'Email';
+  provider: 'Nexus' | 'WhatsAppOficial' | 'BrasilAPI' | 'Email' | 'n8n';
   token: string;
   device?: string; // BrasilAPI DeviceToken
   phoneNumberId?: string; // WhatsApp Oficial
@@ -23,6 +23,8 @@ interface SendRequest {
   smtpPassword?: string;
   // Nexus URL override
   nexusUrl?: string;
+  // n8n webhook URL
+  webhookUrl?: string;
 }
 
 async function sendNexus(req: SendRequest): Promise<Response> {
@@ -234,6 +236,9 @@ Deno.serve(async (req) => {
         break;
       case 'Email':
         response = await sendEmail(body);
+        break;
+      case 'n8n':
+        response = await sendN8n(body);
         break;
       default:
         return new Response(
