@@ -826,21 +826,31 @@ export default function Marketing() {
                 payload.type = "text";
               }
 
-              console.log('=== ENVIO MARKETING ===', JSON.stringify(payload, null, 2));
+              console.log('=== ENVIO MARKETING ===');
+              console.log('Provider:', bgWhatsProvider);
+              console.log('Destino:', phone);
+              console.log('Payload:', JSON.stringify(payload, null, 2));
 
+              const sendStart = performance.now();
               const { data: respData, error } = await supabase.functions.invoke('send-message', { body: payload });
+              const sendDuration = Math.round(performance.now() - sendStart);
+
+              console.log(`=== RESPOSTA ENVIO (${sendDuration}ms) ===`);
+              console.log('Response Data:', JSON.stringify(respData, null, 2));
+              if (error) console.log('Response Error:', error);
 
               if (error) {
-                console.error('Erro envio:', error);
+                console.error(`❌ Erro envio ${phone}:`, error);
                 await registrarEnvio(texto, msweTipo, phone, "Nao");
                 if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
                 bgSend.progress.erros++;
               } else if (respData && respData.success === false) {
-                console.error('Erro envio (API):', respData);
+                console.error(`❌ Erro envio (API) ${phone}:`, JSON.stringify(respData));
                 await registrarEnvio(texto, msweTipo, phone, "Nao");
                 if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
                 bgSend.progress.erros++;
               } else {
+                console.log(`✅ Enviado com sucesso para ${phone}`);
                 await registrarEnvio(texto, msweTipo, phone, "Sim");
                 if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'sent';
                 bgSend.progress.enviados++;
