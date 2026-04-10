@@ -264,7 +264,7 @@ Deno.serve(async (req) => {
         else totalErros++;
         sendCount++;
         if (sendCount < MAX_SENDS_PER_RUN) {
-          const delay = getRandomMessageDelay();
+          const delay = getRandomMessageDelay(provider);
           console.log(`Aguardando ${delay / 1000}s antes do próximo envio...`);
           await new Promise(r => setTimeout(r, delay));
         }
