@@ -204,6 +204,29 @@ async function sendEmail(req: SendRequest): Promise<{ ok: boolean; status: numbe
   }
 }
 
+async function sendN8n(req: SendRequest): Promise<Response> {
+  const webhookUrl = req.webhookUrl || 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-atendimento-griffe';
+  let phone = req.number.replace(/\D/g, '');
+  if (!phone.startsWith('55')) phone = '55' + phone;
+
+  const payload: any = {
+    number: phone,
+    text: req.text,
+    type: req.type || 'text',
+  };
+
+  if (req.type === 'media' && req.file) {
+    payload.mediaType = req.mediaType || 'image';
+    payload.file = req.file;
+  }
+
+  return fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
