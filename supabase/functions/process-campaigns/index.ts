@@ -270,6 +270,7 @@ Deno.serve(async (req) => {
           await new Promise(r => setTimeout(r, delay));
         }
       }
+    };
 
     if (campaign.todas_unidades && campaign.empr_id) {
       // ── Todas unidades: use first 8 chars of empr_id as UNEM_ID ──
