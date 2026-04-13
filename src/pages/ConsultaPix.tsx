@@ -253,15 +253,15 @@ export default function ConsultaPix() {
           urlApi: bank.urlApi,
           clientId: bank.clientId,
           clientSecret: bank.clientSecret,
-          apiKey: hasBearerToken ? '' : bank.apiKey,
+          apiKey: bearerToken ? '' : bank.apiKey,
           inicio,
           fim,
         };
 
-        // If Itaú with pre-authenticated token, send as bearerToken
-        if (hasBearerToken) {
-          requestBody.bearerToken = bank.apiKey;
-          console.log(`[PIX] Usando token pré-autenticado para ${bank.nome}`);
+        // If Itaú with generated/stored bearer token
+        if (bearerToken) {
+          requestBody.bearerToken = bearerToken;
+          console.log(`[PIX] Usando bearer token para ${bank.nome}`);
         }
 
         const { data, error } = await supabase.functions.invoke('pix-consulta', {
