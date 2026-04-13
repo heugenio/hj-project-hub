@@ -795,6 +795,47 @@ export default function Marketing() {
                 continue;
               }
 
+              // Fetch provider params per contact's UNEM_ID (with cache)
+              const contatoUnemId = contato.raw.UNEM_ID || bgFiltroUnemId;
+              let curProvider = bgWhatsProvider;
+              let curToken = bgWhatsToken;
+              let curDevice = bgWhatsDevice;
+              let curPhoneNumberId = bgWhatsPhoneNumberId;
+
+              if (contatoUnemId && contatoUnemId !== bgFiltroUnemId) {
+                if (!providerParamsCache[contatoUnemId]) {
+                  console.log(`Buscando parâmetros para UNEM_ID=${contatoUnemId}...`);
+                  const [srv, tok, dev, pid] = await Promise.all([
+                    fetchParametro(contatoUnemId, 'SERVIDORWHATS'),
+                    fetchParametro(contatoUnemId, 'TOKENWHATS'),
+                    fetchParametro(contatoUnemId, 'DEVICEWHATS'),
+                    fetchParametro(contatoUnemId, 'PHONENUMBERID'),
+                  ]);
+                  providerParamsCache[contatoUnemId] = {
+                    provider: sanitizeProvider(srv),
+                    token: tok,
+                    device: dev,
+                    phoneNumberId: pid,
+                  };
+                  console.log(`Parâmetros UNEM_ID=${contatoUnemId}: provider=${providerParamsCache[contatoUnemId].provider}, token=${tok ? 'OK' : 'VAZIO'}`);
+                }
+                const cached = providerParamsCache[contatoUnemId];
+                curProvider = cached.provider || bgWhatsProvider;
+                curToken = cached.token || bgWhatsToken;
+                curDevice = cached.device || bgWhatsDevice;
+                curPhoneNumberId = cached.phoneNumberId || bgWhatsPhoneNumberId;
+              }
+
+              if (!curProvider || (curProvider !== 'n8n' && !curToken)) {
+                console.warn(`⚠️ UNEM_ID=${contatoUnemId}: provider ou token vazio, pulando ${phone}`);
+                if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
+                bgSend.progress.erros++;
+                processados++;
+                bgSend.progress.current = processados;
+                notifyBgListeners();
+                continue;
+              }
+
               const storedUnidade = localStorage.getItem('hj_unidade');
               let emprNome = '';
               if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
@@ -809,14 +850,14 @@ export default function Marketing() {
                 .replace(/\\n/g, "\n");
 
               const payload: any = {
-                provider: bgWhatsProvider,
-                token: bgWhatsToken,
+                provider: curProvider,
+                token: curToken,
                 number: phone,
                 text: texto,
               };
 
-              if (bgWhatsProvider === 'BrasilAPI') payload.device = bgWhatsDevice;
-              if (bgWhatsProvider === 'WhatsAppOficial') payload.phoneNumberId = bgWhatsPhoneNumberId;
+              if (curProvider === 'BrasilAPI') payload.device = curDevice;
+              if (curProvider === 'WhatsAppOficial') payload.phoneNumberId = curPhoneNumberId;
 
               if (bgImagemUrl) {
                 payload.type = "media";
