@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCofres, getGerarToken, type Cofre } from "@/lib/api";
+import { getCofres, type Cofre } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -216,9 +216,16 @@ export default function ConsultaPix() {
       let bearerToken = '';
       if (isItau) {
         try {
-          console.log(`[PIX] Gerando token via getGerarToken para ${bank.nome}...`);
-          const tokenResult = await getGerarToken(bank.nome);
-          bearerToken = (tokenResult as any)?.access_token || (tokenResult as any)?.token || (typeof tokenResult === 'string' ? tokenResult : '');
+          console.log(`[PIX] Gerando token via itau-token para ${bank.nome}...`);
+          const { data: tokenResult, error: tokenError } = await supabase.functions.invoke('itau-token', {
+            body: {
+              cofrNome: bank.nome,
+              clientId: bank.clientId,
+              clientSecret: bank.clientSecret,
+            },
+          });
+          if (tokenError) throw tokenError;
+          bearerToken = tokenResult?.access_token || '';
           if (bearerToken) {
             console.log(`[PIX] Token gerado com sucesso para ${bank.nome}`);
           } else {
@@ -229,13 +236,13 @@ export default function ConsultaPix() {
             }
           }
         } catch (tokenErr: any) {
-          console.error(`[PIX] Erro ao gerar token para ${bank.nome}:`, tokenErr);
+          console.error(`[PIX] Erro ao gerar token Itaú para ${bank.nome}:`, tokenErr);
           // Fallback to stored apiKey
           if (bank.apiKey && bank.apiKey.length > 50) {
             bearerToken = bank.apiKey;
             console.log(`[PIX] Usando token armazenado como fallback para ${bank.nome}`);
           } else {
-            toast({ title: `Erro Token - ${bank.nome}`, description: tokenErr.message || "Não foi possível gerar o token", variant: "destructive" });
+            toast({ title: `Erro Token - ${bank.nome}`, description: tokenErr?.message || "Não foi possível gerar o token Itaú (mTLS)", variant: "destructive" });
             continue;
           }
         }
