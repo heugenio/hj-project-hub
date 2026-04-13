@@ -9,10 +9,9 @@ interface TokenRequest {
   cofrNome: string;
   clientId: string;
   clientSecret: string;
-  certificate?: string; // PEM certificate (optional, uses stored one if not provided)
+  certificate?: string;
 }
 
-// Stored certificate for ITAU GYN (valid until 2027-04-13)
 const ITAU_GYN_CERT = `-----BEGIN CERTIFICATE-----
 MIIDlDCCAnygAwIBAgITLgAAACb+81zoTyaebQAAAAAAJjANBgkqhkiG9w0BAQsF
 ADCBgzELMAkGA1UEBhMCQlIxEjAQBgNVBAgTCVNhbyBQYXVsbzESMBAGA1UEBxMJ
@@ -35,6 +34,45 @@ OxJ/zgikZDgh0QymksjO4UmB94qlxCSrSxqJl79IFu0pIhU+Ib1expFBsYjw8sdH
 WIpyNNEFpGbQK+TFvFb22r+B1aDTGdzEDIolKjnh4ZHyNoCcFz5O7PZeyHusU8ot
 mrGd6Mc96mU=
 -----END CERTIFICATE-----`;
+
+function makeHttpsRequest(
+  cert: string,
+  key: string,
+  clientId: string,
+  clientSecret: string,
+): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    // Use Node.js https module for mTLS support
+    import("node:https").then((https) => {
+      const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`;
+      
+      const options = {
+        hostname: 'sts.itau.com.br',
+        port: 443,
+        path: '/as/token.oauth2',
+        method: 'POST',
+        cert: cert,
+        key: key,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData),
+        },
+      };
+
+      const req = https.request(options, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: any) => { data += chunk; });
+        res.on('end', () => {
+          resolve({ status: res.statusCode, body: data });
+        });
+      });
+
+      req.on('error', (e: Error) => reject(e));
+      req.write(postData);
+      req.end();
+    }).catch(reject);
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -74,35 +112,20 @@ Deno.serve(async (req) => {
     }
 
     const cert = certificate || ITAU_GYN_CERT;
-    console.log(`[itau-token] Private key obtained for ${cofrNome}, creating mTLS client...`);
+    console.log(`[itau-token] Private key obtained for ${cofrNome}, calling Itaú OAuth with mTLS...`);
 
-    // Step 2: Create HTTP client with mTLS
-    const httpClient = Deno.createHttpClient({
-      certChain: cert,
-      privateKey: privateKey.trim(),
-    });
+    // Step 2: Call Itaú OAuth endpoint with mTLS using Node.js https
+    const result = await makeHttpsRequest(cert, privateKey.trim(), clientId, clientSecret);
 
-    // Step 3: Call Itaú OAuth endpoint with mTLS
-    const tokenUrl = 'https://sts.itau.com.br/as/token.oauth2';
-    const tokenResponse = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`,
-      client: httpClient,
-    } as any);
-
-    httpClient.close();
-
-    if (!tokenResponse.ok) {
-      const errText = await tokenResponse.text();
-      console.error(`[itau-token] OAuth error [${tokenResponse.status}]:`, errText);
+    if (result.status !== 200) {
+      console.error(`[itau-token] OAuth error [${result.status}]:`, result.body);
       return new Response(
-        JSON.stringify({ error: `Erro OAuth Itaú [${tokenResponse.status}]: ${errText.substring(0, 500)}` }),
-        { status: tokenResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `Erro OAuth Itaú [${result.status}]: ${result.body.substring(0, 500)}` }),
+        { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const tokenData = await tokenResponse.json();
+    const tokenData = JSON.parse(result.body);
     console.log(`[itau-token] Token gerado com sucesso para ${cofrNome}, expira em ${tokenData.expires_in}s`);
 
     return new Response(
