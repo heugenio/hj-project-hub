@@ -810,17 +810,16 @@ export default function Marketing() {
               if (contatoUnemId && contatoUnemId !== bgFiltroUnemId) {
                 if (!providerParamsCache[contatoUnemId]) {
                   console.log(`Buscando parâmetros para UNEM_ID=${contatoUnemId}...`);
-                  const [srv, tok, dev, pid] = await Promise.all([
+                  const [srv, tok, dev] = await Promise.all([
                     fetchParametro(contatoUnemId, 'SERVIDORWHATS'),
                     fetchParametro(contatoUnemId, 'TOKENWHATS'),
                     fetchParametro(contatoUnemId, 'DEVICEWHATS'),
-                    fetchParametro(contatoUnemId, 'PHONENUMBERID'),
                   ]);
                   providerParamsCache[contatoUnemId] = {
                     provider: sanitizeProvider(srv),
                     token: tok,
                     device: dev,
-                    phoneNumberId: pid,
+                    phoneNumberId: '',
                   };
                   console.log(`Parâmetros UNEM_ID=${contatoUnemId}: provider=${providerParamsCache[contatoUnemId].provider}, token=${tok ? 'OK' : 'VAZIO'}`);
                 }
