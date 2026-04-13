@@ -870,7 +870,7 @@ export default function Marketing() {
               }
 
               console.log('=== ENVIO MARKETING ===');
-              console.log('Provider:', bgWhatsProvider);
+              console.log('Provider:', curProvider, '| UNEM_ID:', contatoUnemId);
               console.log('Destino:', phone);
               console.log('Payload:', JSON.stringify(payload, null, 2));
 
