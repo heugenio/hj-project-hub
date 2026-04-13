@@ -11,6 +11,7 @@ interface PixRequest {
   apiKey: string;
   inicio: string;
   fim: string;
+  bearerToken?: string; // Token pré-autenticado (ex: Itaú com certificado externo)
 }
 
 async function getOAuthToken(urlToken: string, clientId: string, clientSecret: string, isItau = false): Promise<string> {
