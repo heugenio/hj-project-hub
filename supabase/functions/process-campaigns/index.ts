@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
       if (campaign.imagem_url) { payload.mediaType = 'image'; payload.file = campaign.imagem_url; }
       if (provider === 'BrasilAPI') payload.device = device;
       if (provider === 'WhatsAppOficial') payload.phoneNumberId = phoneId;
-      if (provider === 'n8n') payload.webhookUrl = 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto';
+      if (provider === 'n8n') payload.webhookUrl = 'https://n8n.srv1576408.hstgr.cloud/webhook/webhook-envio-direto';
 
       try {
         console.log(`Enviando para ${foneFull} via ${provider}...`);
