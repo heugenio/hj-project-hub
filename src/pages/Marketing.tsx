@@ -664,17 +664,20 @@ export default function Marketing() {
 
     // Validate provider config
     if (canal === 'whatsapp' || canal === 'sms') {
-      if (!whatsProvider) {
-        toast.error("Provedor WhatsApp não configurado. Verifique o parâmetro SERVIDORWHATS para esta unidade.");
-        return;
-      }
-      if (whatsProvider !== 'n8n' && !whatsToken) {
-        toast.error("Token WhatsApp não configurado. Verifique o parâmetro TOKENWHATS para esta unidade.");
-        return;
-      }
-      if (whatsProvider === 'BrasilAPI' && !whatsDevice) {
-        toast.error("DeviceToken não configurado. Verifique o parâmetro DEVICEWHATS para esta unidade.");
-        return;
+      // Skip provider validation when "Todas Unidades" - params will be fetched per contact
+      if (filtroUnemId !== '__todas__') {
+        if (!whatsProvider) {
+          toast.error("Provedor WhatsApp não configurado. Verifique o parâmetro SERVIDORWHATS para esta unidade.");
+          return;
+        }
+        if (whatsProvider !== 'n8n' && !whatsToken) {
+          toast.error("Token WhatsApp não configurado. Verifique o parâmetro TOKENWHATS para esta unidade.");
+          return;
+        }
+        if (whatsProvider === 'BrasilAPI' && !whatsDevice) {
+          toast.error("DeviceToken não configurado. Verifique o parâmetro DEVICEWHATS para esta unidade.");
+          return;
+        }
       }
     }
     if (canal === 'email') {
