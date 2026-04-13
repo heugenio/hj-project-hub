@@ -290,3 +290,7 @@ export interface Cofre {
 }
 
 export const getCofres = () => apiGet<Cofre[]>('/getCofres');
+
+// Gerar token OAuth para banco (ex: Itaú com certificado no servidor)
+export const getGerarToken = (cofrNome: string) =>
+  proxyFetchRaw(`/getGerarToken?cofr_nome=${encodeURIComponent(cofrNome)}`);
