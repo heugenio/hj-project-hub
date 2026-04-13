@@ -32,17 +32,43 @@ mrGd6Mc96mU=
 -----END CERTIFICATE-----`,
 };
 
-async function fetchPrivateKey(cofrNome: string): Promise<string> {
-  const resp = await fetch(
-    `${LEGACY_BASE}/getGerarToken?cofr_nome=${encodeURIComponent(cofrNome)}`,
-    { headers: { 'Authorization': BASIC_AUTH } },
-  );
-  const text = await resp.text();
-  if (text.includes('PRIVATE KEY')) return text.trim();
+// Private keys keyed by cofre name (uppercase)
+const PRIVATE_KEYS: Record<string, string> = {
+  'ITAU GYN': `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6kxOIjJ013o3J
+YcMNts+bSkCgOg9YAo5s9Pu8yRf7ARNqx6PDjP4IsmTTbQsK03HxlVCP4GINefMR
+U/76PS7IlTFtEinu3J219/mltbiEGhpzQlJmMzwzc4chtqzr1QDCZeP0CCtxULoI
+d+aDgN8FagwedZWwRUt1Qbj82sCrRyDWqYyeZbc8GqDORjl+sdO0D5qgXjHvPl3i
+mBxc/DmqEd00ccrQoklQct8F5RhYvhLMS+f23o+bSio+F8FmFy2vbll0u/trbsDx
+t8K8rE3BuIZMs89HRbmB666ohN9nVhD/XtyBk8GrtntUnbe0Xx3vkuV2YVSE0AIQ
+KLZHfVyxAgMBAAECggEAR1eeDITYSJUFWpALad8Rm6vU8m/BFkJD+93htNqgVNag
+eiBEuq3bJbAxZbc4lbcsxtf1qk5+r/CFxYZ85WsnzINgFvjvF+s8UyyzRW4rVDg3
+DQO7RmEpD/OJJJcZoEQeujcD53iIRBg+SqauenJ41TUr1SnZR0H4DKpI9kcfjV5J
+5VtnpIHWXxirKDcnm4NGV8JXfCxpIGFWnXrleEQgG7TmLoYoEMW6fJtJOaNyrHm3
+EgmrIIoSVZB1R9XQNq+2C5aNtyMB4KepRHyXbllfvzocoTxOOkfsPSrde72ayiIW
+ajw8qrqKniw7IIAhRI+D6pGo2DL81NgSrHpeXNUJEQKBgQDp9hp7avTeYcyV+kuA
++fUW1hDQgZgtkDisSTHyMLcWGgO5YWM+EbiB3lekTpYmu68vi+sRU7GJqdwrrwUn
+qtA4SoyCx2TZ/6DNbDvk+5guz1TnJq06gCS/zk3EpA8X/RoBdWWLDn7Lzc2HWui6
+I5ipaB7cUiDunxARoWtXG0sYrwKBgQDMJkGKuag5+NapXQG1wOW+gvKpSEpQkhMQ
+3EZNm9kDsS8YoliQre/qez3Ho7ARxcskrIhCH2JHHyAqCHEdGPlvnohBg4f9thNl
+mz6IhuyBF08xMhx9F6VNK+H2iRD80v7igX0HAnl3jijEHl4kDOfgGOfYK4bVXtr0
+L63bJ+l4nwKBgFQjprh16aRERcA2KIs02Xih+aASyzivokILfMPd0ypGpso3hOpg
+kxtZa+lyPbumScVuq1Yq5DFe/ghTxCXU31cvMEMkFFf1/82AvDWIad2DwMP0e94L
+EaxNNFigq7Dz3DNkFeWhi+YdmGmyPvoaLR/Xiymu+5r1Z2D/zUuhTCuPAoGBAKMJ
+jmBu4wXhT/YUPBBeTFy4kXlWLVtpPWbCtDa41ziWoYkn5lktQCRgZjdw52VaNGFG
+lM9R5xfrqLFI6qUVU+erkR/ZHpsldRo5QFiigHCcH/enEI9qee5GtIBCeNmg3EQi
+q6oUdNNhKfduVTqvP+N9oHLIWDdBONW42jzjBBb7AoGBAJZcb2xpAe/LuGI8sktm
+6UsGNAwF53OV6zxYoNlMQxaumcI/kUsEiFMLYUZ0dHcwWtjsYzZDk1n4PHa3kbyh
+wl7/93CyL+wQfjiEdg9iKpYnVCZp7vmSvcZwv9kC9at8MbXu48Pis82gEiQ9upu+
+BNbp/xz3+K1kArFRhBHjrsv8
+-----END PRIVATE KEY-----`,
+};
 
-  // Legacy API may return HTML "200 OK" – fetch key via getCofres fallback
-  // or the key may already be stored locally. Throw so caller knows.
-  throw new Error('Legacy API did not return a private key');
+function getPrivateKey(cofrNome: string, supplied?: string): string {
+  if (supplied) return supplied;
+  const key = PRIVATE_KEYS[cofrNome.toUpperCase()];
+  if (key) return key;
+  throw new Error(`Chave privada não encontrada para cofre: ${cofrNome}`);
 }
 
 Deno.serve(async (req) => {
@@ -70,18 +96,14 @@ Deno.serve(async (req) => {
     }
 
     // Get private key: supplied in body, or fetched from legacy API
-    let privKey = privateKeyPem || '';
-    if (!privKey) {
-      try {
-        privKey = await fetchPrivateKey(cofrNome || 'ITAU GYN');
-      } catch {
-        // Legacy didn't return key – we'll still try via curl but it will fail
-        // if there's no key at all
-        return new Response(
-          JSON.stringify({ error: 'Chave privada não disponível. A API legada não retornou a chave.' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
+    let privKey: string;
+    try {
+      privKey = getPrivateKey(cofrKey, privateKeyPem);
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: e.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
     // Write cert and key to temp files for curl
