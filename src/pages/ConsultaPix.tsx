@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCofres, type Cofre } from "@/lib/api";
+import { getCofres, getGerarToken, type Cofre } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -206,15 +206,43 @@ export default function ConsultaPix() {
 
     for (const bank of configsToQuery) {
       const isItau = bank.nome.toUpperCase().includes('ITAU') || bank.nome.toUpperCase().includes('ITAÚ') || bank.urlApi.toLowerCase().includes('itau');
-      const hasBearerToken = isItau && bank.apiKey && bank.apiKey.length > 50; // JWT tokens are long
 
       if (!bank.urlApi) {
         console.warn(`Cofre ${bank.nome} sem URL API, pulando...`);
         continue;
       }
 
-      // For Itaú with bearer token, skip clientId/clientSecret requirement
-      if (!hasBearerToken && (!bank.clientId || !bank.clientSecret)) {
+      // For Itaú, try to get token from legacy API (server has the certificate)
+      let bearerToken = '';
+      if (isItau) {
+        try {
+          console.log(`[PIX] Gerando token via getGerarToken para ${bank.nome}...`);
+          const tokenResult = await getGerarToken(bank.nome);
+          bearerToken = (tokenResult as any)?.access_token || (tokenResult as any)?.token || (typeof tokenResult === 'string' ? tokenResult : '');
+          if (bearerToken) {
+            console.log(`[PIX] Token gerado com sucesso para ${bank.nome}`);
+          } else {
+            console.warn(`[PIX] Token vazio retornado para ${bank.nome}, tentando apiKey...`);
+            // Fallback to stored apiKey if it looks like a JWT
+            if (bank.apiKey && bank.apiKey.length > 50) {
+              bearerToken = bank.apiKey;
+            }
+          }
+        } catch (tokenErr: any) {
+          console.error(`[PIX] Erro ao gerar token para ${bank.nome}:`, tokenErr);
+          // Fallback to stored apiKey
+          if (bank.apiKey && bank.apiKey.length > 50) {
+            bearerToken = bank.apiKey;
+            console.log(`[PIX] Usando token armazenado como fallback para ${bank.nome}`);
+          } else {
+            toast({ title: `Erro Token - ${bank.nome}`, description: tokenErr.message || "Não foi possível gerar o token", variant: "destructive" });
+            continue;
+          }
+        }
+      }
+
+      // For non-Itaú, require clientId/clientSecret
+      if (!isItau && (!bank.clientId || !bank.clientSecret)) {
         console.warn(`Cofre ${bank.nome} sem configuração completa, pulando...`);
         continue;
       }
@@ -225,15 +253,15 @@ export default function ConsultaPix() {
           urlApi: bank.urlApi,
           clientId: bank.clientId,
           clientSecret: bank.clientSecret,
-          apiKey: hasBearerToken ? '' : bank.apiKey,
+          apiKey: bearerToken ? '' : bank.apiKey,
           inicio,
           fim,
         };
 
-        // If Itaú with pre-authenticated token, send as bearerToken
-        if (hasBearerToken) {
-          requestBody.bearerToken = bank.apiKey;
-          console.log(`[PIX] Usando token pré-autenticado para ${bank.nome}`);
+        // If Itaú with generated/stored bearer token
+        if (bearerToken) {
+          requestBody.bearerToken = bearerToken;
+          console.log(`[PIX] Usando bearer token para ${bank.nome}`);
         }
 
         const { data, error } = await supabase.functions.invoke('pix-consulta', {
