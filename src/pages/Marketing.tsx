@@ -699,7 +699,9 @@ export default function Marketing() {
     const bgEmailEndereco = emailEndereco;
     const bgCampanhaAtiva = campanhaAtiva;
     const bgEnderecoLoja = enderecoLoja;
+    const bgFiltroUnemId = getResolvedUnemId();
     const msweTipo = getMswaTipo(bgCampanhaAtiva);
+    const providerParamsCache: Record<string, { provider: string; token: string; device: string; phoneNumberId: string }> = {};
 
     // Initialize background state
     bgSend.active = true;
