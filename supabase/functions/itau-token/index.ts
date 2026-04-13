@@ -5,13 +5,6 @@ const corsHeaders = {
 
 const BASIC_AUTH = 'Basic ' + btoa('hjsystems:11032011');
 
-interface TokenRequest {
-  cofrNome: string;
-  clientId: string;
-  clientSecret: string;
-  certificate?: string;
-}
-
 const ITAU_GYN_CERT = `-----BEGIN CERTIFICATE-----
 MIIDlDCCAnygAwIBAgITLgAAACb+81zoTyaebQAAAAAAJjANBgkqhkiG9w0BAQsF
 ADCBgzELMAkGA1UEBhMCQlIxEjAQBgNVBAgTCVNhbyBQYXVsbzESMBAGA1UEBxMJ
@@ -35,54 +28,13 @@ WIpyNNEFpGbQK+TFvFb22r+B1aDTGdzEDIolKjnh4ZHyNoCcFz5O7PZeyHusU8ot
 mrGd6Mc96mU=
 -----END CERTIFICATE-----`;
 
-function makeHttpsRequest(
-  cert: string,
-  key: string,
-  clientId: string,
-  clientSecret: string,
-): Promise<{ status: number; body: string }> {
-  return new Promise((resolve, reject) => {
-    import("node:https").then((https) => {
-      import("node:buffer").then(({ Buffer: NodeBuffer }) => {
-        const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`;
-
-        const options = {
-          hostname: 'sts.itau.com.br',
-          port: 443,
-          path: '/as/token.oauth2',
-          method: 'POST',
-          cert: cert,
-          key: key,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': NodeBuffer.byteLength(postData),
-          },
-        };
-
-        const req = https.request(options, (res: any) => {
-          let data = '';
-          res.on('data', (chunk: any) => { data += chunk; });
-          res.on('end', () => {
-            resolve({ status: res.statusCode, body: data });
-          });
-        });
-
-        req.on('error', (e: Error) => reject(e));
-        req.write(postData);
-        req.end();
-      }).catch(reject);
-    }).catch(reject);
-  });
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const body: TokenRequest = await req.json();
-    const { cofrNome, clientId, clientSecret, certificate } = body;
+    const { cofrNome, clientId, clientSecret, certificate } = await req.json();
 
     if (!clientId || !clientSecret) {
       return new Response(
@@ -92,42 +44,63 @@ Deno.serve(async (req) => {
     }
 
     // Step 1: Fetch private key from legacy API
-    const baseUrl = 'http://3.214.255.198:8085';
-    const keyResponse = await fetch(`${baseUrl}/getGerarToken?cofr_nome=${encodeURIComponent(cofrNome || 'ITAU GYN')}`, {
-      headers: { 'Authorization': BASIC_AUTH },
-    });
-
-    if (!keyResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: `Erro ao buscar chave privada: ${keyResponse.status}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const keyResponse = await fetch(
+      `http://3.214.255.198:8085/getGerarToken?cofr_nome=${encodeURIComponent(cofrNome || 'ITAU GYN')}`,
+      { headers: { 'Authorization': BASIC_AUTH } }
+    );
 
     const privateKey = await keyResponse.text();
     if (!privateKey.includes('PRIVATE KEY')) {
       return new Response(
-        JSON.stringify({ error: 'Chave privada inválida retornada pelo servidor' }),
+        JSON.stringify({ error: 'Chave privada inválida', raw: privateKey.substring(0, 200) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const cert = certificate || ITAU_GYN_CERT;
-    console.log(`[itau-token] Private key obtained for ${cofrNome}, calling Itaú OAuth with mTLS...`);
+    console.log(`[itau-token] Got key (${privateKey.length} bytes), creating mTLS client...`);
 
-    // Step 2: Call Itaú OAuth endpoint with mTLS using Node.js https
-    const result = await makeHttpsRequest(cert, privateKey.trim(), clientId, clientSecret);
-
-    if (result.status !== 200) {
-      console.error(`[itau-token] OAuth error [${result.status}]:`, result.body);
+    // Step 2: Try Deno.createHttpClient for mTLS
+    let httpClient: Deno.HttpClient;
+    try {
+      httpClient = Deno.createHttpClient({
+        certChain: cert.trim(),
+        privateKey: privateKey.trim(),
+      });
+      console.log('[itau-token] HttpClient created successfully');
+    } catch (e) {
+      console.error('[itau-token] Failed to create HttpClient:', e);
       return new Response(
-        JSON.stringify({ error: `Erro OAuth Itaú [${result.status}]: ${result.body.substring(0, 500)}` }),
-        { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `Erro ao criar HttpClient mTLS: ${e.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const tokenData = JSON.parse(result.body);
-    console.log(`[itau-token] Token gerado com sucesso para ${cofrNome}, expira em ${tokenData.expires_in}s`);
+    // Step 3: Call Itaú OAuth
+    const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`;
+
+    const tokenResponse = await fetch('https://sts.itau.com.br/as/token.oauth2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: postData,
+      // @ts-ignore - Deno-specific option
+      client: httpClient,
+    });
+
+    const responseText = await tokenResponse.text();
+    httpClient.close();
+
+    console.log(`[itau-token] Itaú response status: ${tokenResponse.status}`);
+
+    if (tokenResponse.status !== 200) {
+      return new Response(
+        JSON.stringify({ error: `Erro OAuth Itaú [${tokenResponse.status}]: ${responseText.substring(0, 500)}` }),
+        { status: tokenResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const tokenData = JSON.parse(responseText);
+    console.log(`[itau-token] Token OK, expires_in: ${tokenData.expires_in}s`);
 
     return new Response(
       JSON.stringify({
