@@ -42,34 +42,35 @@ function makeHttpsRequest(
   clientSecret: string,
 ): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
-    // Use Node.js https module for mTLS support
     import("node:https").then((https) => {
-      const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`;
-      
-      const options = {
-        hostname: 'sts.itau.com.br',
-        port: 443,
-        path: '/as/token.oauth2',
-        method: 'POST',
-        cert: cert,
-        key: key,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(postData),
-        },
-      };
+      import("node:buffer").then(({ Buffer: NodeBuffer }) => {
+        const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`;
 
-      const req = https.request(options, (res: any) => {
-        let data = '';
-        res.on('data', (chunk: any) => { data += chunk; });
-        res.on('end', () => {
-          resolve({ status: res.statusCode, body: data });
+        const options = {
+          hostname: 'sts.itau.com.br',
+          port: 443,
+          path: '/as/token.oauth2',
+          method: 'POST',
+          cert: cert,
+          key: key,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': NodeBuffer.byteLength(postData),
+          },
+        };
+
+        const req = https.request(options, (res: any) => {
+          let data = '';
+          res.on('data', (chunk: any) => { data += chunk; });
+          res.on('end', () => {
+            resolve({ status: res.statusCode, body: data });
+          });
         });
-      });
 
-      req.on('error', (e: Error) => reject(e));
-      req.write(postData);
-      req.end();
+        req.on('error', (e: Error) => reject(e));
+        req.write(postData);
+        req.end();
+      }).catch(reject);
     }).catch(reject);
   });
 }
