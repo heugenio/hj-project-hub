@@ -205,22 +205,39 @@ export default function ConsultaPix() {
       : bankConfigs;
 
     for (const bank of configsToQuery) {
-      if (!bank.urlApi || !bank.clientId || !bank.clientSecret) {
+      const isItau = bank.nome.toUpperCase().includes('ITAU') || bank.nome.toUpperCase().includes('ITAÚ') || bank.urlApi.toLowerCase().includes('itau');
+      const hasBearerToken = isItau && bank.apiKey && bank.apiKey.length > 50; // JWT tokens are long
+
+      if (!bank.urlApi) {
+        console.warn(`Cofre ${bank.nome} sem URL API, pulando...`);
+        continue;
+      }
+
+      // For Itaú with bearer token, skip clientId/clientSecret requirement
+      if (!hasBearerToken && (!bank.clientId || !bank.clientSecret)) {
         console.warn(`Cofre ${bank.nome} sem configuração completa, pulando...`);
         continue;
       }
 
       try {
+        const requestBody: Record<string, string> = {
+          urlToken: bank.urlToken,
+          urlApi: bank.urlApi,
+          clientId: bank.clientId,
+          clientSecret: bank.clientSecret,
+          apiKey: hasBearerToken ? '' : bank.apiKey,
+          inicio,
+          fim,
+        };
+
+        // If Itaú with pre-authenticated token, send as bearerToken
+        if (hasBearerToken) {
+          requestBody.bearerToken = bank.apiKey;
+          console.log(`[PIX] Usando token pré-autenticado para ${bank.nome}`);
+        }
+
         const { data, error } = await supabase.functions.invoke('pix-consulta', {
-          body: {
-            urlToken: bank.urlToken,
-            urlApi: bank.urlApi,
-            clientId: bank.clientId,
-            clientSecret: bank.clientSecret,
-            apiKey: bank.apiKey,
-            inicio,
-            fim,
-          },
+          body: requestBody,
         });
 
         if (error) {

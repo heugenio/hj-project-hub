@@ -11,6 +11,7 @@ interface PixRequest {
   apiKey: string;
   inicio: string;
   fim: string;
+  bearerToken?: string; // Token pré-autenticado (ex: Itaú com certificado externo)
 }
 
 async function getOAuthToken(urlToken: string, clientId: string, clientSecret: string, isItau = false): Promise<string> {
@@ -77,38 +78,49 @@ Deno.serve(async (req) => {
 
   try {
     const body: PixRequest = await req.json();
-    const { urlToken, urlApi, clientId, clientSecret, apiKey, inicio, fim } = body;
+    const { urlToken, urlApi, clientId, clientSecret, apiKey, inicio, fim, bearerToken } = body;
 
-    if (!urlApi || !clientId || !clientSecret || !inicio || !fim) {
+    if (!urlApi || !inicio || !fim) {
       return new Response(
-        JSON.stringify({ error: 'Campos obrigatórios: urlApi, clientId, clientSecret, inicio, fim' }),
+        JSON.stringify({ error: 'Campos obrigatórios: urlApi, inicio, fim' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Step 1: Get OAuth2 token
+    // Step 1: Get OAuth2 token (or use pre-authenticated bearer token)
     const isBB = urlApi.toLowerCase().includes('bb.com');
     const isItau = urlApi.toLowerCase().includes('itau');
     let token = '';
     
-    // Determine OAuth URL: use provided urlToken, or defaults
-    let oauthUrl = urlToken || '';
-    if (!oauthUrl && isBB) oauthUrl = 'https://oauth.bb.com.br/oauth/token';
-    if (!oauthUrl && isItau) oauthUrl = 'https://sts.itau.com.br/api/cfauth/oauth/token';
-    
-    if (oauthUrl) {
-      try {
-        token = await getOAuthToken(oauthUrl, clientId, clientSecret, isItau);
-        console.log(`OAuth token obtained successfully for ${isItau ? 'Itau' : isBB ? 'BB' : 'bank'}`);
-      } catch (tokenErr) {
-        console.error('OAuth token error:', tokenErr);
-        return new Response(
-          JSON.stringify({ error: `Erro ao obter token OAuth: ${tokenErr.message}` }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    if (bearerToken) {
+      // Use pre-authenticated token directly (e.g. Itaú with external certificate)
+      token = bearerToken;
+      console.log(`Using pre-authenticated bearer token for ${isItau ? 'Itau' : 'bank'}`);
+    } else if (!clientId || !clientSecret) {
+      return new Response(
+        JSON.stringify({ error: 'Informe clientId/clientSecret ou bearerToken' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      // Determine OAuth URL: use provided urlToken, or defaults
+      let oauthUrl = urlToken || '';
+      if (!oauthUrl && isBB) oauthUrl = 'https://oauth.bb.com.br/oauth/token';
+      if (!oauthUrl && isItau) oauthUrl = 'https://sts.itau.com.br/api/cfauth/oauth/token';
+      
+      if (oauthUrl) {
+        try {
+          token = await getOAuthToken(oauthUrl, clientId, clientSecret, isItau);
+          console.log(`OAuth token obtained successfully for ${isItau ? 'Itau' : isBB ? 'BB' : 'bank'}`);
+        } catch (tokenErr) {
+          console.error('OAuth token error:', tokenErr);
+          return new Response(
+            JSON.stringify({ error: `Erro ao obter token OAuth: ${tokenErr.message}` }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else if (apiKey) {
+        token = apiKey;
       }
-    } else if (apiKey) {
-      token = apiKey;
     }
 
     // Step 2: Query PIX received
