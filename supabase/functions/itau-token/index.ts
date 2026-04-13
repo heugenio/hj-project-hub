@@ -4,8 +4,11 @@ const corsHeaders = {
 };
 
 const BASIC_AUTH = 'Basic ' + btoa('hjsystems:11032011');
+const LEGACY_BASE = 'http://3.214.255.198:8085';
 
-const ITAU_GYN_CERT = `-----BEGIN CERTIFICATE-----
+// Certificates keyed by cofre name (uppercase)
+const CERTIFICATES: Record<string, string> = {
+  'ITAU GYN': `-----BEGIN CERTIFICATE-----
 MIIDlDCCAnygAwIBAgITLgAAACb+81zoTyaebQAAAAAAJjANBgkqhkiG9w0BAQsF
 ADCBgzELMAkGA1UEBhMCQlIxEjAQBgNVBAgTCVNhbyBQYXVsbzESMBAGA1UEBxMJ
 U2FvIFBhdWxvMRswGQYDVQQKExJJdGF1IFVuaWJhbmNvIFMuQS4xGzAZBgNVBAsT
@@ -26,7 +29,21 @@ OYgPyxs/kyM497QJc/CBQotyO5HRdOFX6E4m2IGc5OVxfZE1PpxIf5KXW/A3XEri
 OxJ/zgikZDgh0QymksjO4UmB94qlxCSrSxqJl79IFu0pIhU+Ib1expFBsYjw8sdH
 WIpyNNEFpGbQK+TFvFb22r+B1aDTGdzEDIolKjnh4ZHyNoCcFz5O7PZeyHusU8ot
 mrGd6Mc96mU=
------END CERTIFICATE-----`;
+-----END CERTIFICATE-----`,
+};
+
+async function fetchPrivateKey(cofrNome: string): Promise<string> {
+  const resp = await fetch(
+    `${LEGACY_BASE}/getGerarToken?cofr_nome=${encodeURIComponent(cofrNome)}`,
+    { headers: { 'Authorization': BASIC_AUTH } },
+  );
+  const text = await resp.text();
+  if (text.includes('PRIVATE KEY')) return text.trim();
+
+  // Legacy API may return HTML "200 OK" – fetch key via getCofres fallback
+  // or the key may already be stored locally. Throw so caller knows.
+  throw new Error('Legacy API did not return a private key');
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -34,72 +51,92 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { cofrNome, clientId, clientSecret, certificate } = await req.json();
+    const { cofrNome, clientId, clientSecret, certificate, privateKeyPem } = await req.json();
 
     if (!clientId || !clientSecret) {
       return new Response(
         JSON.stringify({ error: 'clientId e clientSecret são obrigatórios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Step 1: Fetch private key from legacy API
-    const keyResponse = await fetch(
-      `http://3.214.255.198:8085/getGerarToken?cofr_nome=${encodeURIComponent(cofrNome || 'ITAU GYN')}`,
-      { headers: { 'Authorization': BASIC_AUTH } }
-    );
-
-    const privateKey = await keyResponse.text();
-    if (!privateKey.includes('PRIVATE KEY')) {
+    const cofrKey = (cofrNome || 'ITAU GYN').toUpperCase();
+    const cert = certificate || CERTIFICATES[cofrKey];
+    if (!cert) {
       return new Response(
-        JSON.stringify({ error: 'Chave privada inválida', raw: privateKey.substring(0, 200) }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `Certificado não encontrado para cofre: ${cofrKey}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const cert = certificate || ITAU_GYN_CERT;
-    console.log(`[itau-token] Got key (${privateKey.length} bytes), creating mTLS client...`);
-
-    // Step 2: Try Deno.createHttpClient for mTLS
-    let httpClient: Deno.HttpClient;
-    try {
-      httpClient = Deno.createHttpClient({
-        certChain: cert.trim(),
-        privateKey: privateKey.trim(),
-      });
-      console.log('[itau-token] HttpClient created successfully');
-    } catch (e) {
-      console.error('[itau-token] Failed to create HttpClient:', e);
-      return new Response(
-        JSON.stringify({ error: `Erro ao criar HttpClient mTLS: ${e.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Get private key: supplied in body, or fetched from legacy API
+    let privKey = privateKeyPem || '';
+    if (!privKey) {
+      try {
+        privKey = await fetchPrivateKey(cofrNome || 'ITAU GYN');
+      } catch {
+        // Legacy didn't return key – we'll still try via curl but it will fail
+        // if there's no key at all
+        return new Response(
+          JSON.stringify({ error: 'Chave privada não disponível. A API legada não retornou a chave.' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
     }
 
-    // Step 3: Call Itaú OAuth
+    // Write cert and key to temp files for curl
+    const certPath = '/tmp/itau_cert.pem';
+    const keyPath = '/tmp/itau_key.pem';
+    await Deno.writeTextFile(certPath, cert.trim() + '\n');
+    await Deno.writeTextFile(keyPath, privKey.trim() + '\n');
+
     const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`;
 
-    const tokenResponse = await fetch('https://sts.itau.com.br/as/token.oauth2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: postData,
-      // @ts-ignore - Deno-specific option
-      client: httpClient,
+    console.log(`[itau-token] Calling Itaú OAuth via curl mTLS for ${cofrKey}...`);
+
+    const cmd = new Deno.Command('curl', {
+      args: [
+        '-s',
+        '--cert', certPath,
+        '--key', keyPath,
+        '-X', 'POST',
+        'https://sts.itau.com.br/as/token.oauth2',
+        '-H', 'Content-Type: application/x-www-form-urlencoded',
+        '-d', postData,
+        '-w', '\n__HTTP_STATUS__:%{http_code}',
+        '--max-time', '15',
+      ],
+      stdout: 'piped',
+      stderr: 'piped',
     });
 
-    const responseText = await tokenResponse.text();
-    httpClient.close();
+    const output = await cmd.output();
+    const stdout = new TextDecoder().decode(output.stdout);
+    const stderr = new TextDecoder().decode(output.stderr);
 
-    console.log(`[itau-token] Itaú response status: ${tokenResponse.status}`);
-
-    if (tokenResponse.status !== 200) {
+    if (!output.success) {
+      console.error('[itau-token] curl failed:', stderr);
       return new Response(
-        JSON.stringify({ error: `Erro OAuth Itaú [${tokenResponse.status}]: ${responseText.substring(0, 500)}` }),
-        { status: tokenResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `curl falhou: ${stderr.substring(0, 300)}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const tokenData = JSON.parse(responseText);
+    // Parse HTTP status from curl output
+    const statusMatch = stdout.match(/__HTTP_STATUS__:(\d+)/);
+    const httpStatus = statusMatch ? parseInt(statusMatch[1]) : 0;
+    const body = stdout.replace(/\n__HTTP_STATUS__:\d+$/, '').trim();
+
+    console.log(`[itau-token] Itaú response status: ${httpStatus}`);
+
+    if (httpStatus !== 200) {
+      return new Response(
+        JSON.stringify({ error: `Erro OAuth Itaú [${httpStatus}]: ${body.substring(0, 500)}` }),
+        { status: httpStatus || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const tokenData = JSON.parse(body);
     console.log(`[itau-token] Token OK, expires_in: ${tokenData.expires_in}s`);
 
     return new Response(
@@ -109,13 +146,13 @@ Deno.serve(async (req) => {
         expires_in: tokenData.expires_in,
         scope: tokenData.scope,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('[itau-token] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
