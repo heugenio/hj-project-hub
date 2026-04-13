@@ -106,59 +106,51 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Write cert and key to temp files for curl
-    const certPath = '/tmp/itau_cert.pem';
-    const keyPath = '/tmp/itau_key.pem';
-    await Deno.writeTextFile(certPath, cert.trim() + '\n');
-    await Deno.writeTextFile(keyPath, privKey.trim() + '\n');
-
     const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&scope=${encodeURIComponent('pix.read pix.write cob.read cob.write cobv.read cobv.write')}`;
 
-    console.log(`[itau-token] Calling Itaú OAuth via curl mTLS for ${cofrKey}...`);
+    console.log(`[itau-token] Calling Itaú OAuth via mTLS for ${cofrKey}...`);
 
-    const cmd = new Deno.Command('curl', {
-      args: [
-        '-s',
-        '--cert', certPath,
-        '--key', keyPath,
-        '-X', 'POST',
-        'https://sts.itau.com.br/as/token.oauth2',
-        '-H', 'Content-Type: application/x-www-form-urlencoded',
-        '-d', postData,
-        '-w', '\n__HTTP_STATUS__:%{http_code}',
-        '--max-time', '15',
-      ],
-      stdout: 'piped',
-      stderr: 'piped',
-    });
-
-    const output = await cmd.output();
-    const stdout = new TextDecoder().decode(output.stdout);
-    const stderr = new TextDecoder().decode(output.stderr);
-
-    if (!output.success) {
-      console.error('[itau-token] curl failed:', stderr);
+    // Use Deno.createHttpClient for mTLS
+    let httpClient: Deno.HttpClient;
+    try {
+      httpClient = Deno.createHttpClient({
+        certChain: cert.trim(),
+        privateKey: privKey.trim(),
+      });
+    } catch (e) {
+      console.error('[itau-token] Failed to create HttpClient:', e);
       return new Response(
-        JSON.stringify({ error: `curl falhou: ${stderr.substring(0, 300)}` }),
+        JSON.stringify({ error: `Erro ao criar cliente mTLS: ${e.message}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Parse HTTP status from curl output
-    const statusMatch = stdout.match(/__HTTP_STATUS__:(\d+)/);
-    const httpStatus = statusMatch ? parseInt(statusMatch[1]) : 0;
-    const body = stdout.replace(/\n__HTTP_STATUS__:\d+$/, '').trim();
+    const tokenResponse = await fetch('https://sts.itau.com.br/as/token.oauth2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: postData,
+      // @ts-ignore - Deno-specific option for mTLS
+      client: httpClient,
+    });
 
-    console.log(`[itau-token] Itaú response status: ${httpStatus}`);
+    const responseText = await tokenResponse.text();
 
-    if (httpStatus !== 200) {
+    try {
+      httpClient.close();
+    } catch {
+      // ignore close errors
+    }
+
+    console.log(`[itau-token] Itaú response status: ${tokenResponse.status}`);
+
+    if (tokenResponse.status !== 200) {
       return new Response(
-        JSON.stringify({ error: `Erro OAuth Itaú [${httpStatus}]: ${body.substring(0, 500)}` }),
-        { status: httpStatus || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: `Erro OAuth Itaú [${tokenResponse.status}]: ${responseText.substring(0, 500)}` }),
+        { status: tokenResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const tokenData = JSON.parse(body);
+    const tokenData = JSON.parse(responseText);
     console.log(`[itau-token] Token OK, expires_in: ${tokenData.expires_in}s`);
 
     return new Response(
