@@ -58,10 +58,26 @@ Deno.serve(async (req) => {
     
     // If the response looks like HTML (not JSON), check if it's a success response
     const trimmed = text.trim();
+    
+    // Log raw response for debugging (especially for token endpoints)
+    if (endpoint.includes('getGerarToken') || endpoint.includes('Token')) {
+      console.log(`[api-proxy] Raw response for ${endpoint} (${trimmed.length} chars):`, trimmed.substring(0, 500));
+    }
+    
     if (trimmed.startsWith('<') && !trimmed.startsWith('[') && !trimmed.startsWith('{')) {
+      // Try to extract JSON or token from HTML wrapper
+      const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        console.log(`[api-proxy] Extracted JSON from HTML:`, jsonMatch[0].substring(0, 300));
+        return new Response(jsonMatch[0], {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       if (trimmed.includes('200 OK') || (response.status >= 200 && response.status < 300)) {
         return new Response(
-          JSON.stringify({ success: true, message: '200 OK' }),
+          JSON.stringify({ success: true, message: '200 OK', rawHtml: trimmed.substring(0, 1000) }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
