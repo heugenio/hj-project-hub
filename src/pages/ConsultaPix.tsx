@@ -221,14 +221,16 @@ export default function ConsultaPix() {
 
       // For Itaú, route the entire query through the Java server (mTLS required)
       if (isItau) {
+        let itauTransactions: PixTransaction[] = [];
+
+        // Tentativa 1: Consultar via servidor Java (mTLS)
         try {
           console.log(`[PIX] Consultando Itaú via servidor Java para ${bank.nome}...`);
           const result = await getConsultaPixRecebidos(bank.nome, inicio, fim);
           console.log(`[PIX] Resposta Java para ${bank.nome}:`, result);
 
-          // Parse response - the Java server should return PIX transactions
           const pixArray = (result as any)?.pix || (result as any)?.transactions || (result as any)?.cobs || [];
-          const transactions = (Array.isArray(pixArray) ? pixArray : []).map((pix: any) => ({
+          itauTransactions = (Array.isArray(pixArray) ? pixArray : []).map((pix: any) => ({
             txId: pix.txid || pix.txId || pix.endToEndId || '',
             endToEndId: pix.endToEndId || '',
             valor: parseFloat(pix.valor || pix.valor?.original || '0'),
@@ -243,18 +245,52 @@ export default function ConsultaPix() {
             instituicao: bank.nome,
             rawJson: pix,
           }));
-
-          if (transactions.length > 0) {
-            allTx.push(...transactions);
-            console.log(`[PIX] ${transactions.length} transações encontradas para ${bank.nome}`);
-          } else {
-            console.warn(`[PIX] Nenhuma transação retornada para ${bank.nome}`);
-          }
         } catch (err: any) {
-          console.error(`[PIX] Erro consulta Java ${bank.nome}:`, err);
-          toast({ title: `Erro - ${bank.nome}`, description: err?.message || "Erro ao consultar PIX via servidor", variant: "destructive" });
+          console.warn(`[PIX] Servidor Java falhou para ${bank.nome}:`, err?.message);
         }
-        continue; // Skip edge function for Itaú
+
+        // Tentativa 2: Fallback via Edge Function usando COFR_API_KEY como bearer token
+        if (itauTransactions.length === 0 && bank.apiKey && bank.apiKey.length > 50) {
+          try {
+            console.log(`[PIX] Fallback: consultando Itaú via Edge Function com COFR_API_KEY para ${bank.nome}...`);
+            const { data, error } = await supabase.functions.invoke('pix-consulta', {
+              body: {
+                urlApi: bank.urlApi || 'https://secure.api.itau/pix_recebimentos/v2/pix',
+                inicio,
+                fim,
+                bearerToken: bank.apiKey,
+                apiKey: '',
+                clientId: '',
+                clientSecret: '',
+                urlToken: '',
+              },
+            });
+
+            if (error) {
+              console.error(`[PIX] Edge Function fallback erro ${bank.nome}:`, error);
+              toast({ title: `Erro - ${bank.nome}`, description: error.message, variant: "destructive" });
+            } else if (data?.transactions && data.transactions.length > 0) {
+              itauTransactions = data.transactions.map((tx: PixTransaction) => ({
+                ...tx,
+                instituicao: bank.nome,
+              }));
+              console.log(`[PIX] Fallback: ${itauTransactions.length} transações encontradas para ${bank.nome}`);
+            } else {
+              console.warn(`[PIX] Fallback: nenhuma transação retornada para ${bank.nome}`);
+              toast({ title: `${bank.nome}`, description: "Nenhuma transação encontrada no período.", variant: "default" });
+            }
+          } catch (err: any) {
+            console.error(`[PIX] Fallback erro ${bank.nome}:`, err);
+            toast({ title: `Erro - ${bank.nome}`, description: err?.message || "Erro ao consultar PIX", variant: "destructive" });
+          }
+        } else if (itauTransactions.length === 0) {
+          toast({ title: `${bank.nome}`, description: "Nenhuma transação encontrada e COFR_API_KEY não disponível para fallback.", variant: "default" });
+        }
+
+        if (itauTransactions.length > 0) {
+          allTx.push(...itauTransactions);
+        }
+        continue;
       }
 
       // For non-Itaú, require clientId/clientSecret
