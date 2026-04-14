@@ -72,6 +72,11 @@ function getDefaultUrlToken(nome: string): string {
   return '';
 }
 
+function getTransactionTimestamp(dataHora: string): number {
+  const timestamp = new Date(dataHora).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
 // No more mock data - starts empty
 const statusConfig = {
   confirmado: { label: "Confirmado", variant: "default" as const, className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/25" },
@@ -176,7 +181,7 @@ export default function ConsultaPix() {
       );
     }
 
-    return result;
+    return result.sort((a, b) => getTransactionTimestamp(b.dataHora) - getTransactionTimestamp(a.dataHora));
   }, [transactions, filtroTipo, filtroStatus, filtroChave, filtroBanco, dataInicial, dataFinal, buscaRapida]);
 
   const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
