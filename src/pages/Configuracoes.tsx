@@ -6,15 +6,16 @@ import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getLogo } from "@/lib/api";
+import { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from "@/lib/base-url";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 
 export default function Configuracoes() {
-  const [urlBase, setUrlBase] = useState(() => localStorage.getItem("hj_system_url_base") || "http://3.214.255.198:8085");
+  const [urlBase, setUrlBase] = useState(() => getApiBaseUrl());
   const [darkMode, setDarkMode] = useState(false);
   const [testing, setTesting] = useState(false);
 
   const handleSave = () => {
-    localStorage.setItem("hj_system_url_base", urlBase);
+    setApiBaseUrl(urlBase);
     toast.success("URL salva com sucesso! Será usada em todas as chamadas de API.");
   };
 
@@ -22,14 +23,14 @@ export default function Configuracoes() {
     setTesting(true);
     // Temporarily save to test
     const previous = localStorage.getItem("hj_system_url_base");
-    localStorage.setItem("hj_system_url_base", urlBase);
+    setApiBaseUrl(urlBase);
     try {
       await getLogo();
       toast.success("Conexão válida!", { icon: <CheckCircle className="h-4 w-4 text-green-500" /> });
     } catch {
       toast.error("Falha ao conectar. Verifique o endereço.", { icon: <XCircle className="h-4 w-4 text-destructive" /> });
-      if (previous) localStorage.setItem("hj_system_url_base", previous);
-      else localStorage.removeItem("hj_system_url_base");
+      if (previous) setApiBaseUrl(previous);
+      else setApiBaseUrl("");
     } finally {
       setTesting(false);
     }
@@ -56,7 +57,7 @@ export default function Configuracoes() {
           <div className="space-y-2">
             <Label htmlFor="url">URL Base</Label>
             <Input id="url" value={urlBase} onChange={(e) => setUrlBase(e.target.value)} placeholder="http://..." />
-            <p className="text-xs text-muted-foreground">URL atual salva: {localStorage.getItem("hj_system_url_base") || "nenhuma"}</p>
+            <p className="text-xs text-muted-foreground">URL atual salva: {localStorage.getItem("hj_system_url_base") || DEFAULT_API_BASE_URL}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleTest} disabled={testing}>

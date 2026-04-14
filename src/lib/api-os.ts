@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getApiBaseUrl } from '@/lib/base-url';
 
 function getBaseUrl(): string {
-  return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
+  return getApiBaseUrl();
 }
 
 async function proxyGet<T>(endpoint: string): Promise<T> {

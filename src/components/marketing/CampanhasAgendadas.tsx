@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { getApiBaseUrl } from "@/lib/base-url";
 import {
   Plus, Calendar, Clock, RefreshCw, Trash2, Play, Pause,
   CheckCircle2, AlertCircle, Send, Pencil
@@ -96,7 +97,7 @@ export default function CampanhasAgendadas({ unidades }: Props) {
   const [loadingMsg, setLoadingMsg] = useState(false);
 
   function getBaseUrl(): string {
-    return localStorage.getItem('hj_system_url_base') || 'http://3.214.255.198:8085';
+    return getApiBaseUrl();
   }
 
   // Track tipo changes to auto-fetch template
