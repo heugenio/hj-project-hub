@@ -50,7 +50,14 @@ interface BankConfig {
   tipoChave: string;
 }
 
-// Default URLs for banks without COFR_URL_API configured
+function mapPixStatus(status: string): 'confirmado' | 'pendente' | 'cancelado' {
+  if (!status) return 'confirmado';
+  const s = status.toUpperCase();
+  if (s === 'CONCLUIDA' || s === 'ATIVA' || s === 'CONCLUIDO') return 'confirmado';
+  if (s.includes('REMOVIDA') || s === 'CANCELADA') return 'cancelado';
+  return 'pendente';
+}
+
 function getDefaultUrlApi(nome: string): string {
   const n = nome.toUpperCase();
   if (n.includes('ITAU') || n.includes('ITAÚ')) return 'https://secure.api.itau/pix_recebimentos/v2/pix';
