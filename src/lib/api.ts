@@ -296,5 +296,17 @@ export const getGerarToken = (cofrNome: string) =>
   proxyFetchRaw(`/getGerarToken?cofr_nome=${encodeURIComponent(cofrNome)}`);
 
 // Consulta PIX via servidor Java (mTLS) - usado para Itaú
+function formatPixDateParam(value: string): string {
+  const match = value.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    return `${date.getUTCFullYear()}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  return value;
+}
+
 export const getConsultaPixRecebidos = (cofrNome: string, inicio: string, fim: string) =>
-  proxyFetchRaw(`/getConsultaPixRecebidos?cofr_nome=${encodeURIComponent(cofrNome)}&inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`);
+  proxyFetchRaw(`/getConsultaPixRecebidos?cofr_nome=${encodeURIComponent(cofrNome)}&dtInicial=${encodeURIComponent(formatPixDateParam(inicio))}&dtFinal=${encodeURIComponent(formatPixDateParam(fim))}`);
