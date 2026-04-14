@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCofres, getGerarToken, type Cofre } from "@/lib/api";
+import { getCofres, getGerarToken, getConsultaPixRecebidos, type Cofre } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,14 @@ interface BankConfig {
   tipoChave: string;
 }
 
-// Default URLs for banks without COFR_URL_API configured
+function mapPixStatus(status: string): 'confirmado' | 'pendente' | 'cancelado' {
+  if (!status) return 'confirmado';
+  const s = status.toUpperCase();
+  if (s === 'CONCLUIDA' || s === 'ATIVA' || s === 'CONCLUIDO') return 'confirmado';
+  if (s.includes('REMOVIDA') || s === 'CANCELADA') return 'cancelado';
+  return 'pendente';
+}
+
 function getDefaultUrlApi(nome: string): string {
   const n = nome.toUpperCase();
   if (n.includes('ITAU') || n.includes('ITAÚ')) return 'https://secure.api.itau/pix_recebimentos/v2/pix';
@@ -212,35 +219,46 @@ export default function ConsultaPix() {
         continue;
       }
 
-      // For Itaú, try to get token from legacy API (server has the certificate)
-      let bearerToken = '';
+      // For Itaú, route the entire query through the Java server (mTLS required)
       if (isItau) {
         try {
-          console.log(`[PIX] Gerando token via getGerarToken para ${bank.nome}...`);
-          const tokenResult = await getGerarToken(bank.nome);
-          bearerToken = (tokenResult as any)?.access_token || '';
-          if (bearerToken) {
-            console.log(`[PIX] Token gerado com sucesso para ${bank.nome} (expira em ${(tokenResult as any)?.expires_in || '?'}s)`);
+          console.log(`[PIX] Consultando Itaú via servidor Java para ${bank.nome}...`);
+          const result = await getConsultaPixRecebidos(bank.nome, inicio, fim);
+          console.log(`[PIX] Resposta Java para ${bank.nome}:`, result);
+
+          // Parse response - the Java server should return PIX transactions
+          const pixArray = (result as any)?.pix || (result as any)?.transactions || (result as any)?.cobs || [];
+          const transactions = (Array.isArray(pixArray) ? pixArray : []).map((pix: any) => ({
+            txId: pix.txid || pix.txId || pix.endToEndId || '',
+            endToEndId: pix.endToEndId || '',
+            valor: parseFloat(pix.valor || pix.valor?.original || '0'),
+            dataHora: pix.horario || pix.criacao || pix.dataHoraPagamento || '',
+            tipo: 'entrada' as const,
+            status: mapPixStatus(pix.status),
+            pagadorNome: pix.pagador?.nome || pix.pagador?.nomeCompleto || 'N/A',
+            pagadorDocumento: pix.pagador?.cpf || pix.pagador?.cnpj || 'N/A',
+            recebedorNome: pix.favorecido?.nome || pix.recebedor?.nome || 'N/A',
+            recebedorDocumento: pix.favorecido?.cpf || pix.favorecido?.cnpj || pix.recebedor?.cpf || pix.recebedor?.cnpj || 'N/A',
+            chavePix: pix.chave || '',
+            instituicao: bank.nome,
+            rawJson: pix,
+          }));
+
+          if (transactions.length > 0) {
+            allTx.push(...transactions);
+            console.log(`[PIX] ${transactions.length} transações encontradas para ${bank.nome}`);
           } else {
-            console.warn(`[PIX] Token vazio retornado para ${bank.nome}, tentando apiKey...`);
-            if (bank.apiKey && bank.apiKey.length > 50) {
-              bearerToken = bank.apiKey;
-            }
+            console.warn(`[PIX] Nenhuma transação retornada para ${bank.nome}`);
           }
-        } catch (tokenErr: any) {
-          console.error(`[PIX] Erro ao gerar token Itaú para ${bank.nome}:`, tokenErr);
-          if (bank.apiKey && bank.apiKey.length > 50) {
-            bearerToken = bank.apiKey;
-            console.log(`[PIX] Usando token armazenado como fallback para ${bank.nome}`);
-          } else {
-            toast({ title: `Erro Token - ${bank.nome}`, description: tokenErr?.message || "Não foi possível gerar o token Itaú", variant: "destructive" });
-            continue;
-          }
+        } catch (err: any) {
+          console.error(`[PIX] Erro consulta Java ${bank.nome}:`, err);
+          toast({ title: `Erro - ${bank.nome}`, description: err?.message || "Erro ao consultar PIX via servidor", variant: "destructive" });
         }
+        continue; // Skip edge function for Itaú
       }
 
       // For non-Itaú, require clientId/clientSecret
-      if (!isItau && (!bank.clientId || !bank.clientSecret)) {
+      if (!bank.clientId || !bank.clientSecret) {
         console.warn(`Cofre ${bank.nome} sem configuração completa, pulando...`);
         continue;
       }
@@ -251,16 +269,10 @@ export default function ConsultaPix() {
           urlApi: bank.urlApi,
           clientId: bank.clientId,
           clientSecret: bank.clientSecret,
-          apiKey: bearerToken ? '' : bank.apiKey,
+          apiKey: bank.apiKey,
           inicio,
           fim,
         };
-
-        // If Itaú with generated/stored bearer token
-        if (bearerToken) {
-          requestBody.bearerToken = bearerToken;
-          console.log(`[PIX] Usando bearer token para ${bank.nome}`);
-        }
 
         const { data, error } = await supabase.functions.invoke('pix-consulta', {
           body: requestBody,
@@ -273,7 +285,6 @@ export default function ConsultaPix() {
         }
 
         if (data?.transactions) {
-          // Override instituicao with cofre name for consistent filtering
           const txsWithBank = data.transactions.map((tx: PixTransaction) => ({
             ...tx,
             instituicao: bank.nome,
