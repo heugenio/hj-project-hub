@@ -204,6 +204,32 @@ async function sendEmail(req: SendRequest): Promise<{ ok: boolean; status: numbe
   }
 }
 
+async function fetchImageAsBase64(url: string): Promise<string | null> {
+  try {
+    // If already a data URL or base64 string, strip prefix and return raw base64
+    if (url.startsWith('data:')) {
+      const idx = url.indexOf('base64,');
+      return idx >= 0 ? url.substring(idx + 7) : null;
+    }
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.error(`Falha ao baixar imagem ${url}: ${resp.status}`);
+      return null;
+    }
+    const buf = new Uint8Array(await resp.arrayBuffer());
+    // Convert to base64 in chunks to avoid stack overflow on large images
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < buf.length; i += chunkSize) {
+      binary += String.fromCharCode(...buf.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  } catch (err) {
+    console.error('Erro ao converter imagem para base64:', err);
+    return null;
+  }
+}
+
 async function sendN8n(req: SendRequest): Promise<Response> {
   const webhookUrl = req.webhookUrl || 'https://n8n.srv1576408.hstgr.cloud/webhook/webhook-envio-direto';
   let phone = req.number.replace(/\D/g, '');
@@ -211,14 +237,20 @@ async function sendN8n(req: SendRequest): Promise<Response> {
 
   const payload: any = {
     number: phone,
-    text: req.text,
-    type: req.type || 'text',
+    text: req.text || '',
+    image: null,
   };
 
   if (req.type === 'media' && req.file) {
-    payload.mediaType = req.mediaType || 'image';
-    payload.file = req.file;
+    const base64 = await fetchImageAsBase64(req.file);
+    if (base64) {
+      payload.image = base64;
+    } else {
+      console.warn(`n8n: imagem não pôde ser convertida, enviando apenas texto. URL=${req.file}`);
+    }
   }
+
+  console.log(`n8n payload: number=${payload.number}, text len=${payload.text.length}, image=${payload.image ? `base64(${payload.image.length} chars)` : 'null'}`);
 
   return fetch(webhookUrl, {
     method: 'POST',
