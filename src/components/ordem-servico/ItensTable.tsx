@@ -96,15 +96,24 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
     onChange(updated);
   };
 
+  const buildOption = (p: ConsultaEstoqueItem) => {
+    const codigo = p.pROD_CODIGO || p.prod_Codigo || p.Codigo || '';
+    const nome = p.pROD_NOME || p.prod_Nome || p.Nome || '';
+    const preco = parseFloat(p.pCPR_PRECO || p.PCPR_PRECO || p.prod_Preco_Venda || '0') || 0;
+    const saldo = parseFloat(p.sEST_QTD_SALDO || p.SEST_QTD_SALDO || p.sest_Saldo || '0') || 0;
+    return {
+      id: codigo,
+      label: `${codigo} - ${nome}`,
+      sublabel: `Saldo: ${saldo.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} | R$ ${formatNumber(preco)}`,
+      data: p,
+    };
+  };
+
   const fetchProdutosPorNome = useCallback(async (query: string) => {
     if (!unemId || query.length < 2) return [];
     try {
       const data = await getConsultaEstoque({ unem_id: unemId, prod_nome: query });
-      return data.map((p) => ({
-        id: p.pROD_CODIGO || p.prod_Codigo || p.Codigo || '',
-        label: `${p.pROD_CODIGO || p.prod_Codigo || ''} - ${p.pROD_NOME || p.prod_Nome || p.Nome || ''}`,
-        data: p,
-      }));
+      return data.map(buildOption);
     } catch { return []; }
   }, [unemId]);
 
@@ -112,11 +121,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
     if (!unemId || query.length < 2) return [];
     try {
       const data = await getConsultaEstoque({ unem_id: unemId, prod_codigo: query });
-      return data.map((p) => ({
-        id: p.pROD_CODIGO || p.prod_Codigo || p.Codigo || '',
-        label: `${p.pROD_CODIGO || p.prod_Codigo || ''} - ${p.pROD_NOME || p.prod_Nome || p.Nome || ''}`,
-        data: p,
-      }));
+      return data.map(buildOption);
     } catch { return []; }
   }, [unemId]);
 
