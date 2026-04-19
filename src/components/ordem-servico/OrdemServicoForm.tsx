@@ -368,7 +368,16 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Data da OS</Label>
+              <Input
+                type="date"
+                value={dataOS}
+                onChange={(e) => setDataOS(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
             <div>
               <Label className="text-xs">Tipo de OS</Label>
               <Select value={tipoOS} onValueChange={setTipoOS}>
