@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Package, Wrench, Search } from 'lucide-react';
+import { Plus, Trash2, Package, Wrench, Search, X } from 'lucide-react';
 import type { ItemOS } from '@/lib/api-os';
 import { getConsultaEstoque, type ConsultaEstoqueItem } from '@/lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
@@ -23,6 +23,7 @@ function emptyItem(): ItemOS {
     ITOS_VLR_UNITARIO: 0,
     ITOS_DESCONTO: 0,
     ITOS_VLR_TOTAL: 0,
+    ITOS_UNIDADE_MEDIDA: 'UN',
   };
 }
 
@@ -32,6 +33,23 @@ function calcTotal(item: ItemOS): number {
 
 const formatNumber = (v: number) =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Get any case-insensitive variant from a product object
+function pick(obj: any, ...keys: string[]): string {
+  for (const k of keys) {
+    if (obj?.[k] != null && obj[k] !== '') return String(obj[k]);
+  }
+  // case-insensitive fallback
+  const lowered: Record<string, any> = {};
+  Object.keys(obj || {}).forEach(k => { lowered[k.toLowerCase()] = obj[k]; });
+  for (const k of keys) {
+    const v = lowered[k.toLowerCase()];
+    if (v != null && v !== '') return String(v);
+  }
+  return '';
+}
+
+const COMMON_UNIDADES = ['UN', 'PC', 'KG', 'G', 'L', 'ML', 'M', 'M2', 'M3', 'CX', 'PCT', 'SRV', 'HR'];
 
 export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
@@ -50,61 +68,51 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
 
   const updateEditingField = (field: keyof ItemOS, value: any) => {
     setEditingItem(prev => {
-      const updated = { ...prev, [field]: value };
+      const updated = { ...prev, [field]: value } as ItemOS;
       updated.ITOS_VLR_TOTAL = calcTotal(updated);
       return updated;
     });
   };
 
-  const applyProductToEditing = (produto: ConsultaEstoqueItem) => {
-    const preco = parseFloat(produto.pCPR_PRECO || produto.PCPR_PRECO || produto.prod_Preco_Venda || '0') || 0;
-    const saldo = parseFloat(produto.sEST_QTD_SALDO || produto.SEST_QTD_SALDO || produto.sest_Saldo || '0') || 0;
-    const codigo = produto.pROD_CODIGO || produto.prod_Codigo || produto.Codigo || '';
-    const natureza = (produto.pROD_NATUREZA_ECONOMICA || produto.pROD_Natureza_Economica || '').toLowerCase();
+  const extractProductData = (produto: ConsultaEstoqueItem) => {
+    const preco = parseFloat(pick(produto, 'pCPR_PRECO', 'PCPR_PRECO', 'prod_Preco_Venda', 'PROD_PRECO_VENDA') || '0') || 0;
+    const saldo = parseFloat(pick(produto, 'sEST_QTD_SALDO', 'SEST_QTD_SALDO', 'sest_Saldo', 'SEST_SALDO') || '0') || 0;
+    const codigo = pick(produto, 'pROD_CODIGO', 'PROD_CODIGO', 'prod_Codigo', 'Codigo');
+    const prodId = pick(produto, 'PROD_ID', 'pROD_ID', 'prod_Id', 'prod_ID') || codigo;
+    const unidade = pick(produto, 'pROD_UNIDADE', 'PROD_UNIDADE', 'prod_Unidade', 'UNID_MEDIDA', 'unidade_medida') || 'UN';
+    const nome = pick(produto, 'pROD_NOME', 'PROD_NOME', 'prod_Nome', 'Nome');
+    const natureza = (pick(produto, 'pROD_NATUREZA_ECONOMICA', 'PROD_NATUREZA_ECONOMICA', 'pROD_Natureza_Economica') || '').toLowerCase();
     const tipo: 'P' | 'S' = natureza.includes('servi') ? 'S' : 'P';
+    return { preco, saldo, codigo, prodId, unidade: unidade.toUpperCase(), nome, tipo };
+  };
+
+  const applyProductToEditing = (produto: ConsultaEstoqueItem) => {
+    const d = extractProductData(produto);
     const newItem: ItemOS = {
       ...editingItem,
-      ITOS_TIPO: tipo,
-      ITOS_DESCRICAO: produto.pROD_NOME || produto.prod_Nome || produto.Nome || '',
-      PROD_ID: codigo,
-      ITOS_VLR_UNITARIO: preco,
-      ITOS_SALDO_ESTOQUE: saldo,
+      ITOS_TIPO: d.tipo,
+      ITOS_DESCRICAO: d.nome,
+      PROD_ID: d.prodId,
+      PROD_CODIGO: d.codigo,
+      ITOS_VLR_UNITARIO: d.preco,
+      ITRQ_PRECO_TABELA: d.preco,
+      ITOS_SALDO_ESTOQUE: d.saldo,
+      ITOS_UNIDADE_MEDIDA: d.unidade,
     };
     newItem.ITOS_VLR_TOTAL = calcTotal(newItem);
     setEditingItem(newItem);
   };
 
-  const applyProductToExisting = (index: number, produto: ConsultaEstoqueItem) => {
-    const preco = parseFloat(produto.pCPR_PRECO || produto.PCPR_PRECO || produto.prod_Preco_Venda || '0') || 0;
-    const saldo = parseFloat(produto.sEST_QTD_SALDO || produto.SEST_QTD_SALDO || produto.sest_Saldo || '0') || 0;
-    const codigo = produto.pROD_CODIGO || produto.prod_Codigo || produto.Codigo || '';
-    const natureza = (produto.pROD_NATUREZA_ECONOMICA || produto.pROD_Natureza_Economica || '').toLowerCase();
-    const tipo: 'P' | 'S' = natureza.includes('servi') ? 'S' : 'P';
-    const updated = itens.map((item, i) => {
-      if (i !== index) return item;
-      const newItem: ItemOS = {
-        ...item,
-        ITOS_TIPO: tipo,
-        ITOS_DESCRICAO: produto.pROD_NOME || produto.prod_Nome || produto.Nome || '',
-        PROD_ID: codigo,
-        ITOS_VLR_UNITARIO: preco,
-        ITOS_SALDO_ESTOQUE: saldo,
-      };
-      newItem.ITOS_VLR_TOTAL = calcTotal(newItem);
-      return newItem;
-    });
-    onChange(updated);
+  const clearEditingProduct = () => {
+    setEditingItem(emptyItem());
   };
 
   const buildOption = (p: ConsultaEstoqueItem) => {
-    const codigo = p.pROD_CODIGO || p.prod_Codigo || p.Codigo || '';
-    const nome = p.pROD_NOME || p.prod_Nome || p.Nome || '';
-    const preco = parseFloat(p.pCPR_PRECO || p.PCPR_PRECO || p.prod_Preco_Venda || '0') || 0;
-    const saldo = parseFloat(p.sEST_QTD_SALDO || p.SEST_QTD_SALDO || p.sest_Saldo || '0') || 0;
+    const d = extractProductData(p);
     return {
-      id: codigo,
-      label: `${codigo} - ${nome}`,
-      sublabel: `Saldo: ${saldo.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} | R$ ${formatNumber(preco)}`,
+      id: d.codigo,
+      label: `${d.codigo} - ${d.nome}`,
+      sublabel: `Saldo: ${d.saldo.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} | R$ ${formatNumber(d.preco)}`,
       data: p,
     };
   };
@@ -132,6 +140,8 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
   const servicos = itens.filter((i) => i.ITOS_TIPO === 'S');
   const produtos = itens.filter((i) => i.ITOS_TIPO === 'P');
 
+  const isProductLocked = !!editingItem.PROD_ID;
+
   return (
     <>
       <Card data-autocomplete-scope="itens-os">
@@ -157,28 +167,30 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
             <div className="grid grid-cols-[90px_1fr_60px] gap-1.5 items-end">
               <div>
                 <label className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Código</label>
-                {unemId ? (
+                {unemId && !isProductLocked ? (
                   <AutocompleteInput
                     placeholder="Código..."
-                    value={editingItem.PROD_ID || ''}
-                    onChange={(v) => updateEditingField('PROD_ID' as keyof ItemOS, v)}
+                    value={editingItem.PROD_CODIGO || ''}
+                    onChange={(v) => updateEditingField('PROD_CODIGO' as keyof ItemOS, v)}
                     onSelect={(opt) => applyProductToEditing(opt.data)}
                     fetchOptions={fetchProdutosPorCodigo}
                     className="h-7 text-[10px] font-mono"
                   />
                 ) : (
                   <Input
-                    value={editingItem.PROD_ID || ''}
-                    onChange={(e) => updateEditingField('PROD_ID' as keyof ItemOS, e.target.value)}
-                    className="h-7 text-[10px] font-mono"
+                    value={editingItem.PROD_CODIGO || ''}
+                    readOnly={isProductLocked}
+                    onChange={(e) => updateEditingField('PROD_CODIGO' as keyof ItemOS, e.target.value)}
+                    className="h-7 text-[10px] font-mono bg-muted/30"
                     placeholder="Código..."
+                    tabIndex={isProductLocked ? -1 : 0}
                   />
                 )}
               </div>
               <div>
                 <label className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Descrição</label>
                 <div className="flex items-center gap-0.5">
-                  {unemId ? (
+                  {unemId && !isProductLocked ? (
                     <>
                       <div className="flex-1">
                         <AutocompleteInput
@@ -201,12 +213,27 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                       </Button>
                     </>
                   ) : (
-                    <Input
-                      value={editingItem.ITOS_DESCRICAO}
-                      onChange={(e) => updateEditingField('ITOS_DESCRICAO', e.target.value)}
-                      className="h-7 text-[10px]"
-                      placeholder="Descrição..."
-                    />
+                    <>
+                      <Input
+                        value={editingItem.ITOS_DESCRICAO}
+                        readOnly={isProductLocked}
+                        onChange={(e) => updateEditingField('ITOS_DESCRICAO', e.target.value)}
+                        className="h-7 text-[10px] flex-1 bg-muted/30"
+                        placeholder="Descrição..."
+                        tabIndex={isProductLocked ? -1 : 0}
+                      />
+                      {isProductLocked && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={clearEditingProduct}
+                          title="Limpar produto"
+                        >
+                          <X className="h-3 w-3 text-destructive" />
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -220,7 +247,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-[65px_100px_85px_100px_auto] gap-1.5 items-end">
+            <div className="grid grid-cols-[65px_70px_100px_85px_100px_auto] gap-1.5 items-end">
               <div>
                 <label className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Qtde</label>
                 <Input
@@ -230,6 +257,20 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                   onChange={(e) => updateEditingField('ITOS_QTDE', parseFloat(e.target.value) || 0)}
                   className="h-7 text-[10px] text-center"
                 />
+              </div>
+              <div>
+                <label className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Unid.</label>
+                <Input
+                  list="unidades-medida-os"
+                  value={editingItem.ITOS_UNIDADE_MEDIDA || ''}
+                  onChange={(e) => updateEditingField('ITOS_UNIDADE_MEDIDA', e.target.value.toUpperCase())}
+                  className="h-7 text-[10px] text-center uppercase"
+                  placeholder="UN"
+                  maxLength={6}
+                />
+                <datalist id="unidades-medida-os">
+                  {COMMON_UNIDADES.map(u => <option key={u} value={u} />)}
+                </datalist>
               </div>
               <div>
                 <label className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Vlr Unit.</label>
@@ -282,12 +323,13 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
           ) : (
             <div className="space-y-1">
               {/* Header */}
-              <div className="grid grid-cols-[24px_70px_1fr_50px_50px_80px_70px_80px_28px] gap-1 px-2 py-1">
+              <div className="grid grid-cols-[24px_70px_1fr_50px_50px_42px_80px_70px_80px_28px] gap-1 px-2 py-1">
                 <span className="text-[9px] font-medium text-muted-foreground uppercase">#</span>
                 <span className="text-[9px] font-medium text-muted-foreground uppercase">Código</span>
                 <span className="text-[9px] font-medium text-muted-foreground uppercase">Descrição</span>
                 <span className="text-[9px] font-medium text-muted-foreground uppercase text-center">Saldo</span>
                 <span className="text-[9px] font-medium text-muted-foreground uppercase text-center">Qtde</span>
+                <span className="text-[9px] font-medium text-muted-foreground uppercase text-center">Un.</span>
                 <span className="text-[9px] font-medium text-muted-foreground uppercase text-right">Vlr Unit.</span>
                 <span className="text-[9px] font-medium text-muted-foreground uppercase text-right">Desc.</span>
                 <span className="text-[9px] font-medium text-muted-foreground uppercase text-right">Total</span>
@@ -297,10 +339,10 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
               {itens.map((item, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-[24px_70px_1fr_50px_50px_80px_70px_80px_28px] gap-1 px-2 py-1.5 rounded-md bg-card border border-border/40 hover:border-primary/30 hover:bg-primary/[0.02] transition-colors group items-center"
+                  className="grid grid-cols-[24px_70px_1fr_50px_50px_42px_80px_70px_80px_28px] gap-1 px-2 py-1.5 rounded-md bg-card border border-border/40 hover:border-primary/30 hover:bg-primary/[0.02] transition-colors group items-center"
                 >
                   <span className="text-[10px] text-muted-foreground font-mono">{idx + 1}</span>
-                  <span className="text-[10px] font-mono text-foreground truncate" title={item.PROD_ID}>{item.PROD_ID || '-'}</span>
+                  <span className="text-[10px] font-mono text-foreground truncate" title={item.PROD_CODIGO || item.PROD_ID}>{item.PROD_CODIGO || item.PROD_ID || '-'}</span>
                   <div className="flex items-center gap-1 min-w-0">
                     <Badge
                       variant="outline"
@@ -312,6 +354,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
                   </div>
                   <span className="text-[10px] text-muted-foreground text-center">{item.ITOS_SALDO_ESTOQUE ?? '-'}</span>
                   <span className="text-[10px] text-foreground text-center font-medium">{item.ITOS_QTDE}</span>
+                  <span className="text-[10px] text-muted-foreground text-center uppercase">{item.ITOS_UNIDADE_MEDIDA || '-'}</span>
                   <span className="text-[10px] text-foreground text-right">{formatNumber(item.ITOS_VLR_UNITARIO)}</span>
                   <span className="text-[10px] text-muted-foreground text-right">{item.ITOS_DESCONTO > 0 ? formatNumber(item.ITOS_DESCONTO) : '-'}</span>
                   <span className="text-[10px] font-semibold text-foreground text-right">{formatNumber(item.ITOS_VLR_TOTAL)}</span>
