@@ -39,13 +39,23 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
 
   const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
   const [tipoOS, setTipoOS] = useState('');
+  const [orsvId, setOrsvId] = useState('');
   const [numeroOS, setNumeroOS] = useState('NOVA');
   const [statusOS, setStatusOS] = useState('Aberto');
   const [hodometro, setHodometro] = useState('');
+  // Data da OS (yyyy-MM-dd). Default = hoje p/ nova OS
+  const [dataOS, setDataOS] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   const [cliente, setClienteState] = useState<Cliente | null>(null);
   const [veiculo, setVeiculoState] = useState<Veiculo | null>(null);
   const [itens, setItens] = useState<ItemOS[]>([]);
+
+  // Descontos sobre totais
+  const [descontoOS, setDescontoOS] = useState<number>(0);
+  const [descontoServico, setDescontoServico] = useState<number>(0);
 
   const [vendedorText, setVendedorText] = useState('');
   const [vendedor, setVendedor] = useState<Vendedor | null>(null);
