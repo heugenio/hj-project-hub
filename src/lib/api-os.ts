@@ -97,6 +97,7 @@ export interface ModeloVeiculo {
 
 export interface ItemOS {
   ITOS_ID?: string;
+  ITRQ_ID?: string;
   ORSV_ID?: string;
   ITOS_TIPO: 'P' | 'S'; // Produto | Serviço
   ITOS_DESCRICAO: string;
@@ -105,7 +106,11 @@ export interface ItemOS {
   ITOS_DESCONTO: number;
   ITOS_VLR_TOTAL: number;
   ITOS_SALDO_ESTOQUE?: number;
-  PROD_ID?: string;
+  ITOS_UNIDADE_MEDIDA?: string;
+  ITRQ_PRECO_TABELA?: number;
+  ITRQ_VLR_DESCONTO_SOBRE_TOTAL?: number;
+  PROD_ID?: string;        // ID real do produto (PROD_ID da ConsultaEstoque)
+  PROD_CODIGO?: string;    // Código visível ao usuário
 }
 
 export interface Vendedor {
@@ -134,10 +139,12 @@ export interface OrdemServicoFull {
   VDDR_ID?: string;
   TCNC_ID?: string;
   MDIA_ID?: string;
+  USRS_ID?: string;
   ORSV_OBSERVACOES?: string;
   ORSV_NR_CHECKLIST?: string;
   ORSV_VLR_SUBTOTAL?: number;
   ORSV_VLR_DESCONTO?: number;
+  ORSV_VLR_DESCONTO_SERVICO?: number;
   ORSV_VLR_TOTAL?: number;
   ORSV_HODOMETRO?: string;
   UNEM_ID?: string;

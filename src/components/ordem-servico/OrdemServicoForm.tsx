@@ -39,13 +39,23 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
 
   const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
   const [tipoOS, setTipoOS] = useState('');
+  const [orsvId, setOrsvId] = useState('');
   const [numeroOS, setNumeroOS] = useState('NOVA');
   const [statusOS, setStatusOS] = useState('Aberto');
   const [hodometro, setHodometro] = useState('');
+  // Data da OS (yyyy-MM-dd). Default = hoje p/ nova OS
+  const [dataOS, setDataOS] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   const [cliente, setClienteState] = useState<Cliente | null>(null);
   const [veiculo, setVeiculoState] = useState<Veiculo | null>(null);
   const [itens, setItens] = useState<ItemOS[]>([]);
+
+  // Descontos sobre totais
+  const [descontoOS, setDescontoOS] = useState<number>(0);
+  const [descontoServico, setDescontoServico] = useState<number>(0);
 
   const [vendedorText, setVendedorText] = useState('');
   const [vendedor, setVendedor] = useState<Vendedor | null>(null);
@@ -225,8 +235,8 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
   }, []);
 
   const subtotal = itens.reduce((s, i) => s + (i.ITOS_QTDE * i.ITOS_VLR_UNITARIO), 0);
-  const descontoTotal = itens.reduce((s, i) => s + i.ITOS_DESCONTO, 0);
-  const totalFinal = Math.max(0, subtotal - descontoTotal);
+  const descontoItens = itens.reduce((s, i) => s + i.ITOS_DESCONTO, 0);
+  const totalFinal = Math.max(0, subtotal - descontoItens - descontoOS - descontoServico);
 
   const handleSave = async (finalizar = false) => {
     if (!cliente) { toast.error('Selecione um cliente'); return; }
@@ -234,25 +244,59 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
 
     setSaving(true);
     try {
-      const payload: Partial<OrdemServicoFull> = {
-        TPOS_ID: tipoOS || undefined,
+      // Base p/ rateio proporcional do desconto sobre o total
+      const baseRateio = itens.reduce(
+        (s, i) => s + Math.max(0, (i.ITOS_QTDE * i.ITOS_VLR_UNITARIO) - i.ITOS_DESCONTO),
+        0
+      );
+
+      const itensPayload = itens.map((i) => {
+        const liquidoItem = Math.max(0, (i.ITOS_QTDE * i.ITOS_VLR_UNITARIO) - i.ITOS_DESCONTO);
+        const rateioDescontoTotal = baseRateio > 0
+          ? Number(((descontoOS * liquidoItem) / baseRateio).toFixed(2))
+          : 0;
+        return {
+          ITRQ_ID: i.ITRQ_ID || '',
+          ITOS_ID: i.ITOS_ID || '',
+          ORSV_ID: i.ORSV_ID || orsvId || '',
+          PROD_ID: i.PROD_ID || '',
+          ITOS_TIPO: i.ITOS_TIPO,
+          ITOS_DESCRICAO: i.ITOS_DESCRICAO,
+          ITOS_QTDE: i.ITOS_QTDE,
+          ITOS_UNIDADE_MEDIDA: i.ITOS_UNIDADE_MEDIDA || 'UN',
+          ITOS_VLR_UNITARIO: i.ITOS_VLR_UNITARIO,
+          ITOS_DESCONTO: i.ITOS_DESCONTO,
+          ITOS_VLR_TOTAL: i.ITOS_VLR_TOTAL,
+          ITRQ_PRECO_TABELA: i.ITRQ_PRECO_TABELA ?? i.ITOS_VLR_UNITARIO,
+          ITRQ_VLR_DESCONTO_SOBRE_TOTAL: rateioDescontoTotal,
+        };
+      });
+
+      const payload: Record<string, any> = {
+        ORSV_ID: orsvId || '',
+        ORSV_NUMERO: orsvId ? numeroOS : '',
+        ORSV_DATA: dataOS, // yyyy-MM-dd
+        TPOS_ID: tipoOS || '',
         PESS_ID: cliente.PESS_ID,
         VEIC_ID: veiculo.VEIC_ID,
-        VDDR_ID: vendedor?.VDDR_ID,
-        TCNC_ID: tecnico?.TCNC_ID,
-        MDIA_ID: midiaId || undefined,
+        VDDR_ID: vendedor?.VDDR_ID || '',
+        TCNC_ID: tecnico?.TCNC_ID || '',
+        MDIA_ID: midiaId || '',
+        USRS_ID: auth?.user?.usrs_ID || '',
         ORSV_OBSERVACOES: observacoes,
         ORSV_NR_CHECKLIST: checklist,
         ORSV_HODOMETRO: hodometro,
         ORSV_VLR_SUBTOTAL: subtotal,
-        ORSV_VLR_DESCONTO: descontoTotal,
+        ORSV_VLR_DESCONTO: descontoOS,
+        ORSV_VLR_DESCONTO_SERVICO: descontoServico,
         ORSV_VLR_TOTAL: totalFinal,
         ORSV_STATUS: finalizar ? 'Finalizado' : 'Aberto',
         UNEM_ID: auth?.unidade?.unem_Id,
-        itens,
+        itens: itensPayload,
       };
       console.log('=== PAYLOAD OS ===', JSON.stringify(payload, null, 2));
-      const result = await saveOS(payload);
+      const result = await saveOS(payload as Partial<OrdemServicoFull>);
+      if (result.ORSV_ID) setOrsvId(result.ORSV_ID);
       if (result.ORSV_NUMERO) setNumeroOS(result.ORSV_NUMERO);
       setStatusOS(finalizar ? 'Finalizado' : 'Aberto');
       toast.success(finalizar ? 'OS finalizada com sucesso!' : 'OS salva com sucesso!');
@@ -324,7 +368,16 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Data da OS</Label>
+              <Input
+                type="date"
+                value={dataOS}
+                onChange={(e) => setDataOS(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
             <div>
               <Label className="text-xs">Tipo de OS</Label>
               <Select value={tipoOS} onValueChange={setTipoOS}>
@@ -390,7 +443,13 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
           </CardContent>
         </Card>
 
-        <ResumoFinanceiro itens={itens} />
+        <ResumoFinanceiro
+          itens={itens}
+          descontoOS={descontoOS}
+          descontoServico={descontoServico}
+          onDescontoOSChange={setDescontoOS}
+          onDescontoServicoChange={setDescontoServico}
+        />
       </div>
 
       {/* Info Adicional */}
