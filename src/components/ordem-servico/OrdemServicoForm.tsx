@@ -434,7 +434,13 @@ export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
           </CardContent>
         </Card>
 
-        <ResumoFinanceiro itens={itens} />
+        <ResumoFinanceiro
+          itens={itens}
+          descontoOS={descontoOS}
+          descontoServico={descontoServico}
+          onDescontoOSChange={setDescontoOS}
+          onDescontoServicoChange={setDescontoServico}
+        />
       </div>
 
       {/* Info Adicional */}
