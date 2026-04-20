@@ -236,16 +236,12 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
         const vendedorNome = pickValue(detalhe, 'VDDR_NOME', 'vDDR_NOME', 'VEND_NOME', 'vEND_NOME', 'PESS_NOME_VENDEDOR');
         if (vendedorId) {
           try {
-            // Backend grava PESS_ID em vDDR_ID; resolvemos o nome buscando a lista de vendedores
-            const vendedores = await getVendedores({ nome: '' });
-            const v = (vendedores || []).find((x: any) => {
-              const pessId = pickValue(x, 'PESS_ID', 'pESS_ID');
-              const vddrId = pickValue(x, 'VDDR_ID', 'vDDR_ID');
-              return String(pessId) === String(vendedorId) || String(vddrId) === String(vendedorId);
-            });
+            // Busca direta por VDDR_ID em getVendedores?id=
+            const vendedores = await getVendedores({ id: String(vendedorId) });
+            const v = Array.isArray(vendedores) && vendedores.length > 0 ? vendedores[0] : null;
             if (v) {
-              const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID', 'PESS_ID', 'pESS_ID') || vendedorId);
-              const nome = String(pickValue(v, 'PESS_NOME', 'pESS_NOME', 'VDDR_NOME', 'vDDR_NOME') || vendedorNome || '');
+              const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID') || vendedorId);
+              const nome = String(pickValue(v, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME', 'pESS_NOME') || vendedorNome || '');
               setVendedor({ VDDR_ID: id, VDDR_NOME: nome });
               setVendedorText(nome);
             } else if (vendedorNome) {
