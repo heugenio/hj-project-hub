@@ -66,8 +66,10 @@ export default function OrdemServico() {
   if (showForm) {
     return (
       <OrdemServicoForm
+        editingOS={editingOS}
         onBack={() => {
           setShowForm(false);
+          setEditingOS(null);
           if (searched) handleSearch();
         }}
       />
