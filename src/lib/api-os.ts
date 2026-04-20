@@ -275,8 +275,32 @@ export const getMidias = (params: { id?: string; nome?: string }) => {
 export const getItensOrdemServicos = (orsvId: string) =>
   proxyGet<ItemOS[]>(`/getItensOrdemServicos?id=${encodeURIComponent(orsvId)}`);
 
-export const getOrdemServicoById = (orsvId: string) =>
-  proxyGet<Record<string, any>>(`/getOrdemServicos?id=${encodeURIComponent(orsvId)}`);
+export const getOrdemServicoById = async (orsvId: string, unemId?: string) => {
+  // 1) Tenta direto por id
+  const tryFetch = async (qs: string) => {
+    const raw = await proxyGet<any>(`/getOrdemServicos?${qs}`);
+    if (!raw) return null;
+    if (Array.isArray(raw)) return raw.length > 0 ? raw[0] : null;
+    if (raw.rawHtml || raw.message === '200 OK') return null;
+    return raw;
+  };
+
+  let detalhe = await tryFetch(`id=${encodeURIComponent(orsvId)}`);
+
+  // 2) Fallback: API legada exige unem_id; busca a lista e filtra pelo ID
+  if (!detalhe && unemId) {
+    try {
+      const listRaw = await proxyGet<any>(`/getOrdemServicos?unem_id=${encodeURIComponent(unemId)}`);
+      const list = Array.isArray(listRaw) ? listRaw : [];
+      detalhe = list.find((os: any) => {
+        const id = os.oRSV_ID || os.ORSV_ID || os.orsv_id;
+        return String(id) === String(orsvId);
+      }) || null;
+    } catch {}
+  }
+
+  return detalhe ? (Array.isArray(detalhe) ? detalhe[0] : detalhe) : ({} as Record<string, any>);
+};
 
 export const setItensOrdemServicos = (itens: Partial<ItemOS>[]) =>
   proxyPost<unknown>('/setItensOrdemServicos', itens);
