@@ -86,7 +86,7 @@ export default function OrdemServico() {
           <p className="text-muted-foreground text-sm mt-1">Gerenciamento de ordens de serviço</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setShowForm(true)} size="sm">
+          <Button onClick={() => { setEditingOS(null); setShowForm(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Nova O.S
           </Button>
         </div>
