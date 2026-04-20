@@ -240,15 +240,23 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
         if (vendedorId) {
           try {
             const vendedoresRaw = await getVendedores({ id: String(vendedorId) });
-            const vendedores = Array.isArray(vendedoresRaw) ? vendedoresRaw : (vendedoresRaw ? [vendedoresRaw] : []);
+            const vendedoresBase = Array.isArray(vendedoresRaw)
+              ? vendedoresRaw
+              : [
+                  pickValue(vendedoresRaw as Record<string, any>, 'data', 'DATA', 'result', 'RESULT', 'items', 'ITEMS', 'rows', 'ROWS') ||
+                    vendedoresRaw,
+                ];
+            const vendedores = vendedoresBase.flatMap((item: any) => (Array.isArray(item) ? item : item ? [item] : []));
             const v =
-              vendedores.find((item: any) => String(pickValue(item, 'VDDR_ID', 'vDDR_ID')) === String(vendedorId)) ||
+              vendedores.find((item: any) => String(pickValue(item, 'VDDR_ID', 'vDDR_ID', 'PESS_ID', 'pESS_ID')) === String(vendedorId)) ||
               vendedores[0] ||
               null;
 
             if (v) {
-              const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID') || vendedorId);
-              const nome = String(pickValue(v, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME', 'pESS_NOME') || vendedorNome || '');
+              const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID', 'PESS_ID', 'pESS_ID') || vendedorId);
+              const nome = String(
+                pickValue(v, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME', 'pESS_NOME', 'VEND_NOME', 'vEND_NOME') || vendedorNome || '',
+              );
               setVendedor({ VDDR_ID: id, VDDR_NOME: nome });
               setVendedorText(nome);
             } else if (vendedorNome) {
