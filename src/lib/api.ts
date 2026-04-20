@@ -273,8 +273,16 @@ export interface OrdemServico {
   oRSV_NOME: string;
 }
 
-export const getOrdemServicos = (unem_id: string) =>
-  apiGet<OrdemServico[]>(`/getOrdemServicos?unem_id=${encodeURIComponent(unem_id)}`);
+export const getOrdemServicos = (
+  unem_id: string,
+  filtros?: { status?: string; dtInicial?: string; dtFinal?: string }
+) => {
+  const params = new URLSearchParams({ unem_id });
+  if (filtros?.status && filtros.status !== 'TODOS') params.append('status', filtros.status);
+  if (filtros?.dtInicial) params.append('dtinicial', filtros.dtInicial);
+  if (filtros?.dtFinal) params.append('dtfinal', filtros.dtFinal);
+  return apiGet<OrdemServico[]>(`/getOrdemServicos?${params.toString()}`);
+};
 
 // Cofres (configuração PIX dos bancos)
 export interface Cofre {

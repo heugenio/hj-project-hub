@@ -3,6 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, Wrench, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getOrdemServicos, type OrdemServico as OrdemServicoType } from "@/lib/api";
@@ -22,6 +25,13 @@ export default function OrdemServico() {
   const [searched, setSearched] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const toISO = (d: Date) => d.toISOString().slice(0, 10);
+  const [dtInicial, setDtInicial] = useState(toISO(firstDay));
+  const [dtFinal, setDtFinal] = useState(toISO(today));
+  const [status, setStatus] = useState<string>("TODOS");
+
   const handleSearch = async () => {
     if (!auth?.unidade?.unem_Id) {
       toast.error("Selecione uma unidade empresarial.");
@@ -29,7 +39,11 @@ export default function OrdemServico() {
     }
     setLoading(true);
     try {
-      const result = await getOrdemServicos(auth.unidade.unem_Id);
+      const result = await getOrdemServicos(auth.unidade.unem_Id, {
+        status,
+        dtInicial,
+        dtFinal,
+      });
       setData(result);
       setSearched(true);
       if (result.length === 0) toast.info("Nenhuma OS encontrada.");
@@ -69,15 +83,53 @@ export default function OrdemServico() {
           <p className="text-muted-foreground text-sm mt-1">Gerenciamento de ordens de serviço</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSearch} disabled={loading} size="sm" variant="outline">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
-            Consultar
-          </Button>
           <Button onClick={() => setShowForm(true)} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Nova O.S
           </Button>
         </div>
       </div>
+
+      <Card className="border-border/50">
+        <CardContent className="p-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Data Inicial</Label>
+              <Input
+                type="date"
+                value={dtInicial}
+                onChange={(e) => setDtInicial(e.target.value)}
+                className="h-8 text-xs w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Data Final</Label>
+              <Input
+                type="date"
+                value={dtFinal}
+                onChange={(e) => setDtFinal(e.target.value)}
+                className="h-8 text-xs w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-8 text-xs w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODOS">Todos</SelectItem>
+                  <SelectItem value="ABERTO">Abertos</SelectItem>
+                  <SelectItem value="FATURADO">Faturados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleSearch} disabled={loading} size="sm" className="h-8">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+              Consultar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50">
         <CardContent className="p-0">
