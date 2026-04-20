@@ -12,6 +12,8 @@ import {
   Wrench, Save, CheckCircle, XCircle, Printer, Send,
   Loader2, FileText, Users, ClipboardList, MessageSquare, ArrowLeft, Car, User
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ClienteSection } from './ClienteSection';
