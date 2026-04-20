@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Wrench, Plus } from "lucide-react";
+import { Loader2, Search, Wrench, Plus, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getOrdemServicos, type OrdemServico as OrdemServicoType } from "@/lib/api";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ export default function OrdemServico() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingOS, setEditingOS] = useState<OrdemServicoType | null>(null);
 
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -65,8 +66,10 @@ export default function OrdemServico() {
   if (showForm) {
     return (
       <OrdemServicoForm
+        editingOS={editingOS}
         onBack={() => {
           setShowForm(false);
+          setEditingOS(null);
           if (searched) handleSearch();
         }}
       />
@@ -83,7 +86,7 @@ export default function OrdemServico() {
           <p className="text-muted-foreground text-sm mt-1">Gerenciamento de ordens de serviço</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setShowForm(true)} size="sm">
+          <Button onClick={() => { setEditingOS(null); setShowForm(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Nova O.S
           </Button>
         </div>
@@ -145,33 +148,50 @@ export default function OrdemServico() {
                 <TableHead className="text-xs">Hodômetro</TableHead>
                 <TableHead className="text-xs text-right">Vlr Total</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground text-sm py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground text-sm py-8">
                     {searched ? "Nenhuma OS encontrada." : "Clique em Consultar para buscar as ordens de serviço."}
                   </TableCell>
                 </TableRow>
               )}
-              {data.map((os, idx) => (
-                <TableRow key={os.oRSV_ID + idx} className={idx % 2 === 0 ? "" : "bg-muted/40"}>
-                  <TableCell className="font-mono text-xs font-medium">{os.oRSV_NUMERO}</TableCell>
-                  <TableCell className="text-xs">{formatDate(os.oRSV_DATA)}</TableCell>
-                  <TableCell className="text-xs">{os.oRSV_NOME}</TableCell>
-                  <TableCell className="text-xs font-mono">{os.oRSV_CPFCNPJ}</TableCell>
-                  <TableCell className="text-xs">{os.vEIC_MARCA} {os.vEIC_MODELO}</TableCell>
-                  <TableCell className="text-xs font-mono">{os.vEIC_PLACA}</TableCell>
-                  <TableCell className="text-xs text-right">{os.oRSV_HODOMETRO}</TableCell>
-                  <TableCell className="text-xs text-right">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
-                  <TableCell>
-                    <Badge className={(statusColor[os.oRSV_STATUS] || "bg-muted text-muted-foreground") + " text-xs"}>
-                      {os.oRSV_STATUS}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {data.map((os, idx) => {
+                const isAberto = (os.oRSV_STATUS || '').toLowerCase() === 'aberto';
+                return (
+                  <TableRow key={os.oRSV_ID + idx} className={idx % 2 === 0 ? "" : "bg-muted/40"}>
+                    <TableCell className="font-mono text-xs font-medium">{os.oRSV_NUMERO}</TableCell>
+                    <TableCell className="text-xs">{formatDate(os.oRSV_DATA)}</TableCell>
+                    <TableCell className="text-xs">{os.oRSV_NOME}</TableCell>
+                    <TableCell className="text-xs font-mono">{os.oRSV_CPFCNPJ}</TableCell>
+                    <TableCell className="text-xs">{os.vEIC_MARCA} {os.vEIC_MODELO}</TableCell>
+                    <TableCell className="text-xs font-mono">{os.vEIC_PLACA}</TableCell>
+                    <TableCell className="text-xs text-right">{os.oRSV_HODOMETRO}</TableCell>
+                    <TableCell className="text-xs text-right">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
+                    <TableCell>
+                      <Badge className={(statusColor[os.oRSV_STATUS] || "bg-muted text-muted-foreground") + " text-xs"}>
+                        {os.oRSV_STATUS}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {isAberto && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => { setEditingOS(os); setShowForm(true); }}
+                          title="Editar OS"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
