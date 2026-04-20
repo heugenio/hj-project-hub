@@ -460,8 +460,17 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
 
   const fetchTecnicos = useCallback(async (query: string) => {
     try {
-      const r = await getTecnicos({ nome: query });
-      return r.map((t) => ({ id: t.TCNC_ID, label: t.TCNC_NOME }));
+      const raw = await getTecnicos({ nome: query });
+      const base = Array.isArray(raw)
+        ? raw
+        : [pickValue(raw as any, 'data', 'result', 'items', 'rows') || raw];
+      const list = base.flatMap((item: any) => (Array.isArray(item) ? item : item ? [item] : []));
+      return list
+        .map((t: any) => ({
+          id: String(pickValue(t, 'TCNC_ID', 'tCNC_ID', 'Tcnc_ID') || ''),
+          label: String(pickValue(t, 'TCNC_NOME', 'tCNC_NOME', 'PESS_NOME', 'pESS_NOME') || ''),
+        }))
+        .filter((opt) => opt.id && opt.label);
     } catch { return []; }
   }, []);
 
