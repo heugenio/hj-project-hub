@@ -37,7 +37,7 @@ interface OrdemServicoFormProps {
   editingOS?: OrdemServicoListItem | null;
 }
 
-export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
+export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoFormProps) {
   const { auth } = useAuth();
 
   const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
