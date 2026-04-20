@@ -37,6 +37,7 @@ export function AutocompleteInput({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const justSelected = useRef(false);
+  const userTyped = useRef(false);
   const debouncedValue = useDebounce(value, 400);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,12 @@ export function AutocompleteInput({
   useEffect(() => {
     if (justSelected.current) {
       justSelected.current = false;
+      setOptions([]);
+      setOpen(false);
+      return;
+    }
+    // Ignora mudanças programáticas no value (ex.: pré-preenchimento na edição)
+    if (!userTyped.current) {
       setOptions([]);
       setOpen(false);
       return;
@@ -137,6 +144,7 @@ export function AutocompleteInput({
                   e.preventDefault();
                   e.stopPropagation();
                   justSelected.current = true;
+                  userTyped.current = false;
                   onSelect(opt);
                   setOpen(false);
                   setOptions([]);
@@ -159,7 +167,10 @@ export function AutocompleteInput({
           ref={inputRef}
           placeholder={placeholder}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            userTyped.current = true;
+            onChange(e.target.value);
+          }}
           disabled={disabled}
           className="pl-8 h-9 text-sm"
           onFocus={() => {
