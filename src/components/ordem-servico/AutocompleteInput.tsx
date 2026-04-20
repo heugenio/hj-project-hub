@@ -144,6 +144,7 @@ export function AutocompleteInput({
                   e.preventDefault();
                   e.stopPropagation();
                   justSelected.current = true;
+                  userTyped.current = false;
                   onSelect(opt);
                   setOpen(false);
                   setOptions([]);
