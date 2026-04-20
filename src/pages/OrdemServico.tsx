@@ -160,8 +160,8 @@ export default function OrdemServico() {
                 </TableRow>
               )}
               {data.map((os, idx) => {
-                const st = (os.oRSV_STATUS || '').toLowerCase();
-                const isAberto = st.startsWith('aberto');
+                const st = (os.oRSV_STATUS || '').toLowerCase().trim();
+                const isAberto = st.startsWith('abert');
                 return (
                   <TableRow key={os.oRSV_ID + idx} className={idx % 2 === 0 ? "" : "bg-muted/40"}>
                     <TableCell className="font-mono text-xs font-medium">{os.oRSV_NUMERO}</TableCell>
