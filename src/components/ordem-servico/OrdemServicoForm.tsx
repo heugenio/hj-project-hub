@@ -30,6 +30,8 @@ import {
   type PessoaVeiculo
 } from '@/lib/api-os';
 import type { OrdemServico as OrdemServicoListItem } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
+import { getApiBaseUrl } from '@/lib/base-url';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -114,6 +116,11 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
 
   const skipVeiculoCrossLinkRef = useRef(false);
   const skipClienteCrossLinkRef = useRef(false);
+
+  // WhatsApp dialog state
+  const [whatsDialogOpen, setWhatsDialogOpen] = useState(false);
+  const [whatsMensagem, setWhatsMensagem] = useState('');
+  const [whatsEnviando, setWhatsEnviando] = useState(false);
 
   useEffect(() => {
     setLoadingTipos(true);
