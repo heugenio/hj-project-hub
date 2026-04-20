@@ -25,6 +25,13 @@ export default function OrdemServico() {
   const [searched, setSearched] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const toISO = (d: Date) => d.toISOString().slice(0, 10);
+  const [dtInicial, setDtInicial] = useState(toISO(firstDay));
+  const [dtFinal, setDtFinal] = useState(toISO(today));
+  const [status, setStatus] = useState<string>("TODOS");
+
   const handleSearch = async () => {
     if (!auth?.unidade?.unem_Id) {
       toast.error("Selecione uma unidade empresarial.");
@@ -32,7 +39,11 @@ export default function OrdemServico() {
     }
     setLoading(true);
     try {
-      const result = await getOrdemServicos(auth.unidade.unem_Id);
+      const result = await getOrdemServicos(auth.unidade.unem_Id, {
+        status,
+        dtInicial,
+        dtFinal,
+      });
       setData(result);
       setSearched(true);
       if (result.length === 0) toast.info("Nenhuma OS encontrada.");
