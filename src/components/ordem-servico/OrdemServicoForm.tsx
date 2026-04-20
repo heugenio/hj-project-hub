@@ -572,103 +572,108 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   // OS já foi salva (tem ID) — habilita imprimir/WhatsApp/Finalizar
   const osPersistida = Boolean(orsvId);
 
+  const buildPdf = useCallback((): jsPDF => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const marginX = 12;
+
+    // Cabeçalho
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(`ORDEM DE SERVIÇO Nº ${numeroOS || orsvId}`, pageW / 2, 14, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`Status: ${statusOS}`, marginX, 22);
+    doc.text(`Data: ${dataOS.split('-').reverse().join('/')}`, pageW - marginX, 22, { align: 'right' });
+
+    // Cliente / Veículo
+    let y = 30;
+    doc.setFont('helvetica', 'bold'); doc.text('CLIENTE', marginX, y);
+    doc.setFont('helvetica', 'normal');
+    y += 5;
+    doc.text(`Nome: ${cliente?.PESS_NOME || '-'}`, marginX, y); y += 4;
+    doc.text(`CPF/CNPJ: ${cliente?.PESS_CPFCNPJ || '-'}`, marginX, y);
+    doc.text(`Fone: ${cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '-'}`, pageW / 2, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'bold'); doc.text('VEÍCULO', marginX, y);
+    doc.setFont('helvetica', 'normal');
+    y += 5;
+    doc.text(`Placa: ${veiculo?.VEIC_PLACA || '-'}`, marginX, y);
+    doc.text(`Marca/Modelo: ${[veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' ') || '-'}`, marginX + 50, y);
+    doc.text(`Ano: ${veiculo?.VEIC_ANO || '-'}`, pageW - marginX, y, { align: 'right' });
+    y += 4;
+    doc.text(`Cor: ${veiculo?.VEIC_COR || '-'}`, marginX, y);
+    doc.text(`Hodômetro: ${hodometro || '-'}`, marginX + 50, y);
+    y += 6;
+
+    // Equipe
+    doc.setFont('helvetica', 'bold'); doc.text('EQUIPE', marginX, y);
+    doc.setFont('helvetica', 'normal');
+    y += 5;
+    doc.text(`Vendedor: ${vendedor?.VDDR_NOME || '-'}`, marginX, y);
+    doc.text(`Técnico: ${tecnico?.TCNC_NOME || '-'}`, pageW / 2, y);
+    y += 6;
+
+    // Itens
+    autoTable(doc, {
+      startY: y,
+      theme: 'plain',
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      headStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      head: [['Tipo', 'Descrição', 'Qtde', 'Vlr Unit.', 'Desc.', 'Total']],
+      body: itens.map((i) => [
+        i.ITOS_TIPO === 'P' ? 'Prod' : 'Serv',
+        i.ITOS_DESCRICAO,
+        String(i.ITOS_QTDE),
+        formatCurrency(i.ITOS_VLR_UNITARIO),
+        formatCurrency(i.ITOS_DESCONTO),
+        formatCurrency(i.ITOS_VLR_TOTAL),
+      ]),
+      columnStyles: {
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+        5: { halign: 'right' },
+      },
+    });
+
+    // Totais
+    const finalY = (doc as any).lastAutoTable?.finalY ?? y + 20;
+    let ty = finalY + 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.text(`Subtotal: ${formatCurrency(subtotal)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
+    doc.text(`Desconto Itens: ${formatCurrency(descontoItens)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
+    doc.text(`Desconto OS: ${formatCurrency(descontoOS)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
+    doc.text(`Desconto Serviço: ${formatCurrency(descontoServico)}`, pageW - marginX, ty, { align: 'right' }); ty += 5;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text(`TOTAL: ${formatCurrency(totalFinal)}`, pageW - marginX, ty, { align: 'right' });
+
+    // Observações
+    if (observacoes) {
+      ty += 8;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.text('OBSERVAÇÕES', marginX, ty);
+      ty += 4;
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(observacoes, pageW - marginX * 2);
+      doc.text(lines, marginX, ty);
+    }
+
+    return doc;
+  }, [numeroOS, orsvId, statusOS, dataOS, cliente, veiculo, hodometro, vendedor, tecnico, itens, subtotal, descontoItens, descontoOS, descontoServico, totalFinal, observacoes]);
+
   const handlePrint = useCallback(() => {
     if (!osPersistida) return;
     try {
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = doc.internal.pageSize.getWidth();
-      const marginX = 12;
-
-      // Cabeçalho
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text(`ORDEM DE SERVIÇO Nº ${numeroOS || orsvId}`, pageW / 2, 14, { align: 'center' });
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(`Status: ${statusOS}`, marginX, 22);
-      doc.text(`Data: ${dataOS.split('-').reverse().join('/')}`, pageW - marginX, 22, { align: 'right' });
-
-      // Cliente / Veículo
-      let y = 30;
-      doc.setFont('helvetica', 'bold'); doc.text('CLIENTE', marginX, y);
-      doc.setFont('helvetica', 'normal');
-      y += 5;
-      doc.text(`Nome: ${cliente?.PESS_NOME || '-'}`, marginX, y); y += 4;
-      doc.text(`CPF/CNPJ: ${cliente?.PESS_CPFCNPJ || '-'}`, marginX, y);
-      doc.text(`Fone: ${cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '-'}`, pageW / 2, y);
-      y += 6;
-
-      doc.setFont('helvetica', 'bold'); doc.text('VEÍCULO', marginX, y);
-      doc.setFont('helvetica', 'normal');
-      y += 5;
-      doc.text(`Placa: ${veiculo?.VEIC_PLACA || '-'}`, marginX, y);
-      doc.text(`Marca/Modelo: ${[veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' ') || '-'}`, marginX + 50, y);
-      doc.text(`Ano: ${veiculo?.VEIC_ANO || '-'}`, pageW - marginX, y, { align: 'right' });
-      y += 4;
-      doc.text(`Cor: ${veiculo?.VEIC_COR || '-'}`, marginX, y);
-      doc.text(`Hodômetro: ${hodometro || '-'}`, marginX + 50, y);
-      y += 6;
-
-      // Equipe
-      doc.setFont('helvetica', 'bold'); doc.text('EQUIPE', marginX, y);
-      doc.setFont('helvetica', 'normal');
-      y += 5;
-      doc.text(`Vendedor: ${vendedor?.VDDR_NOME || '-'}`, marginX, y);
-      doc.text(`Técnico: ${tecnico?.TCNC_NOME || '-'}`, pageW / 2, y);
-      y += 6;
-
-      // Itens
-      autoTable(doc, {
-        startY: y,
-        theme: 'plain',
-        styles: { fontSize: 8, cellPadding: 1.5 },
-        headStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [250, 250, 250] },
-        head: [['Tipo', 'Descrição', 'Qtde', 'Vlr Unit.', 'Desc.', 'Total']],
-        body: itens.map((i) => [
-          i.ITOS_TIPO === 'P' ? 'Prod' : 'Serv',
-          i.ITOS_DESCRICAO,
-          String(i.ITOS_QTDE),
-          formatCurrency(i.ITOS_VLR_UNITARIO),
-          formatCurrency(i.ITOS_DESCONTO),
-          formatCurrency(i.ITOS_VLR_TOTAL),
-        ]),
-        columnStyles: {
-          2: { halign: 'right' },
-          3: { halign: 'right' },
-          4: { halign: 'right' },
-          5: { halign: 'right' },
-        },
-      });
-
-      // Totais
-      const finalY = (doc as any).lastAutoTable?.finalY ?? y + 20;
-      let ty = finalY + 6;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-      doc.text(`Subtotal: ${formatCurrency(subtotal)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
-      doc.text(`Desconto Itens: ${formatCurrency(descontoItens)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
-      doc.text(`Desconto OS: ${formatCurrency(descontoOS)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
-      doc.text(`Desconto Serviço: ${formatCurrency(descontoServico)}`, pageW - marginX, ty, { align: 'right' }); ty += 5;
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-      doc.text(`TOTAL: ${formatCurrency(totalFinal)}`, pageW - marginX, ty, { align: 'right' });
-
-      // Observações
-      if (observacoes) {
-        ty += 8;
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.text('OBSERVAÇÕES', marginX, ty);
-        ty += 4;
-        doc.setFont('helvetica', 'normal');
-        const lines = doc.splitTextToSize(observacoes, pageW - marginX * 2);
-        doc.text(lines, marginX, ty);
-      }
-
+      const doc = buildPdf();
       doc.autoPrint();
       window.open(doc.output('bloburl'), '_blank');
     } catch (e: any) {
       toast.error('Erro ao gerar PDF: ' + (e?.message || ''));
     }
-  }, [osPersistida, numeroOS, orsvId, statusOS, dataOS, cliente, veiculo, hodometro, vendedor, tecnico, itens, subtotal, descontoItens, descontoOS, descontoServico, totalFinal, observacoes]);
+  }, [osPersistida, buildPdf]);
 
   const handleWhatsApp = useCallback(() => {
     if (!osPersistida) return;
@@ -677,20 +682,117 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
       toast.error('Cliente sem telefone cadastrado');
       return;
     }
-    const numero = fone.length <= 11 ? `55${fone}` : fone;
-    const linhas = [
-      `*Ordem de Serviço Nº ${numeroOS || orsvId}*`,
-      `Status: ${statusOS}`,
-      `Data: ${dataOS.split('-').reverse().join('/')}`,
+    const primeiroNome = (cliente?.PESS_NOME || '').split(' ')[0] || '';
+    const placaVeic = veiculo?.VEIC_PLACA || '';
+    const veicDesc = [veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' ');
+    const mensagemPadrao = [
+      `Olá${primeiroNome ? ', ' + primeiroNome : ''}!`,
       '',
-      `Cliente: ${cliente?.PESS_NOME || ''}`,
-      `Veículo: ${[veiculo?.VEIC_PLACA, veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' - ')}`,
+      `Segue em anexo a Ordem de Serviço Nº ${numeroOS || orsvId} referente ao seu veículo${placaVeic ? ' ' + placaVeic : ''}${veicDesc ? ' (' + veicDesc + ')' : ''}.`,
       '',
-      `*Total: ${formatCurrency(totalFinal)}*`,
-    ];
-    const texto = encodeURIComponent(linhas.join('\n'));
-    window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
-  }, [osPersistida, cliente, veiculo, numeroOS, orsvId, statusOS, dataOS, totalFinal]);
+      `Total: ${formatCurrency(totalFinal)}`,
+      '',
+      'Qualquer dúvida estamos à disposição.',
+    ].join('\n');
+    setWhatsMensagem(mensagemPadrao);
+    setWhatsDialogOpen(true);
+  }, [osPersistida, cliente, veiculo, numeroOS, orsvId, totalFinal]);
+
+  // Helper: fetch parameter from legacy API via api-proxy
+  const fetchParametro = useCallback(async (unemId: string, nome: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('api-proxy', {
+        body: { baseUrl: getApiBaseUrl(), endpoint: `/getParametros?UNEM_ID=${unemId}&nome=${encodeURIComponent(nome)}`, method: 'GET' },
+      });
+      if (error) return '';
+      let result: any = data;
+      if (typeof data === 'string') { try { result = JSON.parse(data); } catch { return ''; } }
+      if (Array.isArray(result) && result.length > 0) return (result[0].PRMT_VALOR || '').trim();
+      if (result && result.PRMT_VALOR) return (result.PRMT_VALOR || '').trim();
+      return '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const handleEnviarWhatsApp = useCallback(async () => {
+    if (!osPersistida) return;
+    const fone = (cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '').replace(/\D/g, '');
+    if (!fone) {
+      toast.error('Cliente sem telefone cadastrado');
+      return;
+    }
+    const unemId = auth?.unidade?.unem_Id;
+    if (!unemId) {
+      toast.error('Unidade não selecionada');
+      return;
+    }
+
+    setWhatsEnviando(true);
+    try {
+      // Fetch provider params
+      const [servidorRaw, token, device, phoneId] = await Promise.all([
+        fetchParametro(unemId, 'SERVIDORWHATS'),
+        fetchParametro(unemId, 'TOKENWHATS'),
+        fetchParametro(unemId, 'DEVICEWHATS'),
+        fetchParametro(unemId, 'PHONENUMBERID'),
+      ]);
+      const VALID = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n'];
+      const provider = VALID.find(p => p.toLowerCase() === servidorRaw.trim().toLowerCase()) || '';
+
+      if (!provider) {
+        toast.error('Provedor WhatsApp não configurado (parâmetro SERVIDORWHATS).');
+        return;
+      }
+      if (provider !== 'n8n' && !token) {
+        toast.error('Token WhatsApp não configurado (parâmetro TOKENWHATS).');
+        return;
+      }
+      if (provider === 'BrasilAPI' && !device) {
+        toast.error('DeviceToken não configurado (parâmetro DEVICEWHATS).');
+        return;
+      }
+
+      // Build PDF as base64
+      const doc = buildPdf();
+      const dataUri = doc.output('datauristring');
+      const base64 = dataUri.split(',')[1] || '';
+      const fileName = `OS-${numeroOS || orsvId}.pdf`;
+
+      const payload: any = {
+        provider,
+        token,
+        number: fone,
+        text: whatsMensagem,
+        type: 'media',
+        mediaType: 'document',
+        file: `data:application/pdf;base64,${base64}`,
+        fileName,
+      };
+      if (provider === 'BrasilAPI') payload.device = device;
+      if (provider === 'WhatsAppOficial') payload.phoneNumberId = phoneId;
+
+      const { data: respData, error } = await supabase.functions.invoke('send-message', { body: payload });
+
+      if (error) {
+        console.error('Erro envio WhatsApp:', error);
+        toast.error('Erro ao enviar WhatsApp: ' + (error.message || ''));
+        return;
+      }
+      if (respData && respData.success === false) {
+        console.error('Erro envio WhatsApp (API):', respData);
+        toast.error('Falha no envio: ' + JSON.stringify(respData?.data || {}).slice(0, 200));
+        return;
+      }
+
+      toast.success('OS enviada por WhatsApp!');
+      setWhatsDialogOpen(false);
+    } catch (e: any) {
+      toast.error('Erro ao enviar: ' + (e?.message || ''));
+    } finally {
+      setWhatsEnviando(false);
+    }
+  }, [osPersistida, cliente, auth, fetchParametro, buildPdf, numeroOS, orsvId, whatsMensagem]);
 
 
   return (
