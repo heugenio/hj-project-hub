@@ -167,7 +167,10 @@ export function AutocompleteInput({
           ref={inputRef}
           placeholder={placeholder}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            userTyped.current = true;
+            onChange(e.target.value);
+          }}
           disabled={disabled}
           className="pl-8 h-9 text-sm"
           onFocus={() => {
