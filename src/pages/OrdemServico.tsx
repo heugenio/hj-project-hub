@@ -24,6 +24,7 @@ export default function OrdemServico() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingOS, setEditingOS] = useState<OrdemServicoType | null>(null);
 
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
