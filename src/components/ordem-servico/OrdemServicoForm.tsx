@@ -236,11 +236,16 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
         const vendedorNome = pickValue(detalhe, 'VDDR_NOME', 'vDDR_NOME', 'VEND_NOME', 'vEND_NOME', 'PESS_NOME_VENDEDOR');
         if (vendedorId) {
           try {
-            const vendedores = await getVendedores({ id: String(vendedorId) });
-            const v = vendedores[0];
+            // Backend grava PESS_ID em vDDR_ID; resolvemos o nome buscando a lista de vendedores
+            const vendedores = await getVendedores({ nome: '' });
+            const v = (vendedores || []).find((x: any) => {
+              const pessId = pickValue(x, 'PESS_ID', 'pESS_ID');
+              const vddrId = pickValue(x, 'VDDR_ID', 'vDDR_ID');
+              return String(pessId) === String(vendedorId) || String(vddrId) === String(vendedorId);
+            });
             if (v) {
-              const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID') || vendedorId);
-              const nome = String(pickValue(v, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME', 'pESS_NOME') || vendedorNome || '');
+              const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID', 'PESS_ID', 'pESS_ID') || vendedorId);
+              const nome = String(pickValue(v, 'PESS_NOME', 'pESS_NOME', 'VDDR_NOME', 'vDDR_NOME') || vendedorNome || '');
               setVendedor({ VDDR_ID: id, VDDR_NOME: nome });
               setVendedorText(nome);
             } else if (vendedorNome) {
@@ -260,11 +265,16 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
         const tecnicoNome = pickValue(detalhe, 'TCNC_NOME', 'tCNC_NOME', 'PESS_NOME_TECNICO', 'TECNICO_NOME', 'tECNICO_NOME');
         if (tecnicoId) {
           try {
-            const tecnicos = await getTecnicos({ id: String(tecnicoId) });
-            const t = tecnicos[0];
+            // Backend grava PESS_ID em tCNC_ID; resolvemos o nome buscando a lista de técnicos
+            const tecnicos = await getTecnicos({ nome: '' });
+            const t = (tecnicos || []).find((x: any) => {
+              const pessId = pickValue(x, 'PESS_ID', 'pESS_ID');
+              const tcncId = pickValue(x, 'TCNC_ID', 'tCNC_ID');
+              return String(pessId) === String(tecnicoId) || String(tcncId) === String(tecnicoId);
+            });
             if (t) {
-              const id = String(pickValue(t, 'TCNC_ID', 'tCNC_ID') || tecnicoId);
-              const nome = String(pickValue(t, 'TCNC_NOME', 'tCNC_NOME', 'PESS_NOME', 'pESS_NOME') || tecnicoNome || '');
+              const id = String(pickValue(t, 'TCNC_ID', 'tCNC_ID', 'PESS_ID', 'pESS_ID') || tecnicoId);
+              const nome = String(pickValue(t, 'PESS_NOME', 'pESS_NOME', 'TCNC_NOME', 'tCNC_NOME') || tecnicoNome || '');
               setTecnico({ TCNC_ID: id, TCNC_NOME: nome });
               setTecnicoText(nome);
             } else if (tecnicoNome) {
@@ -283,9 +293,15 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
         const its = await getItensOrdemServicos(editingOS.oRSV_ID);
         const norm: ItemOS[] = (its || []).map((raw: any) => {
           const qtde = parseNumber(pickValue(raw, 'ITOS_QTDE', 'iTOS_QTDE', 'ITRQ_QTDE', 'iTRQ_QTDE'));
-          const vUnit = parseNumber(pickValue(raw, 'ITOS_VLR_UNITARIO', 'iTOS_VLR_UNITARIO', 'ITRQ_PRECO_UNITARIO', 'iTRQ_PRECO_UNITARIO', 'ITRQ_PRECO_TABELA', 'iTRQ_PRECO_TABELA'));
+          // Backend retorna ITRQ_PRECO_UNITARIO=0 mas valor real está em ITRQ_PRECO_TABELA ou pode ser deduzido de ITRQ_VLR_FINAL/ITRQ_QTDE
+          const precoUnit = parseNumber(pickValue(raw, 'ITOS_VLR_UNITARIO', 'iTOS_VLR_UNITARIO', 'ITRQ_PRECO_UNITARIO', 'iTRQ_PRECO_UNITARIO'));
+          const precoTabela = parseNumber(pickValue(raw, 'ITRQ_PRECO_TABELA', 'iTRQ_PRECO_TABELA'));
+          const vlrFinal = parseNumber(pickValue(raw, 'ITOS_VLR_TOTAL', 'iTOS_VLR_TOTAL', 'ITRQ_VLR_FINAL', 'iTRQ_VLR_FINAL'));
           const desc = parseNumber(pickValue(raw, 'ITOS_DESCONTO', 'iTOS_DESCONTO', 'ITRQ_DESCONTO', 'iTRQ_DESCONTO', 'ITRQ_VLR_DESCONTO_SOBRE_TOTAL', 'iTRQ_VLR_DESCONTO_SOBRE_TOTAL'));
-          const total = parseNumber(pickValue(raw, 'ITOS_VLR_TOTAL', 'iTOS_VLR_TOTAL', 'ITRQ_VLR_FINAL', 'iTRQ_VLR_FINAL')) || Math.max(0, (qtde * vUnit) - desc);
+          const vUnit = precoUnit > 0
+            ? precoUnit
+            : (precoTabela > 0 ? precoTabela : (qtde > 0 ? (vlrFinal + desc) / qtde : 0));
+          const total = vlrFinal > 0 ? vlrFinal : Math.max(0, (qtde * vUnit) - desc);
           return {
             ITOS_ID: String(pickValue(raw, 'ITOS_ID', 'iTOS_ID') || ''),
             ITRQ_ID: String(pickValue(raw, 'ITRQ_ID', 'iTRQ_ID') || ''),
@@ -298,8 +314,8 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
             ITOS_VLR_TOTAL: total,
             ITOS_SALDO_ESTOQUE: parseNumber(pickValue(raw, 'SEST_QTD_SALDO', 'sEST_QTD_SALDO', 'SEST_SALDO', 'sest_Saldo')) || undefined,
             ITOS_UNIDADE_MEDIDA: String(pickValue(raw, 'ITOS_UNIDADE_MEDIDA', 'iTOS_UNIDADE_MEDIDA', 'ITRQ_UNID_SIGLA', 'iTRQ_UNID_SIGLA', 'PROD_UNIDADE', 'pROD_UNIDADE') || 'UN'),
-            ITRQ_PRECO_TABELA: parseNumber(pickValue(raw, 'ITRQ_PRECO_TABELA', 'iTRQ_PRECO_TABELA', 'ITRQ_PRECO_UNITARIO', 'iTRQ_PRECO_UNITARIO')) || vUnit || 0,
-            ITRQ_VLR_DESCONTO_SOBRE_TOTAL: parseNumber(pickValue(raw, 'ITRQ_VLR_DESCONTO_SOBRE_TOTAL', 'iTRQ_VLR_DESCONTO_SOBRE_TOTAL', 'ITRQ_DESCONTO', 'iTRQ_DESCONTO')) || 0,
+            ITRQ_PRECO_TABELA: precoTabela || vUnit || 0,
+            ITRQ_VLR_DESCONTO_SOBRE_TOTAL: desc || 0,
             PROD_ID: String(pickValue(raw, 'PROD_ID', 'pROD_ID') || ''),
             PROD_CODIGO: String(pickValue(raw, 'PROD_CODIGO', 'pROD_CODIGO') || ''),
           };
