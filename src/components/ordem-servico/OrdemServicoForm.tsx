@@ -173,22 +173,44 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
         if (origemId) setMidiaId(String(origemId));
 
         const clienteId = pickValue(detalhe, 'PESS_ID', 'pESS_ID');
+        const clienteCpfCnpj = pickValue(detalhe, 'PESS_CPFCNPJ', 'pESS_CPFCNPJ', 'ORSV_CPFCNPJ', 'oRSV_CPFCNPJ') || editingOS.oRSV_CPFCNPJ;
+        const clienteNomeFallback = pickValue(detalhe, 'PESS_NOME', 'pESS_NOME', 'ORSV_NOME_CLIENTE', 'oRSV_NOME_CLIENTE') || editingOS.pESS_NOME;
+        let clienteCarregado = false;
+
         if (clienteId) {
           try {
             const cls = await getClientes({ id: String(clienteId) });
-            if (cls.length > 0) {
+            if (cls && cls.length > 0) {
               skipClienteCrossLinkRef.current = true;
               setClienteState(cls[0]);
+              clienteCarregado = true;
             }
-          } catch {}
-        } else if (editingOS.oRSV_CPFCNPJ) {
+          } catch (err) {
+            console.warn('[OS Edit] Falha buscando cliente por ID', clienteId, err);
+          }
+        }
+
+        if (!clienteCarregado && clienteCpfCnpj) {
           try {
-            const cls = await getClientes({ cpfcnpj: editingOS.oRSV_CPFCNPJ });
-            if (cls.length > 0) {
+            const cls = await getClientes({ cpfcnpj: String(clienteCpfCnpj) });
+            if (cls && cls.length > 0) {
               skipClienteCrossLinkRef.current = true;
               setClienteState(cls[0]);
+              clienteCarregado = true;
             }
-          } catch {}
+          } catch (err) {
+            console.warn('[OS Edit] Falha buscando cliente por CPF/CNPJ', clienteCpfCnpj, err);
+          }
+        }
+
+        if (!clienteCarregado && (clienteId || clienteCpfCnpj || clienteNomeFallback)) {
+          // Fallback mínimo para exibir os dados que já temos da OS
+          skipClienteCrossLinkRef.current = true;
+          setClienteState({
+            PESS_ID: String(clienteId || ''),
+            PESS_NOME: String(clienteNomeFallback || ''),
+            PESS_CPFCNPJ: String(clienteCpfCnpj || ''),
+          });
         }
 
         const veiculoId = pickValue(detalhe, 'VEIC_ID', 'vEIC_ID');
