@@ -272,20 +272,27 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           setVendedorText(String(vendedorNome));
         }
 
-        const tecnicoId = pickValue(detalhe, 'TCNC_ID', 'tCNC_ID');
+        const tecnicoId = pickValue(detalhe, 'TCNC_ID', 'tCNC_ID') ?? pickValue(editingOSRaw, 'TCNC_ID', 'tCNC_ID');
         const tecnicoNome = pickValue(detalhe, 'TCNC_NOME', 'tCNC_NOME', 'PESS_NOME_TECNICO', 'TECNICO_NOME', 'tECNICO_NOME');
         if (tecnicoId) {
           try {
-            // Backend grava PESS_ID em tCNC_ID; resolvemos o nome buscando a lista de técnicos
-            const tecnicos = await getTecnicos({ nome: '' });
-            const t = (tecnicos || []).find((x: any) => {
-              const pessId = pickValue(x, 'PESS_ID', 'pESS_ID');
-              const tcncId = pickValue(x, 'TCNC_ID', 'tCNC_ID');
-              return String(pessId) === String(tecnicoId) || String(tcncId) === String(tecnicoId);
-            });
+            const tecnicosRaw = await getTecnicos({ id: String(tecnicoId) });
+            const tecnicosBase = Array.isArray(tecnicosRaw)
+              ? tecnicosRaw
+              : [pickValue(tecnicosRaw as any, 'data', 'result', 'items', 'rows') || tecnicosRaw];
+            const tecnicos = tecnicosBase.flatMap((item: any) => (Array.isArray(item) ? item : item ? [item] : []));
+            const t =
+              tecnicos.find((item: any) =>
+                String(pickValue(item, 'TCNC_ID', 'tCNC_ID', 'PESS_ID', 'pESS_ID')) === String(tecnicoId),
+              ) ||
+              tecnicos[0] ||
+              null;
+
             if (t) {
               const id = String(pickValue(t, 'TCNC_ID', 'tCNC_ID', 'PESS_ID', 'pESS_ID') || tecnicoId);
-              const nome = String(pickValue(t, 'PESS_NOME', 'pESS_NOME', 'TCNC_NOME', 'tCNC_NOME') || tecnicoNome || '');
+              const nome = String(
+                pickValue(t, 'TCNC_NOME', 'tCNC_NOME', 'PESS_NOME', 'pESS_NOME') || tecnicoNome || '',
+              );
               setTecnico({ TCNC_ID: id, TCNC_NOME: nome });
               setTecnicoText(nome);
             } else if (tecnicoNome) {
