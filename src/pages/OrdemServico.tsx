@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Wrench, Plus } from "lucide-react";
+import { Loader2, Search, Wrench, Plus, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getOrdemServicos, type OrdemServico as OrdemServicoType } from "@/lib/api";
 import { toast } from "sonner";
