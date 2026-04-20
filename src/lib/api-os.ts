@@ -184,12 +184,37 @@ export const getBairros = (params: { uf: string; nome_muni: string; nome?: strin
 export const getTiposOrdemServicos = () =>
   proxyGet<TipoOS[]>('/getTiposOrdemServicos');
 
-export const getClientes = (params: { id?: string; nome?: string; cpfcnpj?: string }) => {
-  const query = Object.entries(params)
+// Normaliza chaves de objetos retornados pela API (Java serializa em camelCase: pESS_NOME, eNDE_LOGRADOURO)
+// para UPPERCASE consistente esperado pelo front (PESS_NOME, ENDE_LOGRADOURO).
+function normalizeApiKeys<T = any>(input: any): T {
+  if (Array.isArray(input)) return input.map((i) => normalizeApiKeys(i)) as any;
+  if (!input || typeof input !== 'object') return input;
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(input)) {
+    // Se a chave parece ter padrão "xXXX_..." (1ª minúscula seguida de UPPER), uppercaseia tudo
+    const upperKey = /^[a-z][A-Z]/.test(k) ? k.toUpperCase() : k;
+    // Mantém também a chave original como fallback (não sobrescreve UPPERCASE existente)
+    if (out[upperKey] == null || out[upperKey] === '') {
+      out[upperKey] = v;
+    }
+  }
+  return out as T;
+}
+
+export const getClientes = async (params: { id?: string; nome?: string; cpfcnpj?: string }) => {
+  // Sanitiza CPF/CNPJ removendo máscara (a API legada filtra apenas por dígitos)
+  const cleanParams = { ...params };
+  if (cleanParams.cpfcnpj) cleanParams.cpfcnpj = cleanParams.cpfcnpj.replace(/\D/g, '');
+
+  const query = Object.entries(cleanParams)
     .filter(([, v]) => v !== undefined && v !== '')
     .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
     .join('&');
-  return proxyGet<Cliente[]>(`/getClientes?${query}`);
+  const raw = await proxyGet<any>(`/getClientes?${query}`);
+  // API às vezes responde { success, message, rawHtml } quando não há dados
+  if (raw && !Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [] as Cliente[];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c) => normalizeApiKeys<Cliente>(c));
 };
 
 export const setCliente = (cliente: Partial<Cliente>) =>
