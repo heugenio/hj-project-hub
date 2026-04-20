@@ -856,17 +856,35 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           <Button variant="outline" size="sm" onClick={onBack} disabled={saving}>
             <XCircle className="h-4 w-4 mr-1" /> Cancelar
           </Button>
-          <Button variant="outline" size="sm" disabled={saving}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={saving || !osPersistida}
+            onClick={handlePrint}
+            title={!osPersistida ? 'Salve a OS para imprimir' : 'Imprimir OS'}
+          >
             <Printer className="h-4 w-4 mr-1" /> Imprimir
           </Button>
-          <Button variant="outline" size="sm" disabled={saving}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={saving || !osPersistida}
+            onClick={handleWhatsApp}
+            title={!osPersistida ? 'Salve a OS para enviar' : 'Enviar via WhatsApp'}
+          >
             <Send className="h-4 w-4 mr-1" /> WhatsApp
           </Button>
           <Button size="sm" onClick={() => handleSave(false)} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
             Salvar
           </Button>
-          <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleSave(true)} disabled={saving}>
+          <Button
+            size="sm"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            onClick={() => handleSave(true)}
+            disabled={saving || !osPersistida}
+            title={!osPersistida ? 'Salve a OS antes de finalizar' : 'Finalizar OS'}
+          >
             <CheckCircle className="h-4 w-4 mr-1" /> Finalizar OS
           </Button>
         </div>
