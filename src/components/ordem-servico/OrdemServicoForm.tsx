@@ -232,13 +232,20 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           } catch {}
         }
 
-        const vendedorId = pickValue(detalhe, 'VDDR_ID', 'vDDR_ID');
-        const vendedorNome = pickValue(detalhe, 'VDDR_NOME', 'vDDR_NOME', 'VEND_NOME', 'vEND_NOME', 'PESS_NOME_VENDEDOR');
+        const editingOSRaw = editingOS as Record<string, any>;
+        const vendedorId = pickValue(detalhe, 'VDDR_ID', 'vDDR_ID') ?? pickValue(editingOSRaw, 'VDDR_ID', 'vDDR_ID');
+        const vendedorNome =
+          pickValue(detalhe, 'VDDR_NOME', 'vDDR_NOME', 'VEND_NOME', 'vEND_NOME', 'PESS_NOME_VENDEDOR') ||
+          pickValue(editingOSRaw, 'VDDR_NOME', 'vDDR_NOME', 'VEND_NOME', 'vEND_NOME', 'PESS_NOME_VENDEDOR');
         if (vendedorId) {
           try {
-            // Busca direta por VDDR_ID em getVendedores?id=
-            const vendedores = await getVendedores({ id: String(vendedorId) });
-            const v = Array.isArray(vendedores) && vendedores.length > 0 ? vendedores[0] : null;
+            const vendedoresRaw = await getVendedores({ id: String(vendedorId) });
+            const vendedores = Array.isArray(vendedoresRaw) ? vendedoresRaw : (vendedoresRaw ? [vendedoresRaw] : []);
+            const v =
+              vendedores.find((item: any) => String(pickValue(item, 'VDDR_ID', 'vDDR_ID')) === String(vendedorId)) ||
+              vendedores[0] ||
+              null;
+
             if (v) {
               const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID') || vendedorId);
               const nome = String(pickValue(v, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME', 'pESS_NOME') || vendedorNome || '');
