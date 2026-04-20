@@ -22,16 +22,19 @@ import { AutocompleteInput } from './AutocompleteInput';
 import {
   getTiposOrdemServicos, getVendedores, getTecnicos, getMidias,
   setOrdemServico as saveOS, getPessoasVeiculos,
+  getItensOrdemServicos, getClientes, getVeiculos,
   type Cliente, type Veiculo, type ItemOS, type TipoOS,
   type Vendedor, type Tecnico, type Midia, type OrdemServicoFull,
   type PessoaVeiculo
 } from '@/lib/api-os';
+import type { OrdemServico as OrdemServicoListItem } from '@/lib/api';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface OrdemServicoFormProps {
   onBack: () => void;
+  editingOS?: OrdemServicoListItem | null;
 }
 
 export default function OrdemServicoForm({ onBack }: OrdemServicoFormProps) {
