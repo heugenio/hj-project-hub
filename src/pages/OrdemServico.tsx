@@ -83,15 +83,53 @@ export default function OrdemServico() {
           <p className="text-muted-foreground text-sm mt-1">Gerenciamento de ordens de serviço</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSearch} disabled={loading} size="sm" variant="outline">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
-            Consultar
-          </Button>
           <Button onClick={() => setShowForm(true)} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Nova O.S
           </Button>
         </div>
       </div>
+
+      <Card className="border-border/50">
+        <CardContent className="p-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Data Inicial</Label>
+              <Input
+                type="date"
+                value={dtInicial}
+                onChange={(e) => setDtInicial(e.target.value)}
+                className="h-8 text-xs w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Data Final</Label>
+              <Input
+                type="date"
+                value={dtFinal}
+                onChange={(e) => setDtFinal(e.target.value)}
+                className="h-8 text-xs w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-8 text-xs w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODOS">Todos</SelectItem>
+                  <SelectItem value="ABERTO">Abertos</SelectItem>
+                  <SelectItem value="FATURADO">Faturados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleSearch} disabled={loading} size="sm" className="h-8">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+              Consultar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50">
         <CardContent className="p-0">
