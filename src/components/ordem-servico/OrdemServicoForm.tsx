@@ -1051,6 +1051,48 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* WhatsApp Send Dialog */}
+      <Dialog open={whatsDialogOpen} onOpenChange={(open) => !whatsEnviando && setWhatsDialogOpen(open)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" /> Enviar OS por WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Destinatário: <span className="font-mono font-semibold text-foreground">{cliente?.PESS_NOME}</span> ·{' '}
+              <span className="font-mono">{cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE}</span>
+            </div>
+            <div>
+              <Label className="text-xs">Mensagem (será enviada junto com o PDF)</Label>
+              <Textarea
+                value={whatsMensagem}
+                onChange={(e) => setWhatsMensagem(e.target.value.toUpperCase())}
+                rows={8}
+                className="text-xs mt-1"
+                disabled={whatsEnviando}
+              />
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              📎 O PDF da OS será anexado automaticamente como <span className="font-mono">OS-{numeroOS || orsvId}.pdf</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setWhatsDialogOpen(false)} disabled={whatsEnviando}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleEnviarWhatsApp} disabled={whatsEnviando || !whatsMensagem.trim()}>
+              {whatsEnviando ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Enviando...</>
+              ) : (
+                <><Send className="h-4 w-4 mr-1" /> Enviar</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
