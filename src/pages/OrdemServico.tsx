@@ -116,10 +116,10 @@ export default function OrdemServico() {
                 <SelectTrigger className="h-8 text-xs w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TODOS">Todos</SelectItem>
-                  <SelectItem value="ABERTO">Abertos</SelectItem>
-                  <SelectItem value="FATURADO">Faturados</SelectItem>
+              <SelectContent>
+                  <SelectItem value="Todos">Todos</SelectItem>
+                  <SelectItem value="Abertos">Abertos</SelectItem>
+                  <SelectItem value="Faturados">Faturados</SelectItem>
                 </SelectContent>
               </Select>
             </div>
