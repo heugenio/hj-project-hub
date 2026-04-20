@@ -174,7 +174,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
 
         const clienteId = pickValue(detalhe, 'PESS_ID', 'pESS_ID');
         const clienteCpfCnpj = pickValue(detalhe, 'PESS_CPFCNPJ', 'pESS_CPFCNPJ', 'ORSV_CPFCNPJ', 'oRSV_CPFCNPJ') || editingOS.oRSV_CPFCNPJ;
-        const clienteNomeFallback = pickValue(detalhe, 'PESS_NOME', 'pESS_NOME', 'ORSV_NOME_CLIENTE', 'oRSV_NOME_CLIENTE') || editingOS.pESS_NOME;
+        const clienteNomeFallback = pickValue(detalhe, 'PESS_NOME', 'pESS_NOME', 'ORSV_NOME', 'oRSV_NOME') || editingOS.oRSV_NOME;
         let clienteCarregado = false;
 
         if (clienteId) {
