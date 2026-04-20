@@ -13,6 +13,7 @@ interface SendRequest {
   type?: 'text' | 'media';
   mediaType?: string;
   file?: string;
+  fileName?: string;
   // Email fields
   emailTo?: string;
   emailSubject?: string;
@@ -39,15 +40,20 @@ async function sendNexus(req: SendRequest): Promise<Response> {
   };
 
   if (req.type === 'media' && req.file) {
+    const mediaType = req.mediaType || 'image';
+    const body: Record<string, unknown> = {
+      number: phone,
+      type: mediaType,
+      file: req.file,
+      caption: req.text,
+    };
+    if (mediaType === 'document' && req.fileName) {
+      body.docName = req.fileName;
+    }
     return fetch(`${baseUrl}/send/media`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        number: phone,
-        type: req.mediaType || 'image',
-        file: req.file,
-        caption: req.text,
-      }),
+      body: JSON.stringify(body),
     });
   }
 
@@ -70,6 +76,23 @@ async function sendWhatsAppOficial(req: SendRequest): Promise<Response> {
   };
 
   if (req.type === 'media' && req.file) {
+    const mediaType = req.mediaType || 'image';
+    if (mediaType === 'document') {
+      return fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: phone,
+          type: 'document',
+          document: {
+            link: req.file,
+            caption: req.text,
+            filename: req.fileName || 'documento.pdf',
+          },
+        }),
+      });
+    }
     return fetch(url, {
       method: 'POST',
       headers,
