@@ -153,7 +153,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
 
     (async () => {
       try {
-        const detalheRaw = await getOrdemServicoById(editingOS.oRSV_ID);
+        const detalheRaw = await getOrdemServicoById(editingOS.oRSV_ID, auth?.unidade?.unem_Id);
         const detalhe = Array.isArray(detalheRaw) ? detalheRaw[0] : detalheRaw;
 
         setOrsvId(editingOS.oRSV_ID || '');
