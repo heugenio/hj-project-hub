@@ -250,6 +250,9 @@ export const getMidias = (params: { id?: string; nome?: string }) => {
 export const getItensOrdemServicos = (orsvId: string) =>
   proxyGet<ItemOS[]>(`/getItensOrdemServicos?id=${encodeURIComponent(orsvId)}`);
 
+export const getOrdemServicoById = (orsvId: string) =>
+  proxyGet<Record<string, any>>(`/getOrdemServicos?id=${encodeURIComponent(orsvId)}`);
+
 export const setItensOrdemServicos = (itens: Partial<ItemOS>[]) =>
   proxyPost<unknown>('/setItensOrdemServicos', itens);
 

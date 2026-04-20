@@ -22,7 +22,7 @@ import { AutocompleteInput } from './AutocompleteInput';
 import {
   getTiposOrdemServicos, getVendedores, getTecnicos, getMidias,
   setOrdemServico as saveOS, getPessoasVeiculos,
-  getItensOrdemServicos, getClientes, getVeiculos,
+  getItensOrdemServicos, getClientes, getVeiculos, getOrdemServicoById,
   type Cliente, type Veiculo, type ItemOS, type TipoOS,
   type Vendedor, type Tecnico, type Midia, type OrdemServicoFull,
   type PessoaVeiculo
@@ -31,6 +31,38 @@ import type { OrdemServico as OrdemServicoListItem } from '@/lib/api';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const pickValue = (obj: Record<string, any> | null | undefined, ...keys: string[]) => {
+  if (!obj) return undefined;
+  for (const key of keys) {
+    if (obj[key] != null && obj[key] !== '') return obj[key];
+  }
+  const lowered = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k.toLowerCase(), v]));
+  for (const key of keys) {
+    const value = lowered[key.toLowerCase()];
+    if (value != null && value !== '') return value;
+  }
+  return undefined;
+};
+
+const parseNumber = (value: unknown): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value !== 'string') return 0;
+  const normalized = value.trim().replace(/\./g, '').replace(',', '.');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const toInputDate = (value: unknown) => {
+  if (!value) return '';
+  const text = String(value);
+  const match = text.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const d = new Date(text);
+  return Number.isNaN(d.getTime())
+    ? ''
+    : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 interface OrdemServicoFormProps {
   onBack: () => void;
@@ -46,7 +78,6 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   const [numeroOS, setNumeroOS] = useState('NOVA');
   const [statusOS, setStatusOS] = useState('Aberto');
   const [hodometro, setHodometro] = useState('');
-  // Data da OS (yyyy-MM-dd). Default = hoje p/ nova OS
   const [dataOS, setDataOS] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -56,7 +87,6 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   const [veiculo, setVeiculoState] = useState<Veiculo | null>(null);
   const [itens, setItens] = useState<ItemOS[]>([]);
 
-  // Descontos sobre totais
   const [descontoOS, setDescontoOS] = useState<number>(0);
   const [descontoServico, setDescontoServico] = useState<number>(0);
 
@@ -75,13 +105,11 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   const [saving, setSaving] = useState(false);
   const [loadingTipos, setLoadingTipos] = useState(false);
 
-  // Cross-link selection dialog state
   const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
   const [selectionDialogType, setSelectionDialogType] = useState<'veiculo' | 'cliente'>('veiculo');
   const [selectionDialogItems, setSelectionDialogItems] = useState<PessoaVeiculo[]>([]);
   const [loadingCrossLink, setLoadingCrossLink] = useState(false);
 
-  // Refs to prevent re-triggering cross-link
   const skipVeiculoCrossLinkRef = useRef(false);
   const skipClienteCrossLinkRef = useRef(false);
 
@@ -91,7 +119,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
       .then((tipos) => {
         setTiposOS(tipos);
         const padrao = tipos.find((t) => (t.TPOS_PADRAO || '').toUpperCase() === 'SIM');
-        if (padrao) setTipoOS(padrao.TPOS_ID);
+        if (padrao) setTipoOS((current) => current || padrao.TPOS_ID);
       })
       .catch(() => {})
       .finally(() => setLoadingTipos(false));
@@ -102,44 +130,58 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
       .catch(() => {})
       .finally(() => setLoadingMidias(false));
 
-    // Auto-set vendedor from logged user's PESS_ID
     const pessId = auth?.user?.pess_ID;
-    if (pessId) {
+    if (pessId && !editingOS) {
       getVendedores({ id: pessId })
         .then((r: any[]) => {
           if (r.length > 0) {
             const v = r[0];
-            const id = v.VDDR_ID || v.vDDR_ID || '';
-            const nome = v.VDDR_NOME || v.vDDR_NOME || v.PESS_NOME || v.pESS_NOME || '';
+            const id = pickValue(v, 'VDDR_ID', 'vDDR_ID') || '';
+            const nome = pickValue(v, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME', 'pESS_NOME') || '';
             if (id) {
-              setVendedor({ VDDR_ID: id, VDDR_NOME: nome });
-              setVendedorText(nome);
+              setVendedor({ VDDR_ID: String(id), VDDR_NOME: String(nome) });
+              setVendedorText(String(nome));
             }
           }
         })
         .catch(() => {});
     }
-  }, []);
+  }, [auth?.user?.pess_ID, editingOS]);
 
-  // Carrega dados da OS quando estiver em modo edição
   useEffect(() => {
-    if (!editingOS) return;
+    if (!editingOS?.oRSV_ID) return;
+
     (async () => {
       try {
-        setOrsvId(editingOS.oRSV_ID || '');
-        setNumeroOS(editingOS.oRSV_NUMERO || 'OS');
-        setStatusOS(editingOS.oRSV_STATUS || 'Aberto');
-        setHodometro(editingOS.oRSV_HODOMETRO || '');
-        setObservacoes(editingOS.oRSV_OBSERVACOES || '');
-        if (editingOS.oRSV_DATA) {
-          const d = new Date(editingOS.oRSV_DATA);
-          if (!isNaN(d.getTime())) {
-            setDataOS(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-          }
-        }
+        const detalheRaw = await getOrdemServicoById(editingOS.oRSV_ID);
+        const detalhe = Array.isArray(detalheRaw) ? detalheRaw[0] : detalheRaw;
 
-        // Cliente: busca por CPF/CNPJ
-        if (editingOS.oRSV_CPFCNPJ) {
+        setOrsvId(editingOS.oRSV_ID || '');
+        setNumeroOS(String(pickValue(detalhe, 'ORSV_NUMERO', 'oRSV_NUMERO') ?? editingOS.oRSV_NUMERO ?? 'OS'));
+        setStatusOS(String(pickValue(detalhe, 'ORSV_STATUS', 'oRSV_STATUS') ?? editingOS.oRSV_STATUS ?? 'Aberto'));
+        setHodometro(String(pickValue(detalhe, 'ORSV_HODOMETRO', 'oRSV_HODOMETRO') ?? editingOS.oRSV_HODOMETRO ?? ''));
+        setObservacoes(String(pickValue(detalhe, 'ORSV_OBSERVACOES', 'oRSV_OBSERVACOES') ?? editingOS.oRSV_OBSERVACOES ?? ''));
+        setChecklist(String(pickValue(detalhe, 'ORSV_NR_CHECKLIST', 'oRSV_NR_CHECKLIST') ?? ''));
+        setDataOS(toInputDate(pickValue(detalhe, 'ORSV_DATA', 'oRSV_DATA') ?? editingOS.oRSV_DATA) || dataOS);
+        setDescontoOS(parseNumber(pickValue(detalhe, 'ORSV_VLR_DESCONTO', 'oRSV_VLR_DESCONTO')));
+        setDescontoServico(parseNumber(pickValue(detalhe, 'ORSV_VLR_DESCONTO_SERVICO', 'oRSV_VLR_DESCONTO_SERVICO')));
+
+        const tipoId = pickValue(detalhe, 'TPOS_ID', 'tPOS_ID');
+        if (tipoId) setTipoOS(String(tipoId));
+
+        const origemId = pickValue(detalhe, 'MDIA_ID', 'mDIA_ID');
+        if (origemId) setMidiaId(String(origemId));
+
+        const clienteId = pickValue(detalhe, 'PESS_ID', 'pESS_ID');
+        if (clienteId) {
+          try {
+            const cls = await getClientes({ id: String(clienteId) });
+            if (cls.length > 0) {
+              skipClienteCrossLinkRef.current = true;
+              setClienteState(cls[0]);
+            }
+          } catch {}
+        } else if (editingOS.oRSV_CPFCNPJ) {
           try {
             const cls = await getClientes({ cpfcnpj: editingOS.oRSV_CPFCNPJ });
             if (cls.length > 0) {
@@ -149,8 +191,16 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           } catch {}
         }
 
-        // Veículo: busca por placa
-        if (editingOS.vEIC_PLACA) {
+        const veiculoId = pickValue(detalhe, 'VEIC_ID', 'vEIC_ID');
+        if (veiculoId) {
+          try {
+            const vcs = await getVeiculos({ id: String(veiculoId) });
+            if (vcs.length > 0) {
+              skipVeiculoCrossLinkRef.current = true;
+              setVeiculoState(vcs[0]);
+            }
+          } catch {}
+        } else if (editingOS.vEIC_PLACA) {
           try {
             const vcs = await getVeiculos({ placa: editingOS.vEIC_PLACA });
             if (vcs.length > 0) {
@@ -160,41 +210,74 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           } catch {}
         }
 
-        // Itens
-        if (editingOS.oRSV_ID) {
+        const vendedorId = pickValue(detalhe, 'VDDR_ID', 'vDDR_ID');
+        const vendedorNome = pickValue(detalhe, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME_VENDEDOR');
+        if (vendedorId) {
           try {
-            const its = await getItensOrdemServicos(editingOS.oRSV_ID);
-            const norm: ItemOS[] = (its || []).map((raw: any) => {
-              const qtde = Number(raw.ITOS_QTDE ?? raw.iTOS_QTDE ?? 0);
-              const vUnit = Number(raw.ITOS_VLR_UNITARIO ?? raw.iTOS_VLR_UNITARIO ?? 0);
-              const desc = Number(raw.ITOS_DESCONTO ?? raw.iTOS_DESCONTO ?? 0);
-              const total = Number(raw.ITOS_VLR_TOTAL ?? raw.iTOS_VLR_TOTAL ?? (qtde * vUnit - desc));
-              return {
-                ITOS_ID: raw.ITOS_ID || raw.iTOS_ID || '',
-                ITRQ_ID: raw.ITRQ_ID || raw.iTRQ_ID || '',
-                ORSV_ID: editingOS.oRSV_ID,
-                ITOS_TIPO: (raw.ITOS_TIPO || raw.iTOS_TIPO || 'P') as 'P' | 'S',
-                ITOS_DESCRICAO: raw.ITOS_DESCRICAO || raw.iTOS_DESCRICAO || raw.PROD_NOME || raw.pROD_NOME || '',
-                ITOS_QTDE: qtde,
-                ITOS_VLR_UNITARIO: vUnit,
-                ITOS_DESCONTO: desc,
-                ITOS_VLR_TOTAL: total,
-                ITOS_UNIDADE_MEDIDA: raw.ITOS_UNIDADE_MEDIDA || raw.iTOS_UNIDADE_MEDIDA || 'UN',
-                ITRQ_PRECO_TABELA: Number(raw.ITRQ_PRECO_TABELA ?? raw.iTRQ_PRECO_TABELA ?? vUnit),
-                PROD_ID: raw.PROD_ID || raw.pROD_ID || '',
-                PROD_CODIGO: raw.PROD_CODIGO || raw.pROD_CODIGO || '',
-              };
-            });
-            setItens(norm);
-          } catch {}
+            const vendedores = await getVendedores({ id: String(vendedorId) });
+            const v = vendedores[0];
+            if (v) {
+              const id = String(pickValue(v, 'VDDR_ID', 'vDDR_ID') || vendedorId);
+              const nome = String(pickValue(v, 'VDDR_NOME', 'vDDR_NOME', 'PESS_NOME', 'pESS_NOME') || vendedorNome || '');
+              setVendedor({ VDDR_ID: id, VDDR_NOME: nome });
+              setVendedorText(nome);
+            }
+          } catch {
+            setVendedor({ VDDR_ID: String(vendedorId), VDDR_NOME: String(vendedorNome || '') });
+            setVendedorText(String(vendedorNome || ''));
+          }
         }
+
+        const tecnicoId = pickValue(detalhe, 'TCNC_ID', 'tCNC_ID');
+        const tecnicoNome = pickValue(detalhe, 'TCNC_NOME', 'tCNC_NOME');
+        if (tecnicoId) {
+          try {
+            const tecnicos = await getTecnicos({ id: String(tecnicoId) });
+            const t = tecnicos[0];
+            if (t) {
+              const id = String(pickValue(t, 'TCNC_ID', 'tCNC_ID') || tecnicoId);
+              const nome = String(pickValue(t, 'TCNC_NOME', 'tCNC_NOME') || tecnicoNome || '');
+              setTecnico({ TCNC_ID: id, TCNC_NOME: nome });
+              setTecnicoText(nome);
+            }
+          } catch {
+            setTecnico({ TCNC_ID: String(tecnicoId), TCNC_NOME: String(tecnicoNome || '') });
+            setTecnicoText(String(tecnicoNome || ''));
+          }
+        }
+
+        const its = await getItensOrdemServicos(editingOS.oRSV_ID);
+        const norm: ItemOS[] = (its || []).map((raw: any) => {
+          const qtde = parseNumber(pickValue(raw, 'ITOS_QTDE', 'iTOS_QTDE'));
+          const vUnit = parseNumber(pickValue(raw, 'ITOS_VLR_UNITARIO', 'iTOS_VLR_UNITARIO', 'ITRQ_PRECO_TABELA', 'iTRQ_PRECO_TABELA'));
+          const desc = parseNumber(pickValue(raw, 'ITOS_DESCONTO', 'iTOS_DESCONTO', 'ITRQ_VLR_DESCONTO_SOBRE_TOTAL', 'iTRQ_VLR_DESCONTO_SOBRE_TOTAL'));
+          const total = parseNumber(pickValue(raw, 'ITOS_VLR_TOTAL', 'iTOS_VLR_TOTAL')) || Math.max(0, (qtde * vUnit) - desc);
+          return {
+            ITOS_ID: String(pickValue(raw, 'ITOS_ID', 'iTOS_ID') || ''),
+            ITRQ_ID: String(pickValue(raw, 'ITRQ_ID', 'iTRQ_ID') || ''),
+            ORSV_ID: editingOS.oRSV_ID,
+            ITOS_TIPO: String(pickValue(raw, 'ITOS_TIPO', 'iTOS_TIPO') || 'P').toUpperCase().startsWith('S') ? 'S' : 'P',
+            ITOS_DESCRICAO: String(pickValue(raw, 'ITOS_DESCRICAO', 'iTOS_DESCRICAO', 'PROD_NOME', 'pROD_NOME') || ''),
+            ITOS_QTDE: qtde || 0,
+            ITOS_VLR_UNITARIO: vUnit || 0,
+            ITOS_DESCONTO: desc || 0,
+            ITOS_VLR_TOTAL: total,
+            ITOS_SALDO_ESTOQUE: parseNumber(pickValue(raw, 'SEST_QTD_SALDO', 'sEST_QTD_SALDO', 'SEST_SALDO', 'sest_Saldo')) || undefined,
+            ITOS_UNIDADE_MEDIDA: String(pickValue(raw, 'ITOS_UNIDADE_MEDIDA', 'iTOS_UNIDADE_MEDIDA', 'PROD_UNIDADE', 'pROD_UNIDADE') || 'UN'),
+            ITRQ_PRECO_TABELA: parseNumber(pickValue(raw, 'ITRQ_PRECO_TABELA', 'iTRQ_PRECO_TABELA')) || vUnit || 0,
+            ITRQ_VLR_DESCONTO_SOBRE_TOTAL: parseNumber(pickValue(raw, 'ITRQ_VLR_DESCONTO_SOBRE_TOTAL', 'iTRQ_VLR_DESCONTO_SOBRE_TOTAL')) || 0,
+            PROD_ID: String(pickValue(raw, 'PROD_ID', 'pROD_ID') || ''),
+            PROD_CODIGO: String(pickValue(raw, 'PROD_CODIGO', 'pROD_CODIGO') || ''),
+          };
+        });
+        setItens(norm);
 
         toast.success(`OS #${editingOS.oRSV_NUMERO} carregada para edição`);
       } catch (e: any) {
         toast.error('Erro ao carregar OS: ' + e.message);
       }
     })();
-  }, [editingOS]);
+  }, [editingOS, dataOS]);
 
   // When cliente is selected and no veiculo → fetch vehicles
   const handleClienteSelect = useCallback(async (c: Cliente) => {
