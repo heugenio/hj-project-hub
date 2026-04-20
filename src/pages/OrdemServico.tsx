@@ -148,20 +148,24 @@ export default function OrdemServico() {
                 <TableHead className="text-xs">Hodômetro</TableHead>
                 <TableHead className="text-xs text-right">Vlr Total</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground text-sm py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground text-sm py-8">
                     {searched ? "Nenhuma OS encontrada." : "Clique em Consultar para buscar as ordens de serviço."}
                   </TableCell>
                 </TableRow>
               )}
               {data.map((os, idx) => {
-                const st = (os.oRSV_STATUS || '').toLowerCase().trim();
-                const isAberto = st.startsWith('abert');
+                const st = (os.oRSV_STATUS || "")
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .trim();
+                const isAberto = st.startsWith("abert");
+
                 return (
                   <TableRow key={os.oRSV_ID + idx} className={idx % 2 === 0 ? "" : "bg-muted/40"}>
                     <TableCell className="font-mono text-xs font-medium">{os.oRSV_NUMERO}</TableCell>
@@ -173,22 +177,25 @@ export default function OrdemServico() {
                     <TableCell className="text-xs text-right">{os.oRSV_HODOMETRO}</TableCell>
                     <TableCell className="text-xs text-right">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
                     <TableCell>
-                      <Badge className={(statusColor[os.oRSV_STATUS] || "bg-muted text-muted-foreground") + " text-xs"}>
-                        {os.oRSV_STATUS}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {isAberto && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2"
-                          onClick={() => { setEditingOS(os); setShowForm(true); }}
-                          title="Editar OS"
-                        >
-                          <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                        </Button>
-                      )}
+                      <div className="flex flex-col items-start gap-1">
+                        <Badge className={(statusColor[os.oRSV_STATUS] || "bg-muted text-muted-foreground") + " text-xs"}>
+                          {os.oRSV_STATUS}
+                        </Badge>
+                        {isAberto && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2"
+                            onClick={() => {
+                              setEditingOS(os);
+                              setShowForm(true);
+                            }}
+                            title="Editar OS"
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
