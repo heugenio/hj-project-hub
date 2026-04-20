@@ -30,7 +30,7 @@ export default function OrdemServico() {
   const toISO = (d: Date) => d.toISOString().slice(0, 10);
   const [dtInicial, setDtInicial] = useState(toISO(firstDay));
   const [dtFinal, setDtFinal] = useState(toISO(today));
-  const [status, setStatus] = useState<string>("TODOS");
+  const [status, setStatus] = useState<string>("Todos");
 
   const handleSearch = async () => {
     if (!auth?.unidade?.unem_Id) {
