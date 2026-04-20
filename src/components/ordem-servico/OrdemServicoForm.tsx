@@ -121,6 +121,81 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
     }
   }, []);
 
+  // Carrega dados da OS quando estiver em modo edição
+  useEffect(() => {
+    if (!editingOS) return;
+    (async () => {
+      try {
+        setOrsvId(editingOS.oRSV_ID || '');
+        setNumeroOS(editingOS.oRSV_NUMERO || 'OS');
+        setStatusOS(editingOS.oRSV_STATUS || 'Aberto');
+        setHodometro(editingOS.oRSV_HODOMETRO || '');
+        setObservacoes(editingOS.oRSV_OBSERVACOES || '');
+        if (editingOS.oRSV_DATA) {
+          const d = new Date(editingOS.oRSV_DATA);
+          if (!isNaN(d.getTime())) {
+            setDataOS(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+          }
+        }
+
+        // Cliente: busca por CPF/CNPJ
+        if (editingOS.oRSV_CPFCNPJ) {
+          try {
+            const cls = await getClientes({ cpfcnpj: editingOS.oRSV_CPFCNPJ });
+            if (cls.length > 0) {
+              skipClienteCrossLinkRef.current = true;
+              setClienteState(cls[0]);
+            }
+          } catch {}
+        }
+
+        // Veículo: busca por placa
+        if (editingOS.vEIC_PLACA) {
+          try {
+            const vcs = await getVeiculos({ placa: editingOS.vEIC_PLACA });
+            if (vcs.length > 0) {
+              skipVeiculoCrossLinkRef.current = true;
+              setVeiculoState(vcs[0]);
+            }
+          } catch {}
+        }
+
+        // Itens
+        if (editingOS.oRSV_ID) {
+          try {
+            const its = await getItensOrdemServicos(editingOS.oRSV_ID);
+            const norm: ItemOS[] = (its || []).map((raw: any) => {
+              const qtde = Number(raw.ITOS_QTDE ?? raw.iTOS_QTDE ?? 0);
+              const vUnit = Number(raw.ITOS_VLR_UNITARIO ?? raw.iTOS_VLR_UNITARIO ?? 0);
+              const desc = Number(raw.ITOS_DESCONTO ?? raw.iTOS_DESCONTO ?? 0);
+              const total = Number(raw.ITOS_VLR_TOTAL ?? raw.iTOS_VLR_TOTAL ?? (qtde * vUnit - desc));
+              return {
+                ITOS_ID: raw.ITOS_ID || raw.iTOS_ID || '',
+                ITRQ_ID: raw.ITRQ_ID || raw.iTRQ_ID || '',
+                ORSV_ID: editingOS.oRSV_ID,
+                ITOS_TIPO: (raw.ITOS_TIPO || raw.iTOS_TIPO || 'P') as 'P' | 'S',
+                ITOS_DESCRICAO: raw.ITOS_DESCRICAO || raw.iTOS_DESCRICAO || raw.PROD_NOME || raw.pROD_NOME || '',
+                ITOS_QTDE: qtde,
+                ITOS_VLR_UNITARIO: vUnit,
+                ITOS_DESCONTO: desc,
+                ITOS_VLR_TOTAL: total,
+                ITOS_UNIDADE_MEDIDA: raw.ITOS_UNIDADE_MEDIDA || raw.iTOS_UNIDADE_MEDIDA || 'UN',
+                ITRQ_PRECO_TABELA: Number(raw.ITRQ_PRECO_TABELA ?? raw.iTRQ_PRECO_TABELA ?? vUnit),
+                PROD_ID: raw.PROD_ID || raw.pROD_ID || '',
+                PROD_CODIGO: raw.PROD_CODIGO || raw.pROD_CODIGO || '',
+              };
+            });
+            setItens(norm);
+          } catch {}
+        }
+
+        toast.success(`OS #${editingOS.oRSV_NUMERO} carregada para edição`);
+      } catch (e: any) {
+        toast.error('Erro ao carregar OS: ' + e.message);
+      }
+    })();
+  }, [editingOS]);
+
   // When cliente is selected and no veiculo → fetch vehicles
   const handleClienteSelect = useCallback(async (c: Cliente) => {
     setClienteState(c);
