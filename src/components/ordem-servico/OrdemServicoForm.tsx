@@ -715,9 +715,9 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
 
   const handleEnviarWhatsApp = useCallback(async () => {
     if (!osPersistida) return;
-    const fone = (cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '').replace(/\D/g, '');
-    if (!fone) {
-      toast.error('Cliente sem telefone cadastrado');
+    const fone = (whatsTelefone || '').replace(/\D/g, '');
+    if (!fone || fone.length < 10) {
+      toast.error('Informe um telefone válido (mínimo 10 dígitos com DDD)');
       return;
     }
     const unemId = auth?.unidade?.unem_Id;
