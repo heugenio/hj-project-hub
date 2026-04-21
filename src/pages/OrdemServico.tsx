@@ -43,6 +43,9 @@ export default function OrdemServico() {
   const [cancelMotivo, setCancelMotivo] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
+  // Finalizar dialog state
+  const [finalizarOS, setFinalizarOS] = useState<OrdemServicoType | null>(null);
+
   const today = new Date();
   const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
   const toISO = (d: Date) => d.toISOString().slice(0, 10);
