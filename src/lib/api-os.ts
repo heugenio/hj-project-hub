@@ -308,6 +308,19 @@ export const setItensOrdemServicos = (itens: Partial<ItemOS>[]) =>
 export const setOrdemServico = (os: Partial<OrdemServicoFull>) =>
   proxyPost<OrdemServicoFull>('/setOrdemServicos', os);
 
+export const setCancelarOrdemServico = (
+  orsvId: string,
+  motivo: string,
+  usrsId: string
+) => {
+  const qs = new URLSearchParams({
+    id: orsvId,
+    motivo: motivo,
+    usrs_id: usrsId,
+  }).toString();
+  return proxyGet<unknown>(`/setCancelarOrdemServicos?${qs}`);
+};
+
 // ===== Pessoa-Veículo relationship =====
 
 export interface PessoaVeiculo {
