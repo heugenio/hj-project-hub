@@ -1060,15 +1060,28 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           </DialogHeader>
           <div className="space-y-3">
             <div className="text-xs text-muted-foreground">
-              Destinatário: <span className="font-mono font-semibold text-foreground">{cliente?.PESS_NOME}</span> ·{' '}
-              <span className="font-mono">{cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE}</span>
+              Cliente: <span className="font-mono font-semibold text-foreground">{cliente?.PESS_NOME}</span>
+            </div>
+            <div>
+              <Label className="text-xs">Telefone do destinatário (com DDD)</Label>
+              <Input
+                value={whatsTelefone}
+                onChange={(e) => setWhatsTelefone(e.target.value.replace(/\D/g, '').slice(0, 13))}
+                placeholder="11999998888"
+                className="text-xs mt-1 font-mono"
+                disabled={whatsEnviando}
+                inputMode="numeric"
+              />
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Apenas números. O código do país (55) será adicionado automaticamente.
+              </div>
             </div>
             <div>
               <Label className="text-xs">Mensagem (será enviada junto com o PDF)</Label>
               <Textarea
                 value={whatsMensagem}
                 onChange={(e) => setWhatsMensagem(e.target.value.toUpperCase())}
-                rows={8}
+                rows={7}
                 className="text-xs mt-1"
                 disabled={whatsEnviando}
               />
