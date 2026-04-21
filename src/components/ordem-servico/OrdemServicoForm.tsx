@@ -71,9 +71,10 @@ const toInputDate = (value: unknown) => {
 interface OrdemServicoFormProps {
   onBack: () => void;
   editingOS?: OrdemServicoListItem | null;
+  viewMode?: boolean;
 }
 
-export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoFormProps) {
+export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }: OrdemServicoFormProps) {
   const { auth } = useAuth();
 
   const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
