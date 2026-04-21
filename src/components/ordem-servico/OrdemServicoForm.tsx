@@ -576,94 +576,282 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   const buildPdf = useCallback((): jsPDF => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
-    const marginX = 12;
+    const marginX = 10;
+    const contentW = pageW - marginX * 2;
 
-    // Cabeçalho
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(`ORDEM DE SERVIÇO Nº ${numeroOS || orsvId}`, pageW / 2, 14, { align: 'center' });
+    const unidade: any = auth?.unidade || {};
+    const empresaNome = unidade.unem_Fantasia || unidade.unem_Nome || unidade.unem_RazaoSocial || '';
+    const empresaEnd = unidade.unem_Endereco || '';
+    const empresaBairro = unidade.unem_Bairro || '';
+    const empresaCidade = unidade.unem_Cidade || unidade.unem_Municipio || '';
+    const empresaUF = unidade.unem_UF || unidade.unem_Uf || '';
+    const empresaCEP = unidade.unem_CEP || unidade.unem_Cep || '';
+    const empresaEmail = unidade.unem_Email || '';
+    const empresaFone = unidade.unem_Fone || unidade.unem_Telefone || '';
+    const empresaCNPJ = unidade.unem_CNPJ || unidade.unem_Cnpj || '';
+    const empresaIE = unidade.unem_IE || unidade.unem_Ie || '';
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text(`Status: ${statusOS}`, marginX, 22);
-    doc.text(`Data: ${dataOS.split('-').reverse().join('/')}`, pageW - marginX, 22, { align: 'right' });
+    const drawSectionTitle = (yy: number, title: string): number => {
+      doc.setFillColor(190, 190, 190);
+      doc.rect(marginX, yy, contentW, 5, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.setTextColor(40, 40, 40);
+      doc.text(title, pageW / 2, yy + 3.6, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      return yy + 5;
+    };
 
-    // Cliente / Veículo
-    let y = 30;
-    doc.setFont('helvetica', 'bold'); doc.text('CLIENTE', marginX, y);
-    doc.setFont('helvetica', 'normal');
-    y += 5;
-    doc.text(`Nome: ${cliente?.PESS_NOME || '-'}`, marginX, y); y += 4;
-    doc.text(`CPF/CNPJ: ${cliente?.PESS_CPFCNPJ || '-'}`, marginX, y);
-    doc.text(`Fone: ${cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '-'}`, pageW / 2, y);
-    y += 6;
+    const drawCellsRow = (
+      yy: number,
+      cells: { label: string; value: string; w: number }[],
+      h = 9,
+    ): number => {
+      let x = marginX;
+      doc.setDrawColor(160, 160, 160);
+      cells.forEach((c) => {
+        doc.rect(x, yy, c.w, h);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+        doc.text(c.label, x + 1.5, yy + 2.8);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+        const txt = doc.splitTextToSize(c.value || '', c.w - 3);
+        doc.text(txt, x + 1.5, yy + 6);
+        x += c.w;
+      });
+      return yy + h;
+    };
 
-    doc.setFont('helvetica', 'bold'); doc.text('VEÍCULO', marginX, y);
-    doc.setFont('helvetica', 'normal');
-    y += 5;
-    doc.text(`Placa: ${veiculo?.VEIC_PLACA || '-'}`, marginX, y);
-    doc.text(`Marca/Modelo: ${[veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' ') || '-'}`, marginX + 50, y);
-    doc.text(`Ano: ${veiculo?.VEIC_ANO || '-'}`, pageW - marginX, y, { align: 'right' });
-    y += 4;
-    doc.text(`Cor: ${veiculo?.VEIC_COR || '-'}`, marginX, y);
-    doc.text(`Hodômetro: ${hodometro || '-'}`, marginX + 50, y);
-    y += 6;
+    // ===== Cabeçalho =====
+    const headH = 26;
+    doc.setDrawColor(160, 160, 160);
+    const logoW = 50;
+    doc.rect(marginX, 8, logoW, headH);
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text('[ LOGO EMPRESA ]', marginX + logoW / 2, 8 + headH / 2 + 1, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
 
-    // Equipe
-    doc.setFont('helvetica', 'bold'); doc.text('EQUIPE', marginX, y);
-    doc.setFont('helvetica', 'normal');
-    y += 5;
-    doc.text(`Vendedor: ${vendedor?.VDDR_NOME || '-'}`, marginX, y);
-    doc.text(`Técnico: ${tecnico?.TCNC_NOME || '-'}`, pageW / 2, y);
-    y += 6;
+    const numW = 42;
+    const dadosX = marginX + logoW;
+    const dadosW = contentW - logoW - numW;
+    doc.rect(dadosX, 8, dadosW, headH);
 
-    // Itens
-    autoTable(doc, {
-      startY: y,
-      theme: 'plain',
-      styles: { fontSize: 8, cellPadding: 1.5 },
-      headStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-      head: [['Tipo', 'Descrição', 'Qtde', 'Vlr Unit.', 'Desc.', 'Total']],
-      body: itens.map((i) => [
-        i.ITOS_TIPO === 'P' ? 'Prod' : 'Serv',
-        i.ITOS_DESCRICAO,
-        String(i.ITOS_QTDE),
-        formatCurrency(i.ITOS_VLR_UNITARIO),
-        formatCurrency(i.ITOS_DESCONTO),
-        formatCurrency(i.ITOS_VLR_TOTAL),
-      ]),
-      columnStyles: {
-        2: { halign: 'right' },
-        3: { halign: 'right' },
-        4: { halign: 'right' },
-        5: { halign: 'right' },
-      },
-    });
+    const cidadeLinha = [
+      empresaBairro,
+      empresaCidade && (empresaUF ? `${empresaCidade} - ${empresaUF}` : empresaCidade),
+      empresaCEP && `CEP: ${empresaCEP}`,
+    ].filter(Boolean).join(' - ');
 
-    // Totais
-    const finalY = (doc as any).lastAutoTable?.finalY ?? y + 20;
-    let ty = finalY + 6;
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-    doc.text(`Subtotal: ${formatCurrency(subtotal)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
-    doc.text(`Desconto Itens: ${formatCurrency(descontoItens)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
-    doc.text(`Desconto OS: ${formatCurrency(descontoOS)}`, pageW - marginX, ty, { align: 'right' }); ty += 4;
-    doc.text(`Desconto Serviço: ${formatCurrency(descontoServico)}`, pageW - marginX, ty, { align: 'right' }); ty += 5;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-    doc.text(`TOTAL: ${formatCurrency(totalFinal)}`, pageW - marginX, ty, { align: 'right' });
+    let hy = 12;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold'); doc.text('Nome:', dadosX + 2, hy);
+    doc.setFont('helvetica', 'normal'); doc.text(empresaNome, dadosX + 13, hy); hy += 3.5;
+    doc.setFont('helvetica', 'bold'); doc.text('Endereço:', dadosX + 2, hy);
+    doc.setFont('helvetica', 'normal'); doc.text(doc.splitTextToSize(empresaEnd, dadosW - 22), dadosX + 18, hy); hy += 3.5;
+    doc.setFont('helvetica', 'bold'); doc.text('Bairro:', dadosX + 2, hy);
+    doc.setFont('helvetica', 'normal'); doc.text(doc.splitTextToSize(cidadeLinha, dadosW - 16), dadosX + 14, hy); hy += 3.5;
+    doc.setFont('helvetica', 'bold'); doc.text('Email:', dadosX + 2, hy);
+    doc.setFont('helvetica', 'normal'); doc.text(empresaEmail || '', dadosX + 13, hy); hy += 3.5;
+    doc.setFont('helvetica', 'bold'); doc.text('Telefone:', dadosX + 2, hy);
+    doc.setFont('helvetica', 'normal'); doc.text(empresaFone || '', dadosX + 18, hy); hy += 3.5;
+    doc.setFont('helvetica', 'bold'); doc.text('CNPJ:', dadosX + 2, hy);
+    doc.setFont('helvetica', 'normal'); doc.text(empresaCNPJ || '', dadosX + 13, hy);
+    doc.setFont('helvetica', 'bold'); doc.text('IE:', dadosX + 60, hy);
+    doc.setFont('helvetica', 'normal'); doc.text(empresaIE || '', dadosX + 65, hy);
 
-    // Observações
-    if (observacoes) {
-      ty += 8;
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.text('OBSERVAÇÕES', marginX, ty);
-      ty += 4;
-      doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(observacoes, pageW - marginX * 2);
-      doc.text(lines, marginX, ty);
+    const numX = dadosX + dadosW;
+    doc.rect(numX, 8, numW, headH);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.text('ORDEM DE SERVIÇO', numX + numW / 2, 14, { align: 'center' });
+    doc.setFontSize(18);
+    doc.text(String(numeroOS || orsvId || ''), numX + numW / 2, 25, { align: 'center' });
+
+    let y = 8 + headH;
+
+    // ===== DADOS DO CLIENTE =====
+    y = drawSectionTitle(y, 'DADOS DO CLIENTE');
+    const enderecoCliente = [cliente?.ENDE_TIPO_LOGRADOURO, cliente?.ENDE_LOGRADOURO, cliente?.ENDE_NUMERO]
+      .filter(Boolean).join(' ').trim() || cliente?.PESS_ENDERECO || '';
+    const bairroCliente = (cliente as any)?.BAIR_NOME || '';
+    const cepCliente = cliente?.ENDE_CEP || '';
+    const municipioCliente = (cliente as any)?.MUNI_NOME || cliente?.PESS_CIDADE || '';
+    const ufCliente = (cliente as any)?.ESTA_UF || cliente?.PESS_UF || '';
+    const foneCliente = cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '';
+
+    y = drawCellsRow(y, [
+      { label: 'NOME', value: cliente?.PESS_NOME || '', w: contentW * 0.7 },
+      { label: 'CNPJ / CPF', value: cliente?.PESS_CPFCNPJ || '', w: contentW * 0.3 },
+    ]);
+    y = drawCellsRow(y, [
+      { label: 'ENDEREÇO', value: enderecoCliente, w: contentW * 0.5 },
+      { label: 'BAIRRO', value: bairroCliente, w: contentW * 0.3 },
+      { label: 'CEP', value: cepCliente, w: contentW * 0.2 },
+    ]);
+    y = drawCellsRow(y, [
+      { label: 'MUNICÍPIO', value: municipioCliente, w: contentW * 0.5 },
+      { label: 'FONE / CELULAR', value: foneCliente, w: contentW * 0.3 },
+      { label: 'UF', value: ufCliente, w: contentW * 0.2 },
+    ]);
+    y = drawCellsRow(y, [
+      { label: 'SOLICITANTE', value: '', w: contentW },
+    ]);
+
+    // ===== DADOS DO VEÍCULO =====
+    y = drawSectionTitle(y, 'DADOS DO VEÍCULO');
+    const veicDesc = [veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' ');
+    y = drawCellsRow(y, [
+      { label: 'PLACA / EQUIPAMENTO', value: veiculo?.VEIC_PLACA || '', w: contentW * 0.5 },
+      { label: 'MARCA / MODELO', value: veicDesc, w: contentW * 0.5 },
+    ]);
+    y = drawCellsRow(y, [
+      { label: 'ANO', value: veiculo?.VEIC_ANO || '', w: contentW * 0.25 },
+      { label: 'COR', value: veiculo?.VEIC_COR || '', w: contentW * 0.25 },
+      { label: 'HODÔMETRO', value: hodometro || '', w: contentW * 0.25 },
+      { label: 'Nº SÉRIE', value: '', w: contentW * 0.25 },
+    ]);
+
+    // ===== DEFEITO =====
+    y = drawSectionTitle(y, 'DEFEITO');
+    {
+      const txt = doc.splitTextToSize(checklist || '-', contentW - 4);
+      const h = Math.max(12, txt.length * 4 + 4);
+      doc.setDrawColor(160, 160, 160);
+      doc.rect(marginX, y, contentW, h);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+      doc.text(txt, marginX + 2, y + 5);
+      y += h;
     }
 
+    // ===== SERVIÇOS EXECUTADOS =====
+    y = drawSectionTitle(y, 'SERVIÇOS EXECUTADOS');
+    const servicos = itens.filter((i) => i.ITOS_TIPO === 'S');
+    const totalServicos = servicos.reduce((s, i) => s + (i.ITOS_VLR_TOTAL || 0), 0);
+    {
+      const leftW = contentW * 0.75;
+      const rightW = contentW * 0.25;
+      const servTxt = servicos.length ? servicos.map((s) => s.ITOS_DESCRICAO).join('\n') : '-';
+      const lines = doc.splitTextToSize(servTxt, leftW - 4);
+      const h = Math.max(14, lines.length * 4 + 6);
+
+      doc.setDrawColor(160, 160, 160);
+      doc.rect(marginX, y, leftW, h);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+      doc.text(lines, marginX + 2, y + 5);
+
+      const halfH = h / 2;
+      doc.rect(marginX + leftW, y, rightW, halfH);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+      doc.text('TOTAL DE HORAS', marginX + leftW + 2, y + 2.8);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text('0,00', marginX + leftW + rightW - 2, y + halfH - 2, { align: 'right' });
+
+      doc.setFillColor(220, 220, 220);
+      doc.rect(marginX + leftW, y + halfH, rightW, halfH, 'FD');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+      doc.text('TOTAL DE SERVIÇOS', marginX + leftW + 2, y + halfH + 2.8);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text(formatCurrency(totalServicos), marginX + leftW + rightW - 2, y + h - 2, { align: 'right' });
+
+      y += h;
+    }
+
+    // ===== DADOS ADICIONAIS =====
+    if (observacoes) {
+      y = drawSectionTitle(y, 'DADOS ADICIONAIS');
+      const txt = doc.splitTextToSize(observacoes, contentW - 4);
+      const h = Math.max(10, txt.length * 4 + 4);
+      doc.setDrawColor(160, 160, 160);
+      doc.rect(marginX, y, contentW, h);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+      doc.text(txt, marginX + 2, y + 5);
+      y += h;
+    }
+
+    // ===== PEÇAS APLICADAS =====
+    const produtos = itens.filter((i) => i.ITOS_TIPO === 'P');
+    autoTable(doc, {
+      startY: y,
+      theme: 'grid',
+      margin: { left: marginX, right: marginX },
+      styles: { fontSize: 8, cellPadding: 1.5, lineColor: [160, 160, 160], lineWidth: 0.1 },
+      headStyles: { fillColor: [220, 220, 220], textColor: 20, fontStyle: 'bold', halign: 'left' },
+      head: [['QUANT.', 'PEÇAS APLICADAS', 'VALOR UNITÁRIO', 'VALOR TOTAL']],
+      body: produtos.length
+        ? produtos.map((i) => [
+            String(i.ITOS_QTDE),
+            i.ITOS_DESCRICAO,
+            formatCurrency(i.ITOS_VLR_UNITARIO),
+            formatCurrency(i.ITOS_VLR_TOTAL),
+          ])
+        : [['', 'Nenhuma peça aplicada', '', '']],
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 18 },
+        2: { halign: 'right', cellWidth: 30 },
+        3: { halign: 'right', cellWidth: 30 },
+      },
+    });
+    y = (doc as any).lastAutoTable?.finalY ?? y + 10;
+
+    // ===== OBSERVAÇÕES + TOTAL GERAL =====
+    {
+      const leftW = contentW * 0.65;
+      const rightW = contentW * 0.35;
+      const obsTxt = doc.splitTextToSize(observacoes || ' ', leftW - 4);
+      const h = Math.max(28, obsTxt.length * 4 + 8);
+
+      doc.setFillColor(220, 220, 220);
+      doc.rect(marginX, y, leftW, 5, 'FD');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+      doc.text('OBSERVAÇÕES', marginX + 2, y + 3.6);
+      doc.rect(marginX + leftW, y, rightW, 5, 'FD');
+      doc.text('TOTAL GERAL', marginX + leftW + rightW / 2, y + 3.6, { align: 'center' });
+
+      doc.setDrawColor(160, 160, 160);
+      doc.rect(marginX, y + 5, leftW, h - 5);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+      doc.text(obsTxt, marginX + 2, y + 9);
+
+      doc.rect(marginX + leftW, y + 5, rightW, h - 5);
+      const tgX = marginX + leftW + 2;
+      const tgValX = marginX + leftW + rightW - 2;
+      let tgY = y + 10;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+      doc.text('Acréscimo:', tgX, tgY);
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatCurrency(0), tgValX, tgY, { align: 'right' });
+      tgY += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.text('Desconto total:', tgX, tgY);
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatCurrency(descontoItens + descontoOS + descontoServico), tgValX, tgY, { align: 'right' });
+      tgY += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total à vista:', tgX, tgY);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text(formatCurrency(totalFinal), tgValX, tgY, { align: 'right' });
+
+      y += h;
+    }
+
+    // ===== Rodapé: Assinaturas =====
+    y += 10;
+    const sigW = contentW / 3;
+    const dataStr = `${dataOS.split('-').reverse().join('/')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    [
+      { titulo: 'DATA', valor: dataStr },
+      { titulo: 'TÉCNICO', valor: tecnico?.TCNC_NOME || '' },
+      { titulo: 'CLIENTE', valor: cliente?.PESS_NOME || '' },
+    ].forEach((s, idx) => {
+      const x = marginX + sigW * idx;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text(s.valor, x + sigW / 2, y, { align: 'center' });
+      doc.setDrawColor(80, 80, 80);
+      doc.line(x + 8, y + 2, x + sigW - 8, y + 2);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+      doc.text(s.titulo, x + sigW / 2, y + 6, { align: 'center' });
+    });
+
     return doc;
-  }, [numeroOS, orsvId, statusOS, dataOS, cliente, veiculo, hodometro, vendedor, tecnico, itens, subtotal, descontoItens, descontoOS, descontoServico, totalFinal, observacoes]);
+  }, [auth, numeroOS, orsvId, dataOS, cliente, veiculo, hodometro, tecnico, itens, descontoItens, descontoOS, descontoServico, totalFinal, observacoes, checklist]);
 
   const handlePrint = useCallback(() => {
     if (!osPersistida) return;
