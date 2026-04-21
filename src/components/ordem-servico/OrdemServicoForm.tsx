@@ -790,7 +790,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
     } finally {
       setWhatsEnviando(false);
     }
-  }, [osPersistida, cliente, auth, fetchParametro, buildPdf, numeroOS, orsvId, whatsMensagem]);
+  }, [osPersistida, whatsTelefone, auth, fetchParametro, buildPdf, numeroOS, orsvId, whatsMensagem]);
 
 
   return (
