@@ -213,10 +213,8 @@ export default function OrdemServico() {
                   .normalize("NFD")
                   .replace(/[\u0300-\u036f]/g, "")
                   .trim();
-                const isCancelado = st.includes("cancel");
-                const isFaturado = !isCancelado && st.includes("fatur");
-                // "Aberto/Aberta/Em Aberto" ou qualquer status que não seja cancelado/faturado
-                const isAberto = !isCancelado && !isFaturado;
+                const isAberto = st.includes("abert");
+                const isFaturado = st.includes("fatur");
 
                 return (
                   <TableRow key={os.oRSV_ID + idx} className={idx % 2 === 0 ? "" : "bg-muted/40"}>
