@@ -770,35 +770,41 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
       if (provider === 'BrasilAPI') payload.device = device;
       if (provider === 'WhatsAppOficial') payload.phoneNumberId = phoneId;
 
-      // ============ DEBUG: Log do payload de envio (F12) ============
+      // ============ DEBUG: Log no mesmo padrão do Marketing/Campanhas ============
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const debugPayload = {
         ...payload,
-        token: token ? `${token.substring(0, 6)}...${token.substring(token.length - 4)} (${token.length} chars)` : '(vazio)',
-        file: `data:application/pdf;base64,[${base64.length} chars omitidos]`,
+        file: `data:application/pdf;base64,[${base64.length} chars - ~${Math.round(base64.length * 0.75 / 1024)} KB omitidos]`,
       };
-      console.group('%c📤 Envio WhatsApp OS - send-message', 'color:#22c55e;font-weight:bold;font-size:13px');
-      console.log('%c🔧 Provider:', 'color:#3b82f6;font-weight:bold', provider);
-      console.log('%c📞 Telefone destino:', 'color:#3b82f6;font-weight:bold', fone, '→ será normalizado para 55' + fone.replace(/^55/, ''));
-      console.log('%c📄 Arquivo:', 'color:#3b82f6;font-weight:bold', fileName, `(PDF base64: ${base64.length} chars ≈ ${Math.round(base64.length * 0.75 / 1024)} KB)`);
-      console.log('%c💬 Mensagem:', 'color:#3b82f6;font-weight:bold', whatsMensagem);
-      console.log('%c📦 Payload completo (token mascarado):', 'color:#3b82f6;font-weight:bold', debugPayload);
-      console.log('%c🌐 Endpoint:', 'color:#3b82f6;font-weight:bold', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-message`);
-      console.log('%c📋 cURL equivalente:', 'color:#3b82f6;font-weight:bold');
+
+      console.log('=== ENVIO WHATSAPP OS ===');
+      console.log('Provider:', provider, '| UNEM_ID:', unemId);
+      console.log('Destino:', fone);
+      console.log('Token (real, completo):', token);
+      if (provider === 'BrasilAPI') console.log('DeviceToken (real, completo):', device);
+      if (provider === 'WhatsAppOficial') console.log('PhoneNumberId:', phoneId);
+      console.log('FileName:', fileName, `| PDF base64: ${base64.length} chars`);
+      console.log('Payload (file truncado):', JSON.stringify(debugPayload, null, 2));
+
+      console.log('=== cURL equivalente (Authorization usa a anon key da Lovable Cloud, igual ao supabase.functions.invoke do Marketing) ===');
       console.log(
-        `curl -X POST '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-message' \\\n` +
-        `  -H 'Content-Type: application/json' \\\n` +
-        `  -H 'Authorization: Bearer <SEU_TOKEN>' \\\n` +
-        `  -d '${JSON.stringify(debugPayload)}'`
+        `curl -i --location --request POST '${supabaseUrl}/functions/v1/send-message' \\\n` +
+        `  --header 'Content-Type: application/json' \\\n` +
+        `  --header 'apikey: ${anonKey}' \\\n` +
+        `  --header 'Authorization: Bearer ${anonKey}' \\\n` +
+        `  --data-raw '${JSON.stringify(payload).replace(/'/g, "'\\''")}'`
       );
-      console.groupEnd();
-      // ===============================================================
+      console.log('Obs.: o token e o device do WhatsApp vão DENTRO do JSON (campos "token" e "device"), não em headers — mesmo padrão do Marketing.');
 
+      const sendStart = performance.now();
       const { data: respData, error } = await supabase.functions.invoke('send-message', { body: payload });
+      const sendDuration = Math.round(performance.now() - sendStart);
 
-      console.group('%c📥 Resposta send-message', 'color:#a855f7;font-weight:bold;font-size:13px');
-      console.log('%cdata:', 'color:#3b82f6;font-weight:bold', respData);
-      console.log('%cerror:', 'color:#ef4444;font-weight:bold', error);
-      console.groupEnd();
+      console.log(`=== RESPOSTA ENVIO (${sendDuration}ms) ===`);
+      console.log('Response Data:', JSON.stringify(respData, null, 2));
+      if (error) console.log('Response Error:', error);
 
       if (error) {
         console.error('Erro envio WhatsApp:', error);
