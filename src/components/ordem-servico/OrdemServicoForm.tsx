@@ -770,7 +770,35 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
       if (provider === 'BrasilAPI') payload.device = device;
       if (provider === 'WhatsAppOficial') payload.phoneNumberId = phoneId;
 
+      // ============ DEBUG: Log do payload de envio (F12) ============
+      const debugPayload = {
+        ...payload,
+        token: token ? `${token.substring(0, 6)}...${token.substring(token.length - 4)} (${token.length} chars)` : '(vazio)',
+        file: `data:application/pdf;base64,[${base64.length} chars omitidos]`,
+      };
+      console.group('%c📤 Envio WhatsApp OS - send-message', 'color:#22c55e;font-weight:bold;font-size:13px');
+      console.log('%c🔧 Provider:', 'color:#3b82f6;font-weight:bold', provider);
+      console.log('%c📞 Telefone destino:', 'color:#3b82f6;font-weight:bold', fone, '→ será normalizado para 55' + fone.replace(/^55/, ''));
+      console.log('%c📄 Arquivo:', 'color:#3b82f6;font-weight:bold', fileName, `(PDF base64: ${base64.length} chars ≈ ${Math.round(base64.length * 0.75 / 1024)} KB)`);
+      console.log('%c💬 Mensagem:', 'color:#3b82f6;font-weight:bold', whatsMensagem);
+      console.log('%c📦 Payload completo (token mascarado):', 'color:#3b82f6;font-weight:bold', debugPayload);
+      console.log('%c🌐 Endpoint:', 'color:#3b82f6;font-weight:bold', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-message`);
+      console.log('%c📋 cURL equivalente:', 'color:#3b82f6;font-weight:bold');
+      console.log(
+        `curl -X POST '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-message' \\\n` +
+        `  -H 'Content-Type: application/json' \\\n` +
+        `  -H 'Authorization: Bearer <SEU_TOKEN>' \\\n` +
+        `  -d '${JSON.stringify(debugPayload)}'`
+      );
+      console.groupEnd();
+      // ===============================================================
+
       const { data: respData, error } = await supabase.functions.invoke('send-message', { body: payload });
+
+      console.group('%c📥 Resposta send-message', 'color:#a855f7;font-weight:bold;font-size:13px');
+      console.log('%cdata:', 'color:#3b82f6;font-weight:bold', respData);
+      console.log('%cerror:', 'color:#ef4444;font-weight:bold', error);
+      console.groupEnd();
 
       if (error) {
         console.error('Erro envio WhatsApp:', error);
