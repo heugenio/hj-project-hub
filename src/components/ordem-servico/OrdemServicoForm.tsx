@@ -120,6 +120,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   // WhatsApp dialog state
   const [whatsDialogOpen, setWhatsDialogOpen] = useState(false);
   const [whatsMensagem, setWhatsMensagem] = useState('');
+  const [whatsTelefone, setWhatsTelefone] = useState('');
   const [whatsEnviando, setWhatsEnviando] = useState(false);
 
   useEffect(() => {
@@ -678,10 +679,6 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   const handleWhatsApp = useCallback(() => {
     if (!osPersistida) return;
     const fone = (cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '').replace(/\D/g, '');
-    if (!fone) {
-      toast.error('Cliente sem telefone cadastrado');
-      return;
-    }
     const primeiroNome = (cliente?.PESS_NOME || '').split(' ')[0] || '';
     const placaVeic = veiculo?.VEIC_PLACA || '';
     const veicDesc = [veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' ');
@@ -695,6 +692,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
       'Qualquer dúvida estamos à disposição.',
     ].join('\n');
     setWhatsMensagem(mensagemPadrao);
+    setWhatsTelefone(fone);
     setWhatsDialogOpen(true);
   }, [osPersistida, cliente, veiculo, numeroOS, orsvId, totalFinal]);
 
@@ -717,9 +715,9 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
 
   const handleEnviarWhatsApp = useCallback(async () => {
     if (!osPersistida) return;
-    const fone = (cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '').replace(/\D/g, '');
-    if (!fone) {
-      toast.error('Cliente sem telefone cadastrado');
+    const fone = (whatsTelefone || '').replace(/\D/g, '');
+    if (!fone || fone.length < 10) {
+      toast.error('Informe um telefone válido (mínimo 10 dígitos com DDD)');
       return;
     }
     const unemId = auth?.unidade?.unem_Id;
@@ -792,7 +790,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
     } finally {
       setWhatsEnviando(false);
     }
-  }, [osPersistida, cliente, auth, fetchParametro, buildPdf, numeroOS, orsvId, whatsMensagem]);
+  }, [osPersistida, whatsTelefone, auth, fetchParametro, buildPdf, numeroOS, orsvId, whatsMensagem]);
 
 
   return (
@@ -1062,15 +1060,28 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           </DialogHeader>
           <div className="space-y-3">
             <div className="text-xs text-muted-foreground">
-              Destinatário: <span className="font-mono font-semibold text-foreground">{cliente?.PESS_NOME}</span> ·{' '}
-              <span className="font-mono">{cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE}</span>
+              Cliente: <span className="font-mono font-semibold text-foreground">{cliente?.PESS_NOME}</span>
+            </div>
+            <div>
+              <Label className="text-xs">Telefone do destinatário (com DDD)</Label>
+              <Input
+                value={whatsTelefone}
+                onChange={(e) => setWhatsTelefone(e.target.value.replace(/\D/g, '').slice(0, 13))}
+                placeholder="11999998888"
+                className="text-xs mt-1 font-mono"
+                disabled={whatsEnviando}
+                inputMode="numeric"
+              />
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Apenas números. O código do país (55) será adicionado automaticamente.
+              </div>
             </div>
             <div>
               <Label className="text-xs">Mensagem (será enviada junto com o PDF)</Label>
               <Textarea
                 value={whatsMensagem}
                 onChange={(e) => setWhatsMensagem(e.target.value.toUpperCase())}
-                rows={8}
+                rows={7}
                 className="text-xs mt-1"
                 disabled={whatsEnviando}
               />
