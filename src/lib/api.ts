@@ -278,7 +278,7 @@ export const getOrdemServicos = (
   filtros?: { status?: string; dtInicial?: string; dtFinal?: string }
 ) => {
   const params = new URLSearchParams({ unem_id });
-  if (filtros?.status && filtros.status !== 'TODOS') params.append('status', filtros.status);
+  if (filtros?.status && filtros.status.toUpperCase() !== 'TODOS') params.append('status', filtros.status);
   if (filtros?.dtInicial) params.append('dtinicial', filtros.dtInicial);
   if (filtros?.dtFinal) params.append('dtfinal', filtros.dtFinal);
   return apiGet<OrdemServico[]>(`/getOrdemServicos?${params.toString()}`);
