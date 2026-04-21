@@ -1018,8 +1018,12 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
 
 
   return (
-    <div className="space-y-4 pb-8">
-      {/* Header */}
+    <div className={`space-y-4 pb-8 ${viewMode ? '[&_input:not([type=button])]:pointer-events-none [&_textarea]:pointer-events-none [&_button[role=combobox]]:pointer-events-none' : ''}`}>
+      {viewMode && (
+        <div className="bg-muted/60 border border-border rounded-md px-3 py-2 text-xs text-muted-foreground">
+          Esta OS está sendo exibida em modo somente leitura.
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
