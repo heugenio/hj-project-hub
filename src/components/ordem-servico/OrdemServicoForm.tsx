@@ -1027,9 +1027,9 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Wrench className="h-6 w-6" /> {editingOS ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço'}
+              <Wrench className="h-6 w-6" /> {viewMode ? 'Visualizar Ordem de Serviço' : (editingOS ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço')}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">{editingOS ? 'Alteração de OS existente' : 'Cadastro de OS para manutenção de veículos'}</p>
+            <p className="text-muted-foreground text-sm mt-1">{viewMode ? 'Modo somente leitura' : (editingOS ? 'Alteração de OS existente' : 'Cadastro de OS para manutenção de veículos')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
