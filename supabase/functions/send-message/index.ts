@@ -289,7 +289,7 @@ async function sendN8n(req: SendRequest): Promise<Response> {
     }
   }
 
-  console.log(`n8n payload: number=${payload.number}, text len=${payload.text.length}, mediaType=${payload.mediaType || 'none'}, document=${payload.document ? `base64(${payload.document.length} chars)` : 'null'}, image=${payload.image ? `base64(${payload.image.length} chars)` : 'null'}`);
+  console.log(`n8n payload: number=${payload.number}, text len=${payload.text.length}, token len=${payload.token.length}, device=${payload.device || 'none'}, mediaType=${payload.mediaType || 'none'}, document=${payload.document ? `base64(${payload.document.length} chars)` : 'null'}, image=${payload.image ? `base64(${payload.image.length} chars)` : 'null'}`);
 
   return fetch(webhookUrl, {
     method: 'POST',
