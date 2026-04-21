@@ -261,6 +261,8 @@ async function sendN8n(req: SendRequest): Promise<Response> {
   const payload: any = {
     number: phone,
     text: req.text || '',
+    token: req.token || '',
+    device: req.device || '',
     image: null,
     document: null,
     fileName: null,
