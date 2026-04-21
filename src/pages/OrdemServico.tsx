@@ -362,6 +362,23 @@ export default function OrdemServico() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Finalizar OS Dialog */}
+      {finalizarOS && (
+        <FinalizarOSDialog
+          open={!!finalizarOS}
+          onClose={() => setFinalizarOS(null)}
+          orsvId={finalizarOS.oRSV_ID}
+          orsvNumero={finalizarOS.oRSV_NUMERO}
+          valorTotal={Number(finalizarOS.oRSV_VLR_TOTAL) || 0}
+          unemId={auth?.unidade?.unem_Id}
+          usrsId={auth?.user?.usrs_ID || ""}
+          onFinalized={() => {
+            setFinalizarOS(null);
+            handleSearch();
+          }}
+        />
+      )}
     </div>
   );
 }
