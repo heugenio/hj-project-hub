@@ -183,8 +183,8 @@ export default function OrdemServico() {
       </Card>
 
       <Card className="border-border/50">
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[1180px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs">Nº OS</TableHead>
@@ -195,8 +195,8 @@ export default function OrdemServico() {
                 <TableHead className="text-xs">Placa</TableHead>
                 <TableHead className="text-xs">Hodômetro</TableHead>
                 <TableHead className="text-xs text-right">Vlr Total</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs">Ações</TableHead>
+                <TableHead className="text-xs sticky right-[112px] z-20 bg-background min-w-[92px]">Status</TableHead>
+                <TableHead className="text-xs sticky right-0 z-20 bg-background min-w-[112px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -218,30 +218,31 @@ export default function OrdemServico() {
                   .trim();
                 const isAberto = st.includes("abert");
                 const isFaturado = st.includes("fatur");
+                const stickyBg = idx % 2 === 0 ? "bg-background" : "bg-muted/40";
 
                 return (
                   <TableRow key={os.oRSV_ID + idx} className={idx % 2 === 0 ? "" : "bg-muted/40"}>
                     <TableCell className="font-mono text-xs font-medium">{os.oRSV_NUMERO}</TableCell>
                     <TableCell className="text-xs">{formatDate(os.oRSV_DATA)}</TableCell>
-                    <TableCell className="text-xs">{os.oRSV_NOME}</TableCell>
-                    <TableCell className="text-xs font-mono">{os.oRSV_CPFCNPJ}</TableCell>
-                    <TableCell className="text-xs">{os.vEIC_MARCA} {os.vEIC_MODELO}</TableCell>
-                    <TableCell className="text-xs font-mono">{os.vEIC_PLACA}</TableCell>
-                    <TableCell className="text-xs text-right">{os.oRSV_HODOMETRO}</TableCell>
-                    <TableCell className="text-xs text-right">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
-                    <TableCell>
-                      <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-xs"}>
+                    <TableCell className="text-xs max-w-[220px] whitespace-normal">{os.oRSV_NOME}</TableCell>
+                    <TableCell className="text-xs font-mono whitespace-nowrap">{os.oRSV_CPFCNPJ}</TableCell>
+                    <TableCell className="text-xs max-w-[140px] whitespace-normal">{os.vEIC_MARCA} {os.vEIC_MODELO}</TableCell>
+                    <TableCell className="text-xs font-mono whitespace-nowrap">{os.vEIC_PLACA}</TableCell>
+                    <TableCell className="text-xs text-right whitespace-nowrap">{os.oRSV_HODOMETRO}</TableCell>
+                    <TableCell className="text-xs text-right whitespace-nowrap">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
+                    <TableCell className={`sticky right-[112px] z-10 ${stickyBg}`}>
+                      <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-xs whitespace-nowrap"}>
                         {rowStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
+                    <TableCell className={`sticky right-0 z-10 ${stickyBg}`}>
+                      <div className="flex min-w-[96px] items-center justify-end gap-1">
                         {isAberto && (
                           <>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-7 w-7 shrink-0"
                               onClick={() => {
                                 setEditingOS(os);
                                 setViewMode(false);
@@ -255,7 +256,7 @@ export default function OrdemServico() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-primary hover:text-primary"
+                              className="h-7 w-7 shrink-0 text-primary hover:text-primary"
                               onClick={() => setFinalizarOS(os)}
                               title="Finalizar OS"
                               aria-label="Finalizar OS"
@@ -265,7 +266,7 @@ export default function OrdemServico() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
                               onClick={() => {
                                 setCancelOS(os);
                                 setCancelMotivo("");
@@ -281,7 +282,7 @@ export default function OrdemServico() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7"
+                            className="h-7 w-7 shrink-0"
                             onClick={() => {
                               setEditingOS(os);
                               setViewMode(true);
