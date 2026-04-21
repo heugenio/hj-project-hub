@@ -262,18 +262,32 @@ async function sendN8n(req: SendRequest): Promise<Response> {
     number: phone,
     text: req.text || '',
     image: null,
+    document: null,
+    fileName: null,
+    mimeType: null,
+    mediaType: null,
   };
 
   if (req.type === 'media' && req.file) {
+    const isDocument = req.mediaType === 'document';
     const base64 = await fetchImageAsBase64(req.file);
     if (base64) {
-      payload.image = base64;
+      if (isDocument) {
+        payload.document = base64;
+        payload.fileName = req.fileName || 'documento.pdf';
+        payload.mimeType = 'application/pdf';
+        payload.mediaType = 'document';
+      } else {
+        payload.image = base64;
+        payload.mediaType = req.mediaType || 'image';
+        payload.mimeType = 'image/jpeg';
+      }
     } else {
-      console.warn(`n8n: imagem não pôde ser convertida, enviando apenas texto. URL=${req.file}`);
+      console.warn(`n8n: arquivo não pôde ser convertido, enviando apenas texto. URL=${req.file}`);
     }
   }
 
-  console.log(`n8n payload: number=${payload.number}, text len=${payload.text.length}, image=${payload.image ? `base64(${payload.image.length} chars)` : 'null'}`);
+  console.log(`n8n payload: number=${payload.number}, text len=${payload.text.length}, mediaType=${payload.mediaType || 'none'}, document=${payload.document ? `base64(${payload.document.length} chars)` : 'null'}, image=${payload.image ? `base64(${payload.image.length} chars)` : 'null'}`);
 
   return fetch(webhookUrl, {
     method: 'POST',
