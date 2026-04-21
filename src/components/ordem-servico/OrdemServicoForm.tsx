@@ -71,9 +71,10 @@ const toInputDate = (value: unknown) => {
 interface OrdemServicoFormProps {
   onBack: () => void;
   editingOS?: OrdemServicoListItem | null;
+  viewMode?: boolean;
 }
 
-export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoFormProps) {
+export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }: OrdemServicoFormProps) {
   const { auth } = useAuth();
 
   const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
@@ -1017,8 +1018,12 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
 
 
   return (
-    <div className="space-y-4 pb-8">
-      {/* Header */}
+    <div className={`space-y-4 pb-8 ${viewMode ? '[&_input:not([type=button])]:pointer-events-none [&_textarea]:pointer-events-none [&_button[role=combobox]]:pointer-events-none' : ''}`}>
+      {viewMode && (
+        <div className="bg-muted/60 border border-border rounded-md px-3 py-2 text-xs text-muted-foreground">
+          Esta OS está sendo exibida em modo somente leitura.
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
@@ -1026,9 +1031,9 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Wrench className="h-6 w-6" /> {editingOS ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço'}
+              <Wrench className="h-6 w-6" /> {viewMode ? 'Visualizar Ordem de Serviço' : (editingOS ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço')}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">{editingOS ? 'Alteração de OS existente' : 'Cadastro de OS para manutenção de veículos'}</p>
+            <p className="text-muted-foreground text-sm mt-1">{viewMode ? 'Modo somente leitura' : (editingOS ? 'Alteração de OS existente' : 'Cadastro de OS para manutenção de veículos')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -1204,19 +1209,23 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
           >
             <Send className="h-4 w-4 mr-1" /> WhatsApp
           </Button>
-          <Button size="sm" onClick={() => handleSave(false)} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-            Salvar
-          </Button>
-          <Button
-            size="sm"
-            className="bg-accent hover:bg-accent/90 text-accent-foreground"
-            onClick={() => handleSave(true)}
-            disabled={saving || !osPersistida}
-            title={!osPersistida ? 'Salve a OS antes de finalizar' : 'Finalizar OS'}
-          >
-            <CheckCircle className="h-4 w-4 mr-1" /> Finalizar OS
-          </Button>
+          {!viewMode && (
+            <>
+              <Button size="sm" onClick={() => handleSave(false)} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                Salvar
+              </Button>
+              <Button
+                size="sm"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                onClick={() => handleSave(true)}
+                disabled={saving || !osPersistida}
+                title={!osPersistida ? 'Salve a OS antes de finalizar' : 'Finalizar OS'}
+              >
+                <CheckCircle className="h-4 w-4 mr-1" /> Finalizar OS
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
