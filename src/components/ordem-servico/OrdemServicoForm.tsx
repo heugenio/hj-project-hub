@@ -679,10 +679,6 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   const handleWhatsApp = useCallback(() => {
     if (!osPersistida) return;
     const fone = (cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE || '').replace(/\D/g, '');
-    if (!fone) {
-      toast.error('Cliente sem telefone cadastrado');
-      return;
-    }
     const primeiroNome = (cliente?.PESS_NOME || '').split(' ')[0] || '';
     const placaVeic = veiculo?.VEIC_PLACA || '';
     const veicDesc = [veiculo?.VEIC_MARCA, veiculo?.VEIC_MODELO].filter(Boolean).join(' ');
@@ -696,6 +692,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
       'Qualquer dúvida estamos à disposição.',
     ].join('\n');
     setWhatsMensagem(mensagemPadrao);
+    setWhatsTelefone(fone);
     setWhatsDialogOpen(true);
   }, [osPersistida, cliente, veiculo, numeroOS, orsvId, totalFinal]);
 
