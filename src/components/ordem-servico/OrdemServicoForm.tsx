@@ -767,7 +767,8 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
         file: `data:application/pdf;base64,${base64}`,
         fileName,
       };
-      if (provider === 'BrasilAPI') payload.device = device;
+      // Sempre envia device quando disponível (n8n também usa DEVICEWHATS para identificar a origem)
+      if (device) payload.device = device;
       if (provider === 'WhatsAppOficial') payload.phoneNumberId = phoneId;
 
       // ============ DEBUG: Log no mesmo padrão do Marketing/Campanhas ============
