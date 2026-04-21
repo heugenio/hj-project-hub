@@ -43,11 +43,11 @@ export default function OrdemServico() {
   const [cancelling, setCancelling] = useState(false);
 
   const today = new Date();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
   const toISO = (d: Date) => d.toISOString().slice(0, 10);
-  const [dtInicial, setDtInicial] = useState(toISO(firstDay));
+  const [dtInicial, setDtInicial] = useState(toISO(sevenDaysAgo));
   const [dtFinal, setDtFinal] = useState(toISO(today));
-  const [status, setStatus] = useState<string>("Todos");
+  const [status, setStatus] = useState<string>("Abertos");
 
   const handleSearch = async () => {
     if (!auth?.unidade?.unem_Id) {
