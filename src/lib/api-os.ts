@@ -343,3 +343,59 @@ export const getPessoasVeiculos = (params: { pess_id?: string; veic_id?: string 
     .join('&');
   return proxyGet<PessoaVeiculo[]>(`/getPessoasVeiculos?${query}`);
 };
+
+// ===== Formas de Pagamento =====
+
+export interface FormaPagamento {
+  FPAG_ID: string;
+  FPAG_NOME: string;
+  FPAG_TIPO?: string; // ex: BOLETO, DINHEIRO, CARTAO
+  FPAG_PARCELAS?: number; // total de parcelas (ex: 3 para "3X BOLETO")
+  COFR_ID?: string;
+}
+
+export interface FormaPagamentoItem {
+  FPGI_ID?: string;
+  FPAG_ID: string;
+  FPGI_PARCELA: number; // número da parcela (1, 2, 3...)
+  FPGI_DIAS: number; // dias para vencimento a partir de hoje
+  FPGI_PERC: number; // percentual do total
+  FPGI_TIPO_PAGAMENTO?: string;
+  COFR_ID?: string;
+}
+
+export const getFormasPagamentos = async (unemId?: string) => {
+  const qs = unemId ? `?unem_id=${encodeURIComponent(unemId)}` : '';
+  const raw = await proxyGet<any>(`/getFormasPagamentos${qs}`);
+  if (raw && !Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [] as FormaPagamento[];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c) => normalizeApiKeys<FormaPagamento>(c));
+};
+
+export const getFormasPagamentosItens = async (fpagId: string) => {
+  const raw = await proxyGet<any>(`/getFormasPagamentosItens?fpag_id=${encodeURIComponent(fpagId)}`);
+  if (raw && !Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [] as FormaPagamentoItem[];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c) => normalizeApiKeys<FormaPagamentoItem>(c));
+};
+
+export interface ParcelaFinalizacao {
+  parcela: number;
+  vencimento: string; // YYYY/MM/DD
+  perc: number;
+  valor: number;
+  tipo_pagamento?: string;
+  cofr_id?: string;
+}
+
+export interface FinalizarOSPayload {
+  ORSV_ID: string;
+  USRS_ID: string;
+  FPAG_ID: string;
+  COFR_ID?: string;
+  COFR_SERVICO_ID?: string;
+  parcelas: ParcelaFinalizacao[];
+}
+
+export const setFinalizarOS = (payload: FinalizarOSPayload) =>
+  proxyPost<unknown>('/setFinalizarOS', payload);

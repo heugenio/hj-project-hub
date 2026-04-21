@@ -15,12 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Search, Wrench, Plus, Pencil, Eye, Ban } from "lucide-react";
+import { Loader2, Search, Wrench, Plus, Pencil, Eye, Ban, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getOrdemServicos, type OrdemServico as OrdemServicoType } from "@/lib/api";
 import { setCancelarOrdemServico } from "@/lib/api-os";
 import { toast } from "sonner";
 import OrdemServicoForm from "@/components/ordem-servico/OrdemServicoForm";
+import FinalizarOSDialog from "@/components/ordem-servico/FinalizarOSDialog";
 
 const statusColor: Record<string, string> = {
   Aberto: "bg-primary text-primary-foreground",
@@ -41,6 +42,9 @@ export default function OrdemServico() {
   const [cancelOS, setCancelOS] = useState<OrdemServicoType | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
   const [cancelling, setCancelling] = useState(false);
+
+  // Finalizar dialog state
+  const [finalizarOS, setFinalizarOS] = useState<OrdemServicoType | null>(null);
 
   const today = new Date();
   const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
@@ -248,6 +252,16 @@ export default function OrdemServico() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-7 w-7 text-primary hover:text-primary"
+                              onClick={() => setFinalizarOS(os)}
+                              title="Finalizar OS"
+                              aria-label="Finalizar OS"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-7 w-7 text-destructive hover:text-destructive"
                               onClick={() => {
                                 setCancelOS(os);
@@ -348,6 +362,23 @@ export default function OrdemServico() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Finalizar OS Dialog */}
+      {finalizarOS && (
+        <FinalizarOSDialog
+          open={!!finalizarOS}
+          onClose={() => setFinalizarOS(null)}
+          orsvId={finalizarOS.oRSV_ID}
+          orsvNumero={finalizarOS.oRSV_NUMERO}
+          valorTotal={Number(finalizarOS.oRSV_VLR_TOTAL) || 0}
+          unemId={auth?.unidade?.unem_Id}
+          usrsId={auth?.user?.usrs_ID || ""}
+          onFinalized={() => {
+            setFinalizarOS(null);
+            handleSearch();
+          }}
+        />
+      )}
     </div>
   );
 }
