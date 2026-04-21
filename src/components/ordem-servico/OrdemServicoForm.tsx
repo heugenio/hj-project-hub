@@ -120,6 +120,7 @@ export default function OrdemServicoForm({ onBack, editingOS }: OrdemServicoForm
   // WhatsApp dialog state
   const [whatsDialogOpen, setWhatsDialogOpen] = useState(false);
   const [whatsMensagem, setWhatsMensagem] = useState('');
+  const [whatsTelefone, setWhatsTelefone] = useState('');
   const [whatsEnviando, setWhatsEnviando] = useState(false);
 
   useEffect(() => {
