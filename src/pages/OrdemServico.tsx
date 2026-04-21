@@ -208,7 +208,10 @@ export default function OrdemServico() {
                 </TableRow>
               )}
               {data.map((os, idx) => {
-                const st = (os.oRSV_STATUS || "")
+                const rowStatus = String(
+                  os.oRSV_STATUS ?? (os as any).ORSV_STATUS ?? (os as any).orsv_status ?? ""
+                );
+                const st = rowStatus
                   .toLowerCase()
                   .normalize("NFD")
                   .replace(/[\u0300-\u036f]/g, "")
@@ -227,8 +230,8 @@ export default function OrdemServico() {
                     <TableCell className="text-xs text-right">{os.oRSV_HODOMETRO}</TableCell>
                     <TableCell className="text-xs text-right">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
                     <TableCell>
-                      <Badge className={(statusColor[os.oRSV_STATUS] || "bg-muted text-muted-foreground") + " text-xs"}>
-                        {os.oRSV_STATUS}
+                      <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-xs"}>
+                        {rowStatus}
                       </Badge>
                     </TableCell>
                     <TableCell>
