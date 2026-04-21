@@ -233,44 +233,47 @@ export default function OrdemServico() {
                           <>
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-7 px-2"
+                              size="icon"
+                              className="h-7 w-7"
                               onClick={() => {
                                 setEditingOS(os);
                                 setViewMode(false);
                                 setShowForm(true);
                               }}
                               title="Editar OS"
+                              aria-label="Editar OS"
                             >
-                              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-destructive hover:text-destructive"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
                               onClick={() => {
                                 setCancelOS(os);
                                 setCancelMotivo("");
                               }}
                               title="Cancelar OS"
+                              aria-label="Cancelar OS"
                             >
-                              <Ban className="h-3.5 w-3.5 mr-1" /> Cancelar
+                              <Ban className="h-3.5 w-3.5" />
                             </Button>
                           </>
                         )}
                         {isFaturado && (
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-7 px-2"
+                            size="icon"
+                            className="h-7 w-7"
                             onClick={() => {
                               setEditingOS(os);
                               setViewMode(true);
                               setShowForm(true);
                             }}
                             title="Visualizar OS"
+                            aria-label="Visualizar OS"
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1" /> Visualizar
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </div>
