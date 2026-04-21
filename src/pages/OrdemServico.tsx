@@ -184,19 +184,19 @@ export default function OrdemServico() {
 
       <Card className="border-border/50">
         <CardContent className="p-0 overflow-x-auto">
-          <Table className="min-w-[1180px]">
+          <Table className="text-[11px]">
             <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs">Nº OS</TableHead>
-                <TableHead className="text-xs">Data</TableHead>
-                <TableHead className="text-xs">Cliente</TableHead>
-                <TableHead className="text-xs">CPF/CNPJ</TableHead>
-                <TableHead className="text-xs">Veículo</TableHead>
-                <TableHead className="text-xs">Placa</TableHead>
-                <TableHead className="text-xs">Hodômetro</TableHead>
-                <TableHead className="text-xs text-right">Vlr Total</TableHead>
-                <TableHead className="text-xs sticky right-[112px] z-20 bg-background min-w-[92px]">Status</TableHead>
-                <TableHead className="text-xs sticky right-0 z-20 bg-background min-w-[112px] text-right">Ações</TableHead>
+              <TableRow className="[&>th]:h-7 [&>th]:px-2 [&>th]:py-1">
+                <TableHead className="text-[10px] uppercase">Nº OS</TableHead>
+                <TableHead className="text-[10px] uppercase">Data</TableHead>
+                <TableHead className="text-[10px] uppercase">Cliente</TableHead>
+                <TableHead className="text-[10px] uppercase">CPF/CNPJ</TableHead>
+                <TableHead className="text-[10px] uppercase">Veículo</TableHead>
+                <TableHead className="text-[10px] uppercase">Placa</TableHead>
+                <TableHead className="text-[10px] uppercase">Hod.</TableHead>
+                <TableHead className="text-[10px] uppercase text-right">Vlr Total</TableHead>
+                <TableHead className="text-[10px] uppercase">Status</TableHead>
+                <TableHead className="text-[10px] uppercase text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -218,31 +218,33 @@ export default function OrdemServico() {
                   .trim();
                 const isAberto = st.includes("abert");
                 const isFaturado = st.includes("fatur");
-                const stickyBg = idx % 2 === 0 ? "bg-background" : "bg-muted/40";
 
                 return (
-                  <TableRow key={os.oRSV_ID + idx} className={idx % 2 === 0 ? "" : "bg-muted/40"}>
-                    <TableCell className="font-mono text-xs font-medium">{os.oRSV_NUMERO}</TableCell>
-                    <TableCell className="text-xs">{formatDate(os.oRSV_DATA)}</TableCell>
-                    <TableCell className="text-xs max-w-[220px] whitespace-normal">{os.oRSV_NOME}</TableCell>
-                    <TableCell className="text-xs font-mono whitespace-nowrap">{os.oRSV_CPFCNPJ}</TableCell>
-                    <TableCell className="text-xs max-w-[140px] whitespace-normal">{os.vEIC_MARCA} {os.vEIC_MODELO}</TableCell>
-                    <TableCell className="text-xs font-mono whitespace-nowrap">{os.vEIC_PLACA}</TableCell>
-                    <TableCell className="text-xs text-right whitespace-nowrap">{os.oRSV_HODOMETRO}</TableCell>
-                    <TableCell className="text-xs text-right whitespace-nowrap">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
-                    <TableCell className={`sticky right-[112px] z-10 ${stickyBg}`}>
-                      <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-xs whitespace-nowrap"}>
+                  <TableRow
+                    key={os.oRSV_ID + idx}
+                    className={`[&>td]:px-2 [&>td]:py-1 ${idx % 2 === 0 ? "" : "bg-muted/40"}`}
+                  >
+                    <TableCell className="font-mono text-[10px] font-medium whitespace-nowrap">{os.oRSV_NUMERO}</TableCell>
+                    <TableCell className="text-[10px] whitespace-nowrap">{formatDate(os.oRSV_DATA)}</TableCell>
+                    <TableCell className="text-[10px] max-w-[180px] truncate" title={os.oRSV_NOME}>{os.oRSV_NOME}</TableCell>
+                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{os.oRSV_CPFCNPJ}</TableCell>
+                    <TableCell className="text-[10px] max-w-[120px] truncate" title={`${os.vEIC_MARCA} ${os.vEIC_MODELO}`}>{os.vEIC_MARCA} {os.vEIC_MODELO}</TableCell>
+                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{os.vEIC_PLACA}</TableCell>
+                    <TableCell className="text-[10px] text-right whitespace-nowrap">{os.oRSV_HODOMETRO}</TableCell>
+                    <TableCell className="text-[10px] text-right whitespace-nowrap">{formatCurrency(os.oRSV_VLR_TOTAL)}</TableCell>
+                    <TableCell>
+                      <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-[9px] px-1.5 py-0 whitespace-nowrap"}>
                         {rowStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell className={`sticky right-0 z-10 ${stickyBg}`}>
-                      <div className="flex min-w-[96px] items-center justify-end gap-1">
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-0.5">
                         {isAberto && (
                           <>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 shrink-0"
+                              className="h-6 w-6 shrink-0"
                               onClick={() => {
                                 setEditingOS(os);
                                 setViewMode(false);
@@ -251,22 +253,22 @@ export default function OrdemServico() {
                               title="Editar OS"
                               aria-label="Editar OS"
                             >
-                              <Pencil className="h-3.5 w-3.5" />
+                              <Pencil className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 shrink-0 text-primary hover:text-primary"
+                              className="h-6 w-6 shrink-0 text-primary hover:text-primary"
                               onClick={() => setFinalizarOS(os)}
                               title="Finalizar OS"
                               aria-label="Finalizar OS"
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <CheckCircle2 className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                              className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
                               onClick={() => {
                                 setCancelOS(os);
                                 setCancelMotivo("");
@@ -274,7 +276,7 @@ export default function OrdemServico() {
                               title="Cancelar OS"
                               aria-label="Cancelar OS"
                             >
-                              <Ban className="h-3.5 w-3.5" />
+                              <Ban className="h-3 w-3" />
                             </Button>
                           </>
                         )}
@@ -282,7 +284,7 @@ export default function OrdemServico() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0"
+                            className="h-6 w-6 shrink-0"
                             onClick={() => {
                               setEditingOS(os);
                               setViewMode(true);
@@ -291,7 +293,7 @@ export default function OrdemServico() {
                             title="Visualizar OS"
                             aria-label="Visualizar OS"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <Eye className="h-3 w-3" />
                           </Button>
                         )}
                       </div>
