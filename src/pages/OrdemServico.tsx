@@ -15,12 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Search, Wrench, Plus, Pencil, Eye, Ban } from "lucide-react";
+import { Loader2, Search, Wrench, Plus, Pencil, Eye, Ban, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getOrdemServicos, type OrdemServico as OrdemServicoType } from "@/lib/api";
 import { setCancelarOrdemServico } from "@/lib/api-os";
 import { toast } from "sonner";
 import OrdemServicoForm from "@/components/ordem-servico/OrdemServicoForm";
+import FinalizarOSDialog from "@/components/ordem-servico/FinalizarOSDialog";
 
 const statusColor: Record<string, string> = {
   Aberto: "bg-primary text-primary-foreground",
