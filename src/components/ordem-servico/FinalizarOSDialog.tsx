@@ -296,10 +296,29 @@ export default function FinalizarOSDialog({
       toast.error("Nenhuma parcela gerada.");
       return;
     }
-    const diff = Math.abs(totalSomado - valorTotal);
-    if (diff > 0.05) {
+    // Ajuste automático para diferenças até R$ 0,10 antes de validar
+    const somaAtual = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const diffAuto = round2(valorTotal - somaAtual);
+    let parcelasAjustadas = parcelas;
+    if (Math.abs(diffAuto) > 0 && Math.abs(diffAuto) <= 0.1) {
+      const lastIdx = parcelas.length - 1;
+      parcelasAjustadas = parcelas.map((p, i) => {
+        if (i !== lastIdx) return p;
+        const novoValor = round2((Number(p.valor) || 0) + diffAuto);
+        return {
+          ...p,
+          valor: novoValor,
+          perc: valorTotal > 0 ? round4((novoValor / valorTotal) * 100) : 0,
+        };
+      });
+      setParcelas(parcelasAjustadas);
+    }
+
+    const somaFinal = parcelasAjustadas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const diff = Math.abs(somaFinal - valorTotal);
+    if (diff > 0.1) {
       toast.error(
-        `Soma das parcelas (${fmtBRL(totalSomado)}) difere do total da OS (${fmtBRL(valorTotal)}).`
+        `Soma das parcelas (${fmtBRL(somaFinal)}) difere do total da OS (${fmtBRL(valorTotal)}).`
       );
       return;
     }
