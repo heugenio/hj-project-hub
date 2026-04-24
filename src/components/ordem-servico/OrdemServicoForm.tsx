@@ -1340,6 +1340,24 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Finalizar OS Dialog (mesmo do listagem) */}
+      {finalizarDialogOpen && orsvId && (
+        <FinalizarOSDialog
+          open={finalizarDialogOpen}
+          onClose={() => setFinalizarDialogOpen(false)}
+          orsvId={orsvId}
+          orsvNumero={numeroOS}
+          valorTotal={totalFinal}
+          unemId={auth?.unidade?.unem_Id}
+          usrsId={auth?.user?.usrs_ID || ''}
+          onFinalized={() => {
+            setStatusOS('Faturado');
+            setFinalizarDialogOpen(false);
+            toast.success('OS finalizada com sucesso!');
+          }}
+        />
+      )}
     </div>
   );
 }
