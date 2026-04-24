@@ -502,11 +502,25 @@ export default function FinalizarOSDialog({
                   </div>
                   <div className="col-span-2">
                     <Input
-                      type="number"
-                      step="0.01"
-                      value={p.valor}
-                      onChange={(e) => updateParcela(idx, { valor: Number(e.target.value) || 0 })}
-                      onBlur={(e) => handleValorChange(idx, Number(e.target.value) || 0)}
+                      type="text"
+                      inputMode="decimal"
+                      value={
+                        Number.isFinite(p.valor)
+                          ? p.valor.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "0,00"
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                        const num = Number(raw);
+                        updateParcela(idx, { valor: Number.isFinite(num) ? num : 0 });
+                      }}
+                      onBlur={(e) => {
+                        const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                        handleValorChange(idx, Number(raw) || 0);
+                      }}
                       className="h-6 text-[10px] text-right px-1 font-medium"
                     />
                   </div>
