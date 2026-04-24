@@ -1350,6 +1350,7 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
           orsvNumero={numeroOS}
           valorTotal={totalFinal}
           unemId={auth?.unidade?.unem_Id}
+          emprId={(auth as any)?.empresa?.n}
           usrsId={auth?.user?.usrs_ID || ''}
           onFinalized={() => {
             setStatusOS('Faturado');
