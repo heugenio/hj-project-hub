@@ -50,6 +50,7 @@ interface Props {
   orsvNumero?: string;
   valorTotal: number;
   unemId?: string;
+  emprId?: string;
   usrsId: string;
   onFinalized: () => void;
 }
