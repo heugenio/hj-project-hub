@@ -349,11 +349,41 @@ export const getPessoasVeiculos = (params: { pess_id?: string; veic_id?: string 
 export interface FormaPagamento {
   FPAG_ID: string;
   FPAG_NOME: string;
+  FVEN_ID?: string;   // ID da Forma de Venda (usado pela API getGerarVencimentos)
   FVEN_NOME?: string; // Nome da Forma de Venda (rótulo apresentado ao usuário)
   FPAG_TIPO?: string; // ex: BOLETO, DINHEIRO, CARTAO
   FPAG_PARCELAS?: number; // total de parcelas (ex: 3 para "3X BOLETO")
   COFR_ID?: string;
 }
+
+export interface VencimentoGerado {
+  PARCELA: number;
+  DIAS?: number;
+  VENCIMENTO: string; // YYYY/MM/DD ou YYYY-MM-DD
+  PERC: number;
+  VALOR: number;
+  TIPO_PAGAMENTO?: string;
+  COFR_ID?: string;
+  COFR_NOME?: string;
+}
+
+export const getGerarVencimentos = async (params: {
+  fven_id: string;
+  cofr_id: string;
+  valor: number;
+  dataref: string; // yyyy/MM/dd
+}) => {
+  const qs = new URLSearchParams({
+    FVEN_ID: params.fven_id,
+    COFR_ID: params.cofr_id,
+    VALOR: String(params.valor),
+    DATAREF: params.dataref,
+  }).toString();
+  const raw = await proxyGet<any>(`/getGerarVencimentos?${qs}`);
+  if (raw && !Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [] as VencimentoGerado[];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c) => normalizeApiKeys<VencimentoGerado>(c));
+};
 
 export interface FormaPagamentoItem {
   FPGI_ID?: string;

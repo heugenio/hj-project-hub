@@ -21,10 +21,9 @@ import { Loader2, CheckCircle2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import {
   getFormasPagamentos,
-  getFormasPagamentosItens,
+  getGerarVencimentos,
   setFinalizarOS,
   type FormaPagamento,
-  type FormaPagamentoItem,
   type ParcelaFinalizacao,
 } from "@/lib/api-os";
 import { getCofres, type Cofre } from "@/lib/api";
@@ -120,74 +119,64 @@ export default function FinalizarOSDialog({
     })();
   }, [open, unemId]);
 
-  // Quando seleciona forma de pagamento -> buscar itens (parcelas)
+  // Quando seleciona forma de pagamento -> chama getGerarVencimentos para popular a grid
   useEffect(() => {
     if (!fpagId) {
       setParcelas([]);
       return;
     }
     const forma = formas.find((f) => f.FPAG_ID === fpagId);
+    const fvenId = String(forma?.FVEN_ID || forma?.FPAG_ID || "");
+    if (!fvenId || !cofrId) {
+      setParcelas([]);
+      return;
+    }
+
     (async () => {
       setLoading(true);
       try {
-        const itens = await getFormasPagamentosItens(fpagId);
         const today = new Date();
+        const dataref = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getDate()).padStart(2, "0")}`;
 
-        let base: ParcelaUI[] = [];
-        if (itens && itens.length > 0) {
-          base = itens
-            .map((it) => ({
-              parcela: Number(it.FPGI_PARCELA) || 1,
-              dias: Number(it.FPGI_DIAS) || 0,
-              perc: Number(it.FPGI_PERC) || 0,
-              tipo_pagamento: String(it.FPGI_TIPO_PAGAMENTO || forma?.FPAG_TIPO || ""),
-              cofr_id: String(it.COFR_ID || cofrId || ""),
-              vencimento: "",
-              valor: 0,
-            }))
-            .sort((a, b) => a.parcela - b.parcela);
-        } else {
-          // Fallback: gera parcelas pelo FPAG_PARCELAS (ex: "3X BOLETO" => 3 parcelas iguais com 30/60/90 dias)
-          const totalParc = Number(forma?.FPAG_PARCELAS) || 1;
-          const percEach = +(100 / totalParc).toFixed(4);
-          const intervalo = totalParc > 1 ? 30 : 0;
-          base = Array.from({ length: totalParc }, (_, i) => ({
-            parcela: i + 1,
-            dias: intervalo * (i + 1),
-            perc: percEach,
-            tipo_pagamento: String(forma?.FPAG_TIPO || ""),
-            cofr_id: String(cofrId || ""),
-            vencimento: "",
-            valor: 0,
-          }));
+        const vencs = await getGerarVencimentos({
+          fven_id: fvenId,
+          cofr_id: cofrId,
+          valor: valorTotal,
+          dataref,
+        });
+
+        if (!vencs || vencs.length === 0) {
+          toast.error("Nenhum vencimento gerado pela API.");
+          setParcelas([]);
+          return;
         }
 
-        // Calcula vencimento e valor
-        const totalPerc = base.reduce((s, p) => s + p.perc, 0) || 100;
-        let acumulado = 0;
-        base = base.map((p, idx) => {
-          const vencDate = addDays(today, p.dias);
-          const vencISO = toISODate(vencDate);
-          let valor = +((valorTotal * p.perc) / totalPerc).toFixed(2);
-          // Ajuste do residual na última parcela
-          if (idx === base.length - 1) {
-            valor = +(valorTotal - acumulado).toFixed(2);
-          } else {
-            acumulado += valor;
-          }
-          return { ...p, vencimento: vencISO, valor };
-        });
+        const base: ParcelaUI[] = vencs
+          .map((v) => {
+            // Normaliza vencimento (pode vir YYYY/MM/DD ou YYYY-MM-DD)
+            const venc = String(v.VENCIMENTO || "").replace(/\//g, "-").slice(0, 10);
+            return {
+              parcela: Number(v.PARCELA) || 1,
+              dias: Number(v.DIAS) || 0,
+              vencimento: venc,
+              perc: Number(v.PERC) || 0,
+              valor: Number(v.VALOR) || 0,
+              tipo_pagamento: String(v.TIPO_PAGAMENTO || forma?.FPAG_TIPO || ""),
+              cofr_id: String(v.COFR_ID || cofrId || ""),
+            };
+          })
+          .sort((a, b) => a.parcela - b.parcela);
 
         setParcelas(base);
       } catch (e: any) {
-        toast.error("Erro ao carregar parcelas: " + e.message);
+        toast.error("Erro ao gerar vencimentos: " + e.message);
         setParcelas([]);
       } finally {
         setLoading(false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fpagId]);
+  }, [fpagId, cofrId, valorTotal]);
 
   const totalSomado = useMemo(
     () => parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0),
