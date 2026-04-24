@@ -328,30 +328,30 @@ export default function FinalizarOSDialog({
           </div>
 
           {/* Grade de parcelas */}
-          <div className="rounded-md border border-border overflow-hidden">
-            <div className="grid grid-cols-12 gap-1 bg-muted/60 px-2 py-1 text-[10px] uppercase font-semibold text-muted-foreground">
+          <div className="rounded-lg border border-border/60 overflow-hidden bg-card shadow-sm">
+            <div className="grid grid-cols-12 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
               <div className="col-span-1">Parc.</div>
               <div className="col-span-1">Dias</div>
               <div className="col-span-2">Vencimento</div>
-              <div className="col-span-1 text-right">Perc.</div>
+              <div className="col-span-1 text-right">%</div>
               <div className="col-span-2 text-right">Valor</div>
               <div className="col-span-2">Tipo Pagto</div>
               <div className="col-span-3">Cofre Portador</div>
             </div>
-            <div className="max-h-[280px] overflow-auto">
+            <div className="max-h-[280px] overflow-auto divide-y divide-border/40">
               {parcelas.length === 0 && (
-                <div className="px-2 py-4 text-center text-xs text-muted-foreground">
+                <div className="px-2 py-4 text-center text-[11px] text-muted-foreground">
                   {formaAtual ? "Nenhuma parcela." : "Selecione a forma de pagamento."}
                 </div>
               )}
               {parcelas.map((p, idx) => (
                 <div
                   key={idx}
-                  className={`grid grid-cols-12 gap-1 px-2 py-1 items-center text-xs ${
-                    idx % 2 === 0 ? "" : "bg-muted/30"
+                  className={`grid grid-cols-12 gap-1 px-2 py-0.5 items-center text-[11px] transition-colors hover:bg-accent/30 ${
+                    idx % 2 === 0 ? "" : "bg-muted/20"
                   }`}
                 >
-                  <div className="col-span-1 font-mono">{p.parcela}</div>
+                  <div className="col-span-1 font-mono text-[11px] text-foreground/80">{p.parcela}</div>
                   <div className="col-span-1">
                     <Input
                       type="number"
@@ -361,7 +361,7 @@ export default function FinalizarOSDialog({
                         const venc = toISODate(addDays(new Date(), dias));
                         updateParcela(idx, { dias, vencimento: venc });
                       }}
-                      className="h-7 text-xs"
+                      className="h-6 text-[11px] px-1.5"
                     />
                   </div>
                   <div className="col-span-2">
@@ -369,7 +369,7 @@ export default function FinalizarOSDialog({
                       type="date"
                       value={p.vencimento}
                       onChange={(e) => updateParcela(idx, { vencimento: e.target.value })}
-                      className="h-7 text-xs"
+                      className="h-6 text-[11px] px-1.5"
                     />
                   </div>
                   <div className="col-span-1">
@@ -378,7 +378,7 @@ export default function FinalizarOSDialog({
                       step="0.01"
                       value={p.perc}
                       onChange={(e) => updateParcela(idx, { perc: Number(e.target.value) || 0 })}
-                      className="h-7 text-xs text-right"
+                      className="h-6 text-[11px] text-right px-1.5"
                     />
                   </div>
                   <div className="col-span-2">
@@ -387,7 +387,7 @@ export default function FinalizarOSDialog({
                       step="0.01"
                       value={p.valor}
                       onChange={(e) => updateParcela(idx, { valor: Number(e.target.value) || 0 })}
-                      className="h-7 text-xs text-right"
+                      className="h-6 text-[11px] text-right px-1.5 font-medium"
                     />
                   </div>
                   <div className="col-span-2">
@@ -396,7 +396,7 @@ export default function FinalizarOSDialog({
                       onChange={(e) =>
                         updateParcela(idx, { tipo_pagamento: e.target.value.toUpperCase() })
                       }
-                      className="h-7 text-xs"
+                      className="h-6 text-[11px] px-1.5"
                     />
                   </div>
                   <div className="col-span-3">
@@ -404,12 +404,12 @@ export default function FinalizarOSDialog({
                       value={p.cofr_id}
                       onValueChange={(v) => updateParcela(idx, { cofr_id: v })}
                     >
-                      <SelectTrigger className="h-7 text-xs">
+                      <SelectTrigger className="h-6 text-[11px] px-1.5">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {cofres.map((c) => (
-                          <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-xs">
+                          <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-[11px]">
                             {c.COFR_NOME}
                           </SelectItem>
                         ))}
@@ -420,12 +420,12 @@ export default function FinalizarOSDialog({
               ))}
             </div>
             {parcelas.length > 0 && (
-              <div className="grid grid-cols-12 gap-1 px-2 py-1 bg-muted/60 text-[11px] font-semibold border-t border-border">
-                <div className="col-span-4 text-right">Totais:</div>
-                <div className="col-span-1 text-right">{totalPercentual.toFixed(2)}</div>
-                <div className="col-span-2 text-right">{fmtBRL(totalSomado)}</div>
+              <div className="grid grid-cols-12 gap-1 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60">
+                <div className="col-span-4 text-right uppercase tracking-wide text-muted-foreground">Totais</div>
+                <div className="col-span-1 text-right">{totalPercentual.toFixed(2)}%</div>
+                <div className="col-span-2 text-right text-primary">{fmtBRL(totalSomado)}</div>
                 <div className="col-span-5 text-right text-muted-foreground">
-                  Total OS: {fmtBRL(valorTotal)}
+                  Total OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
                 </div>
               </div>
             )}
