@@ -21,9 +21,11 @@ import { Loader2, CheckCircle2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import {
   getFormasPagamentos,
+  getFormasPagamentosItens,
   getGerarVencimentos,
   setFinalizarOS,
   type FormaPagamento,
+  type FormaPagamentoItem,
   type ParcelaFinalizacao,
 } from "@/lib/api-os";
 import { getCofres, type Cofre } from "@/lib/api";
@@ -36,6 +38,9 @@ interface ParcelaUI {
   valor: number;
   tipo_pagamento: string;
   cofr_id: string;
+  itfv_id?: string; // ID retornado por getGerarVencimentos para buscar tipos pagto
+  tipoOptions?: FormaPagamentoItem[]; // opções carregadas via API
+  loadingTipos?: boolean;
 }
 
 interface Props {
