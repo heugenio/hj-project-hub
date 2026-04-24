@@ -513,16 +513,36 @@ export default function FinalizarOSDialog({
                 </div>
               ))}
             </div>
-            {parcelas.length > 0 && (
-              <div className="grid grid-cols-12 gap-1 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60">
-                <div className="col-span-4 text-right uppercase tracking-wide text-muted-foreground">Totais</div>
-                <div className="col-span-1 text-right">{totalPercentual.toFixed(2)}%</div>
-                <div className="col-span-2 text-right text-primary">{fmtBRL(totalSomado)}</div>
-                <div className="col-span-5 text-right text-muted-foreground">
-                  Total OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
+            {parcelas.length > 0 && (() => {
+              const diffValor = round2(valorTotal - totalSomado);
+              const diffPerc = round2(100 - totalPercentual);
+              const okValor = Math.abs(diffValor) <= 0.1;
+              const okPerc = Math.abs(diffPerc) <= 0.01;
+              return (
+                <div className="grid grid-cols-12 gap-1 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60 items-center">
+                  <div className="col-span-4 text-right uppercase tracking-wide text-muted-foreground">Totais</div>
+                  <div className={`col-span-1 text-right ${okPerc ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    {totalPercentual.toFixed(2)}%
+                  </div>
+                  <div className={`col-span-2 text-right ${okValor ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    {fmtBRL(totalSomado)}
+                  </div>
+                  <div className="col-span-5 text-right text-muted-foreground flex items-center justify-end gap-2">
+                    {!okValor && Math.abs(diffValor) > 0 && (
+                      <button
+                        type="button"
+                        onClick={ajustarDiferenca}
+                        className="px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[9px] uppercase tracking-wide"
+                        title="Ajustar diferença na última parcela"
+                      >
+                        Ajustar {fmtBRL(diffValor)}
+                      </button>
+                    )}
+                    Total OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
 
