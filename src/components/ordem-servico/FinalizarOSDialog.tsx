@@ -191,6 +191,9 @@ export default function FinalizarOSDialog({
               valor,
               tipo_pagamento: tipo,
               cofr_id: String(v.COFR_ID || cofrId || ""),
+              itfv_id: String(v.ITFV_ID || ""),
+              tipoOptions: [],
+              loadingTipos: false,
             };
           })
           .sort((a, b) => a.parcela - b.parcela);
