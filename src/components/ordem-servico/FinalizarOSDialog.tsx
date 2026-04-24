@@ -83,6 +83,7 @@ export default function FinalizarOSDialog({
   orsvNumero,
   valorTotal,
   unemId,
+  emprId,
   usrsId,
   onFinalized,
 }: Props) {
