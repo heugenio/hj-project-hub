@@ -395,12 +395,16 @@ export const getGerarVencimentos = async (params: {
 
 export interface FormaPagamentoItem {
   FPGI_ID?: string;
-  FPAG_ID: string;
-  FPGI_PARCELA: number; // número da parcela (1, 2, 3...)
-  FPGI_DIAS: number; // dias para vencimento a partir de hoje
-  FPGI_PERC: number; // percentual do total
+  FPAG_ID?: string;
+  FPGI_PARCELA?: number;
+  FPGI_DIAS?: number;
+  FPGI_PERC?: number;
   FPGI_TIPO_PAGAMENTO?: string;
   COFR_ID?: string;
+  // Campos adicionais retornados pelo endpoint atual
+  TPPR_ID?: string;
+  TPPR_TIPO_PAGAMENTO?: string;
+  TPPR_NOME?: string;
 }
 
 export const getFormasPagamentos = async (unemId?: string) => {
@@ -411,8 +415,21 @@ export const getFormasPagamentos = async (unemId?: string) => {
   return arr.map((c) => normalizeApiKeys<FormaPagamento>(c));
 };
 
-export const getFormasPagamentosItens = async (fpagId: string) => {
-  const raw = await proxyGet<any>(`/getFormasPagamentosItens?fpag_id=${encodeURIComponent(fpagId)}`);
+// Aceita { itfv_id, cofr_id } (uso atual na finalização) ou string fpagId (legado)
+export const getFormasPagamentosItens = async (
+  params: string | { itfv_id?: string; cofr_id?: string; fpag_id?: string }
+) => {
+  let qs = '';
+  if (typeof params === 'string') {
+    qs = `fpag_id=${encodeURIComponent(params)}`;
+  } else {
+    const parts: string[] = [];
+    if (params.itfv_id) parts.push(`ITFV_ID=${encodeURIComponent(params.itfv_id)}`);
+    if (params.cofr_id) parts.push(`COFR_ID=${encodeURIComponent(params.cofr_id)}`);
+    if (params.fpag_id) parts.push(`fpag_id=${encodeURIComponent(params.fpag_id)}`);
+    qs = parts.join('&');
+  }
+  const raw = await proxyGet<any>(`/getFormasPagamentosItens?${qs}`);
   if (raw && !Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [] as FormaPagamentoItem[];
   const arr = Array.isArray(raw) ? raw : [raw];
   return arr.map((c) => normalizeApiKeys<FormaPagamentoItem>(c));
