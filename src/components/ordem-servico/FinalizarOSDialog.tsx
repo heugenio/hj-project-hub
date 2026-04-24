@@ -470,6 +470,7 @@ export default function FinalizarOSDialog({
                       step="0.01"
                       value={p.perc}
                       onChange={(e) => updateParcela(idx, { perc: Number(e.target.value) || 0 })}
+                      onBlur={(e) => handlePercChange(idx, Number(e.target.value) || 0)}
                       className="h-6 text-[11px] text-right px-1.5"
                     />
                   </div>
@@ -479,6 +480,7 @@ export default function FinalizarOSDialog({
                       step="0.01"
                       value={p.valor}
                       onChange={(e) => updateParcela(idx, { valor: Number(e.target.value) || 0 })}
+                      onBlur={(e) => handleValorChange(idx, Number(e.target.value) || 0)}
                       className="h-6 text-[11px] text-right px-1.5 font-medium"
                     />
                   </div>
