@@ -349,6 +349,7 @@ export const getPessoasVeiculos = (params: { pess_id?: string; veic_id?: string 
 export interface FormaPagamento {
   FPAG_ID: string;
   FPAG_NOME: string;
+  FVEN_NOME?: string; // Nome da Forma de Venda (rótulo apresentado ao usuário)
   FPAG_TIPO?: string; // ex: BOLETO, DINHEIRO, CARTAO
   FPAG_PARCELAS?: number; // total de parcelas (ex: 3 para "3X BOLETO")
   COFR_ID?: string;
