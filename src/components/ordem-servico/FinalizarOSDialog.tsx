@@ -210,8 +210,81 @@ export default function FinalizarOSDialog({
     [parcelas]
   );
 
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const round4 = (n: number) => Math.round(n * 10000) / 10000;
+
   const updateParcela = (idx: number, patch: Partial<ParcelaUI>) => {
     setParcelas((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+
+  // Redistribui valores/percentuais entre as demais parcelas para fechar 100% / total da OS
+  const redistribuir = (idx: number, novoValor: number) => {
+    setParcelas((prev) => {
+      if (prev.length === 0) return prev;
+      const total = valorTotal;
+      const valorClamp = Math.max(0, Math.min(novoValor, total));
+      const restante = round2(total - valorClamp);
+      const outros = prev.filter((_, i) => i !== idx);
+      const qtdOutros = outros.length;
+
+      const next = prev.map((p, i) => {
+        if (i === idx) {
+          return {
+            ...p,
+            valor: round2(valorClamp),
+            perc: total > 0 ? round4((valorClamp / total) * 100) : 0,
+          };
+        }
+        return p;
+      });
+
+      if (qtdOutros === 0) return next;
+
+      const fatia = round2(restante / qtdOutros);
+      let acumulado = 0;
+      let contador = 0;
+      return next.map((p, i) => {
+        if (i === idx) return p;
+        contador++;
+        const isUltimo = contador === qtdOutros;
+        const v = isUltimo ? round2(restante - acumulado) : fatia;
+        acumulado = round2(acumulado + v);
+        return {
+          ...p,
+          valor: v,
+          perc: total > 0 ? round4((v / total) * 100) : 0,
+        };
+      });
+    });
+  };
+
+  const handlePercChange = (idx: number, novoPerc: number) => {
+    const valor = round2((novoPerc / 100) * valorTotal);
+    redistribuir(idx, valor);
+  };
+
+  const handleValorChange = (idx: number, novoValor: number) => {
+    redistribuir(idx, round2(novoValor));
+  };
+
+  // Ajuste fino: se a diferença for até R$ 0,10, soma/subtrai na última parcela automaticamente
+  const ajustarDiferenca = () => {
+    setParcelas((prev) => {
+      if (prev.length === 0) return prev;
+      const soma = prev.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+      const diff = round2(valorTotal - soma);
+      if (Math.abs(diff) === 0 || Math.abs(diff) > 0.1) return prev;
+      const lastIdx = prev.length - 1;
+      return prev.map((p, i) => {
+        if (i !== lastIdx) return p;
+        const novoValor = round2((Number(p.valor) || 0) + diff);
+        return {
+          ...p,
+          valor: novoValor,
+          perc: valorTotal > 0 ? round4((novoValor / valorTotal) * 100) : 0,
+        };
+      });
+    });
   };
 
   const handleConfirmar = async () => {
@@ -223,10 +296,29 @@ export default function FinalizarOSDialog({
       toast.error("Nenhuma parcela gerada.");
       return;
     }
-    const diff = Math.abs(totalSomado - valorTotal);
-    if (diff > 0.05) {
+    // Ajuste automático para diferenças até R$ 0,10 antes de validar
+    const somaAtual = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const diffAuto = round2(valorTotal - somaAtual);
+    let parcelasAjustadas = parcelas;
+    if (Math.abs(diffAuto) > 0 && Math.abs(diffAuto) <= 0.1) {
+      const lastIdx = parcelas.length - 1;
+      parcelasAjustadas = parcelas.map((p, i) => {
+        if (i !== lastIdx) return p;
+        const novoValor = round2((Number(p.valor) || 0) + diffAuto);
+        return {
+          ...p,
+          valor: novoValor,
+          perc: valorTotal > 0 ? round4((novoValor / valorTotal) * 100) : 0,
+        };
+      });
+      setParcelas(parcelasAjustadas);
+    }
+
+    const somaFinal = parcelasAjustadas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const diff = Math.abs(somaFinal - valorTotal);
+    if (diff > 0.1) {
       toast.error(
-        `Soma das parcelas (${fmtBRL(totalSomado)}) difere do total da OS (${fmtBRL(valorTotal)}).`
+        `Soma das parcelas (${fmtBRL(somaFinal)}) difere do total da OS (${fmtBRL(valorTotal)}).`
       );
       return;
     }
@@ -238,7 +330,7 @@ export default function FinalizarOSDialog({
         FPAG_ID: fpagIdSelecionado,
         COFR_ID: cofrId,
         COFR_SERVICO_ID: cofrServicoId,
-        parcelas: parcelas.map<ParcelaFinalizacao>((p) => ({
+        parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
           parcela: p.parcela,
           vencimento: isoToBrSlash(p.vencimento),
           perc: p.perc,
@@ -378,6 +470,7 @@ export default function FinalizarOSDialog({
                       step="0.01"
                       value={p.perc}
                       onChange={(e) => updateParcela(idx, { perc: Number(e.target.value) || 0 })}
+                      onBlur={(e) => handlePercChange(idx, Number(e.target.value) || 0)}
                       className="h-6 text-[11px] text-right px-1.5"
                     />
                   </div>
@@ -387,6 +480,7 @@ export default function FinalizarOSDialog({
                       step="0.01"
                       value={p.valor}
                       onChange={(e) => updateParcela(idx, { valor: Number(e.target.value) || 0 })}
+                      onBlur={(e) => handleValorChange(idx, Number(e.target.value) || 0)}
                       className="h-6 text-[11px] text-right px-1.5 font-medium"
                     />
                   </div>
@@ -419,16 +513,36 @@ export default function FinalizarOSDialog({
                 </div>
               ))}
             </div>
-            {parcelas.length > 0 && (
-              <div className="grid grid-cols-12 gap-1 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60">
-                <div className="col-span-4 text-right uppercase tracking-wide text-muted-foreground">Totais</div>
-                <div className="col-span-1 text-right">{totalPercentual.toFixed(2)}%</div>
-                <div className="col-span-2 text-right text-primary">{fmtBRL(totalSomado)}</div>
-                <div className="col-span-5 text-right text-muted-foreground">
-                  Total OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
+            {parcelas.length > 0 && (() => {
+              const diffValor = round2(valorTotal - totalSomado);
+              const diffPerc = round2(100 - totalPercentual);
+              const okValor = Math.abs(diffValor) <= 0.1;
+              const okPerc = Math.abs(diffPerc) <= 0.01;
+              return (
+                <div className="grid grid-cols-12 gap-1 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60 items-center">
+                  <div className="col-span-4 text-right uppercase tracking-wide text-muted-foreground">Totais</div>
+                  <div className={`col-span-1 text-right ${okPerc ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    {totalPercentual.toFixed(2)}%
+                  </div>
+                  <div className={`col-span-2 text-right ${okValor ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    {fmtBRL(totalSomado)}
+                  </div>
+                  <div className="col-span-5 text-right text-muted-foreground flex items-center justify-end gap-2">
+                    {!okValor && Math.abs(diffValor) > 0 && (
+                      <button
+                        type="button"
+                        onClick={ajustarDiferenca}
+                        className="px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[9px] uppercase tracking-wide"
+                        title="Ajustar diferença na última parcela"
+                      >
+                        Ajustar {fmtBRL(diffValor)}
+                      </button>
+                    )}
+                    Total OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
 
