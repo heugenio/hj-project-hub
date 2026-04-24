@@ -305,7 +305,7 @@ export default function FinalizarOSDialog({
                   )}
                   {formas.map((f) => (
                     <SelectItem key={f.FPAG_ID} value={f.FPAG_ID} className="text-xs">
-                      {f.FPAG_NOME}
+                      {f.FVEN_NOME || f.FPAG_NOME}
                     </SelectItem>
                   ))}
                 </SelectContent>
