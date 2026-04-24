@@ -511,13 +511,35 @@ export default function FinalizarOSDialog({
                     />
                   </div>
                   <div className="col-span-2">
-                    <Input
+                    <Select
                       value={p.tipo_pagamento}
-                      onChange={(e) =>
-                        updateParcela(idx, { tipo_pagamento: e.target.value.toUpperCase() })
-                      }
-                      className="h-6 text-[11px] px-1.5"
-                    />
+                      onValueChange={(v) => updateParcela(idx, { tipo_pagamento: v })}
+                      onOpenChange={(o) => { if (o) carregarTiposPagto(idx); }}
+                    >
+                      <SelectTrigger className="h-6 text-[11px] px-1.5">
+                        <SelectValue placeholder={p.loadingTipos ? "..." : "SELECIONE"}>
+                          <span className="block truncate">{p.tipo_pagamento}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {p.loadingTipos && (
+                          <div className="px-2 py-1 text-[11px] text-muted-foreground">Carregando...</div>
+                        )}
+                        {!p.loadingTipos && (!p.tipoOptions || p.tipoOptions.length === 0) && (
+                          <div className="px-2 py-1 text-[11px] text-muted-foreground">Sem opções</div>
+                        )}
+                        {p.tipoOptions?.map((it, i) => {
+                          const label = String(it.TPPR_TIPO_PAGAMENTO || it.TPPR_NOME || it.FPGI_TIPO_PAGAMENTO || "");
+                          const value = label;
+                          if (!value) return null;
+                          return (
+                            <SelectItem key={`${it.TPPR_ID || it.FPGI_ID || i}-${i}`} value={value} className="text-[11px]">
+                              {label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="col-span-3">
                     <Select
