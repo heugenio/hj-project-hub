@@ -210,8 +210,81 @@ export default function FinalizarOSDialog({
     [parcelas]
   );
 
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const round4 = (n: number) => Math.round(n * 10000) / 10000;
+
   const updateParcela = (idx: number, patch: Partial<ParcelaUI>) => {
     setParcelas((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+
+  // Redistribui valores/percentuais entre as demais parcelas para fechar 100% / total da OS
+  const redistribuir = (idx: number, novoValor: number) => {
+    setParcelas((prev) => {
+      if (prev.length === 0) return prev;
+      const total = valorTotal;
+      const valorClamp = Math.max(0, Math.min(novoValor, total));
+      const restante = round2(total - valorClamp);
+      const outros = prev.filter((_, i) => i !== idx);
+      const qtdOutros = outros.length;
+
+      const next = prev.map((p, i) => {
+        if (i === idx) {
+          return {
+            ...p,
+            valor: round2(valorClamp),
+            perc: total > 0 ? round4((valorClamp / total) * 100) : 0,
+          };
+        }
+        return p;
+      });
+
+      if (qtdOutros === 0) return next;
+
+      const fatia = round2(restante / qtdOutros);
+      let acumulado = 0;
+      let contador = 0;
+      return next.map((p, i) => {
+        if (i === idx) return p;
+        contador++;
+        const isUltimo = contador === qtdOutros;
+        const v = isUltimo ? round2(restante - acumulado) : fatia;
+        acumulado = round2(acumulado + v);
+        return {
+          ...p,
+          valor: v,
+          perc: total > 0 ? round4((v / total) * 100) : 0,
+        };
+      });
+    });
+  };
+
+  const handlePercChange = (idx: number, novoPerc: number) => {
+    const valor = round2((novoPerc / 100) * valorTotal);
+    redistribuir(idx, valor);
+  };
+
+  const handleValorChange = (idx: number, novoValor: number) => {
+    redistribuir(idx, round2(novoValor));
+  };
+
+  // Ajuste fino: se a diferença for até R$ 0,10, soma/subtrai na última parcela automaticamente
+  const ajustarDiferenca = () => {
+    setParcelas((prev) => {
+      if (prev.length === 0) return prev;
+      const soma = prev.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+      const diff = round2(valorTotal - soma);
+      if (Math.abs(diff) === 0 || Math.abs(diff) > 0.1) return prev;
+      const lastIdx = prev.length - 1;
+      return prev.map((p, i) => {
+        if (i !== lastIdx) return p;
+        const novoValor = round2((Number(p.valor) || 0) + diff);
+        return {
+          ...p,
+          valor: novoValor,
+          perc: valorTotal > 0 ? round4((novoValor / valorTotal) * 100) : 0,
+        };
+      });
+    });
   };
 
   const handleConfirmar = async () => {
