@@ -330,7 +330,7 @@ export default function FinalizarOSDialog({
         FPAG_ID: fpagIdSelecionado,
         COFR_ID: cofrId,
         COFR_SERVICO_ID: cofrServicoId,
-        parcelas: parcelas.map<ParcelaFinalizacao>((p) => ({
+        parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
           parcela: p.parcela,
           vencimento: isoToBrSlash(p.vencimento),
           perc: p.perc,
