@@ -352,17 +352,29 @@ export default function FinalizarOSDialog({
     }
     setSaving(true);
     try {
+      const today = new Date();
+      const dataFinalizacao = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getDate()).padStart(2, "0")}`;
+      const fvenIdSelecionado = String(formaAtual?.forma.FVEN_ID || "");
+
       const payload = {
         ORSV_ID: orsvId,
+        ORSV_NUMERO: orsvNumero,
         USRS_ID: usrsId,
+        UNEM_ID: unemId,
+        EMPR_ID: emprId,
         FPAG_ID: fpagIdSelecionado,
+        FVEN_ID: fvenIdSelecionado,
         COFR_ID: cofrId,
         COFR_SERVICO_ID: cofrServicoId,
+        VALOR_TOTAL: round2(valorTotal),
+        DATA_FINALIZACAO: dataFinalizacao,
         parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
           parcela: p.parcela,
+          itfv_id: p.itfv_id,
+          dias: p.dias,
           vencimento: isoToBrSlash(p.vencimento),
-          perc: p.perc,
-          valor: p.valor,
+          perc: round4(p.perc),
+          valor: round2(p.valor),
           tipo_pagamento: p.tipo_pagamento,
           cofr_id: p.cofr_id,
         })),
