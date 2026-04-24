@@ -21,9 +21,11 @@ import { Loader2, CheckCircle2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import {
   getFormasPagamentos,
+  getFormasPagamentosItens,
   getGerarVencimentos,
   setFinalizarOS,
   type FormaPagamento,
+  type FormaPagamentoItem,
   type ParcelaFinalizacao,
 } from "@/lib/api-os";
 import { getCofres, type Cofre } from "@/lib/api";
@@ -36,6 +38,9 @@ interface ParcelaUI {
   valor: number;
   tipo_pagamento: string;
   cofr_id: string;
+  itfv_id?: string; // ID retornado por getGerarVencimentos para buscar tipos pagto
+  tipoOptions?: FormaPagamentoItem[]; // opções carregadas via API
+  loadingTipos?: boolean;
 }
 
 interface Props {
@@ -186,6 +191,9 @@ export default function FinalizarOSDialog({
               valor,
               tipo_pagamento: tipo,
               cofr_id: String(v.COFR_ID || cofrId || ""),
+              itfv_id: String(v.ITFV_ID || ""),
+              tipoOptions: [],
+              loadingTipos: false,
             };
           })
           .sort((a, b) => a.parcela - b.parcela);
@@ -215,6 +223,24 @@ export default function FinalizarOSDialog({
 
   const updateParcela = (idx: number, patch: Partial<ParcelaUI>) => {
     setParcelas((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+
+  const carregarTiposPagto = async (idx: number) => {
+    const p = parcelas[idx];
+    if (!p) return;
+    if (p.tipoOptions && p.tipoOptions.length > 0) return; // já carregado
+    if (!p.itfv_id || !p.cofr_id) return;
+    updateParcela(idx, { loadingTipos: true });
+    try {
+      const itens = await getFormasPagamentosItens({
+        itfv_id: p.itfv_id,
+        cofr_id: p.cofr_id,
+      });
+      updateParcela(idx, { tipoOptions: itens, loadingTipos: false });
+    } catch (e: any) {
+      toast.error("Erro ao carregar tipos de pagamento: " + e.message);
+      updateParcela(idx, { loadingTipos: false });
+    }
   };
 
   // Redistribui valores/percentuais entre as demais parcelas para fechar 100% / total da OS
@@ -485,13 +511,35 @@ export default function FinalizarOSDialog({
                     />
                   </div>
                   <div className="col-span-2">
-                    <Input
+                    <Select
                       value={p.tipo_pagamento}
-                      onChange={(e) =>
-                        updateParcela(idx, { tipo_pagamento: e.target.value.toUpperCase() })
-                      }
-                      className="h-6 text-[11px] px-1.5"
-                    />
+                      onValueChange={(v) => updateParcela(idx, { tipo_pagamento: v })}
+                      onOpenChange={(o) => { if (o) carregarTiposPagto(idx); }}
+                    >
+                      <SelectTrigger className="h-6 text-[11px] px-1.5">
+                        <SelectValue placeholder={p.loadingTipos ? "..." : "SELECIONE"}>
+                          <span className="block truncate">{p.tipo_pagamento}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {p.loadingTipos && (
+                          <div className="px-2 py-1 text-[11px] text-muted-foreground">Carregando...</div>
+                        )}
+                        {!p.loadingTipos && (!p.tipoOptions || p.tipoOptions.length === 0) && (
+                          <div className="px-2 py-1 text-[11px] text-muted-foreground">Sem opções</div>
+                        )}
+                        {p.tipoOptions?.map((it, i) => {
+                          const label = String(it.TPPR_TIPO_PAGAMENTO || it.TPPR_NOME || it.FPGI_TIPO_PAGAMENTO || "");
+                          const value = label;
+                          if (!value) return null;
+                          return (
+                            <SelectItem key={`${it.TPPR_ID || it.FPGI_ID || i}-${i}`} value={value} className="text-[11px]">
+                              {label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="col-span-3">
                     <Select
