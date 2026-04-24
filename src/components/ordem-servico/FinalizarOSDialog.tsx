@@ -225,6 +225,24 @@ export default function FinalizarOSDialog({
     setParcelas((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
   };
 
+  const carregarTiposPagto = async (idx: number) => {
+    const p = parcelas[idx];
+    if (!p) return;
+    if (p.tipoOptions && p.tipoOptions.length > 0) return; // já carregado
+    if (!p.itfv_id || !p.cofr_id) return;
+    updateParcela(idx, { loadingTipos: true });
+    try {
+      const itens = await getFormasPagamentosItens({
+        itfv_id: p.itfv_id,
+        cofr_id: p.cofr_id,
+      });
+      updateParcela(idx, { tipoOptions: itens, loadingTipos: false });
+    } catch (e: any) {
+      toast.error("Erro ao carregar tipos de pagamento: " + e.message);
+      updateParcela(idx, { loadingTipos: false });
+    }
+  };
+
   // Redistribui valores/percentuais entre as demais parcelas para fechar 100% / total da OS
   const redistribuir = (idx: number, novoValor: number) => {
     setParcelas((prev) => {
