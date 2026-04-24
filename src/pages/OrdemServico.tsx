@@ -378,6 +378,7 @@ export default function OrdemServico() {
           orsvNumero={finalizarOS.oRSV_NUMERO}
           valorTotal={Number(finalizarOS.oRSV_VLR_TOTAL) || 0}
           unemId={auth?.unidade?.unem_Id}
+          emprId={(auth as any)?.empresa?.n}
           usrsId={auth?.user?.usrs_ID || ""}
           onFinalized={() => {
             setFinalizarOS(null);
