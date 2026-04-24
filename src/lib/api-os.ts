@@ -437,6 +437,8 @@ export const getFormasPagamentosItens = async (
 
 export interface ParcelaFinalizacao {
   parcela: number;
+  itfv_id?: string;
+  dias?: number;
   vencimento: string; // YYYY/MM/DD
   perc: number;
   valor: number;
@@ -446,12 +448,25 @@ export interface ParcelaFinalizacao {
 
 export interface FinalizarOSPayload {
   ORSV_ID: string;
+  ORSV_NUMERO?: string;
   USRS_ID: string;
+  UNEM_ID?: string;
+  EMPR_ID?: string;
   FPAG_ID: string;
+  FVEN_ID?: string;
   COFR_ID?: string;
   COFR_SERVICO_ID?: string;
+  VALOR_TOTAL: number;
+  DATA_FINALIZACAO: string; // YYYY/MM/DD
   parcelas: ParcelaFinalizacao[];
 }
 
-export const setFinalizarOS = (payload: FinalizarOSPayload) =>
-  proxyPost<unknown>('/setFinalizarOS', payload);
+export const setFinalizarOS = async (payload: FinalizarOSPayload) => {
+  // Log para auditoria/debug do JSON enviado ao backend
+  // eslint-disable-next-line no-console
+  console.log('[setFinalizarOS] Payload enviado:', JSON.stringify(payload, null, 2));
+  const response = await proxyPost<unknown>('/setFinalizarOS', payload);
+  // eslint-disable-next-line no-console
+  console.log('[setFinalizarOS] Resposta:', response);
+  return response;
+};
