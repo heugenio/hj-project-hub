@@ -357,14 +357,22 @@ export interface FormaPagamento {
 }
 
 export interface VencimentoGerado {
-  PARCELA: number;
+  // Campos legados (caso a API antiga responda)
+  PARCELA?: number;
   DIAS?: number;
-  VENCIMENTO: string; // YYYY/MM/DD ou YYYY-MM-DD
-  PERC: number;
-  VALOR: number;
+  VENCIMENTO?: string;
+  PERC?: number;
+  VALOR?: number;
   TIPO_PAGAMENTO?: string;
-  COFR_ID?: string;
   COFR_NOME?: string;
+  // Campos reais retornados pela API atual
+  ITFV_ID?: string;
+  ITFV_DIAS?: number;
+  ITFV_DATA?: string; // YYYY-MM-DD
+  ITFV_PERC?: number;
+  ITFV_VLR?: number;
+  TPPR_TIPO_PAGAMENTO?: string;
+  COFR_ID?: string;
 }
 
 export const getGerarVencimentos = async (params: {
