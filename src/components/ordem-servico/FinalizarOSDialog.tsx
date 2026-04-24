@@ -84,15 +84,33 @@ export default function FinalizarOSDialog({
   const [saving, setSaving] = useState(false);
   const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cofres, setCofres] = useState<Cofre[]>([]);
-  const [fpagId, setFpagId] = useState<string>("");
+  const [formaSelecionada, setFormaSelecionada] = useState<string>("");
   const [cofrId, setCofrId] = useState<string>("");
   const [cofrServicoId, setCofrServicoId] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
 
+  const formasOptions = useMemo(
+    () =>
+      formas.map((forma, index) => ({
+        value: `${String(forma.FVEN_ID || forma.FPAG_ID || "")}|${String(forma.FPAG_ID || "")}|${index}`,
+        forma,
+        label: String(forma.FVEN_NOME || forma.FPAG_NOME || ""),
+      })),
+    [formas]
+  );
+
+  const formaAtual = useMemo(
+    () => formasOptions.find((item) => item.value === formaSelecionada),
+    [formasOptions, formaSelecionada]
+  );
+
+  const formaAtualLabel = formaAtual?.label || "";
+  const fpagIdSelecionado = String(formaAtual?.forma.FPAG_ID || "");
+
   // Reset on open
   useEffect(() => {
     if (!open) return;
-    setFpagId("");
+    setFormaSelecionada("");
     setCofrId("");
     setCofrServicoId("");
     setParcelas([]);
@@ -121,12 +139,12 @@ export default function FinalizarOSDialog({
 
   // Quando seleciona forma de pagamento -> chama getGerarVencimentos para popular a grid
   useEffect(() => {
-    if (!fpagId) {
+    if (!formaAtual?.forma) {
       setParcelas([]);
       return;
     }
-    const forma = formas.find((f) => f.FPAG_ID === fpagId);
-    const fvenId = String(forma?.FVEN_ID || forma?.FPAG_ID || "");
+    const forma = formaAtual.forma;
+    const fvenId = String(forma.FVEN_ID || forma.FPAG_ID || "");
     if (!fvenId || !cofrId) {
       setParcelas([]);
       return;
@@ -176,7 +194,7 @@ export default function FinalizarOSDialog({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fpagId, cofrId, valorTotal]);
+  }, [formaAtual, cofrId, valorTotal]);
 
   const totalSomado = useMemo(
     () => parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0),
@@ -192,7 +210,7 @@ export default function FinalizarOSDialog({
   };
 
   const handleConfirmar = async () => {
-    if (!fpagId) {
+    if (!fpagIdSelecionado) {
       toast.error("Selecione a forma de pagamento.");
       return;
     }
@@ -212,7 +230,7 @@ export default function FinalizarOSDialog({
       const payload = {
         ORSV_ID: orsvId,
         USRS_ID: usrsId,
-        FPAG_ID: fpagId,
+        FPAG_ID: fpagIdSelecionado,
         COFR_ID: cofrId,
         COFR_SERVICO_ID: cofrServicoId,
         parcelas: parcelas.map<ParcelaFinalizacao>((p) => ({
@@ -282,9 +300,11 @@ export default function FinalizarOSDialog({
             </div>
             <div className="col-span-6 flex flex-col gap-1">
               <Label className="text-[10px] uppercase text-muted-foreground">Forma de Pagamento</Label>
-              <Select value={fpagId} onValueChange={setFpagId} disabled={loading}>
+              <Select value={formaSelecionada} onValueChange={setFormaSelecionada} disabled={loading}>
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder={loading ? "CARREGANDO..." : "SELECIONE A FORMA DE PAGAMENTO"} />
+                  <SelectValue placeholder={loading ? "CARREGANDO..." : "SELECIONE A FORMA DE PAGAMENTO"}>
+                    {formaAtualLabel ? <span className="block truncate pr-4">{formaAtualLabel}</span> : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {formas.length === 0 && (
@@ -292,9 +312,9 @@ export default function FinalizarOSDialog({
                       Nenhuma forma cadastrada
                     </div>
                   )}
-                  {formas.map((f) => (
-                    <SelectItem key={f.FPAG_ID} value={f.FPAG_ID} className="text-xs">
-                      {f.FVEN_NOME || f.FPAG_NOME}
+                  {formasOptions.map((item) => (
+                    <SelectItem key={item.value} value={item.value} className="text-xs">
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -316,7 +336,7 @@ export default function FinalizarOSDialog({
             <div className="max-h-[280px] overflow-auto">
               {parcelas.length === 0 && (
                 <div className="px-2 py-4 text-center text-xs text-muted-foreground">
-                  {fpagId ? "Nenhuma parcela." : "Selecione a forma de pagamento."}
+                  {formaAtual ? "Nenhuma parcela." : "Selecione a forma de pagamento."}
                 </div>
               )}
               {parcelas.map((p, idx) => (
