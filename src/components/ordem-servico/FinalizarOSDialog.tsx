@@ -21,10 +21,9 @@ import { Loader2, CheckCircle2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import {
   getFormasPagamentos,
-  getFormasPagamentosItens,
+  getGerarVencimentos,
   setFinalizarOS,
   type FormaPagamento,
-  type FormaPagamentoItem,
   type ParcelaFinalizacao,
 } from "@/lib/api-os";
 import { getCofres, type Cofre } from "@/lib/api";
