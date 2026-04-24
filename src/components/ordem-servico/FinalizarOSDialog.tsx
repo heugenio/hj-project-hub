@@ -170,16 +170,21 @@ export default function FinalizarOSDialog({
         }
 
         const base: ParcelaUI[] = vencs
-          .map((v) => {
-            // Normaliza vencimento (pode vir YYYY/MM/DD ou YYYY-MM-DD)
-            const venc = String(v.VENCIMENTO || "").replace(/\//g, "-").slice(0, 10);
+          .map((v: any, i) => {
+            // Suporta ambos formatos: campos legados (VENCIMENTO/VALOR/...) e campos reais (ITFV_*)
+            const vencRaw = String(v.ITFV_DATA || v.VENCIMENTO || "").replace(/\//g, "-").slice(0, 10);
+            const dias = Number(v.ITFV_DIAS ?? v.DIAS ?? 0);
+            const perc = Number(v.ITFV_PERC ?? v.PERC ?? 0);
+            const valor = Number(v.ITFV_VLR ?? v.VALOR ?? 0);
+            const tipo = String(v.TPPR_TIPO_PAGAMENTO || v.TIPO_PAGAMENTO || forma?.FPAG_TIPO || "");
+            const parcela = Number(v.PARCELA) || i + 1;
             return {
-              parcela: Number(v.PARCELA) || 1,
-              dias: Number(v.DIAS) || 0,
-              vencimento: venc,
-              perc: Number(v.PERC) || 0,
-              valor: Number(v.VALOR) || 0,
-              tipo_pagamento: String(v.TIPO_PAGAMENTO || forma?.FPAG_TIPO || ""),
+              parcela,
+              dias,
+              vencimento: vencRaw,
+              perc,
+              valor,
+              tipo_pagamento: tipo,
               cofr_id: String(v.COFR_ID || cofrId || ""),
             };
           })
