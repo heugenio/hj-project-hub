@@ -21,6 +21,7 @@ import { VeiculoSection } from './VeiculoSection';
 import { ItensTable } from './ItensTable';
 import { ResumoFinanceiro } from './ResumoFinanceiro';
 import { AutocompleteInput } from './AutocompleteInput';
+import FinalizarOSDialog from './FinalizarOSDialog';
 import {
   getTiposOrdemServicos, getVendedores, getTecnicos, getMidias,
   setOrdemServico as saveOS, getPessoasVeiculos,
@@ -123,6 +124,9 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
   const [whatsMensagem, setWhatsMensagem] = useState('');
   const [whatsTelefone, setWhatsTelefone] = useState('');
   const [whatsEnviando, setWhatsEnviando] = useState(false);
+
+  // Finalizar OS dialog (mesmo do listagem)
+  const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
 
   useEffect(() => {
     setLoadingTipos(true);
@@ -1218,8 +1222,8 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
               <Button
                 size="sm"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                onClick={() => handleSave(true)}
-                disabled={saving || !osPersistida}
+                onClick={() => setFinalizarDialogOpen(true)}
+                disabled={saving || !osPersistida || statusOS === 'Finalizado' || statusOS === 'Faturado'}
                 title={!osPersistida ? 'Salve a OS antes de finalizar' : 'Finalizar OS'}
               >
                 <CheckCircle className="h-4 w-4 mr-1" /> Finalizar OS
