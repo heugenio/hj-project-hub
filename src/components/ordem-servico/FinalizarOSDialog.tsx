@@ -479,7 +479,7 @@ export default function FinalizarOSDialog({
                         const venc = toISODate(addDays(new Date(), dias));
                         updateParcela(idx, { dias, vencimento: venc });
                       }}
-                      className="h-6 text-[11px] px-1.5"
+                      className="h-6 text-[10px] px-1"
                     />
                   </div>
                   <div className="col-span-2">
@@ -487,7 +487,7 @@ export default function FinalizarOSDialog({
                       type="date"
                       value={p.vencimento}
                       onChange={(e) => updateParcela(idx, { vencimento: e.target.value })}
-                      className="h-6 text-[11px] px-1.5"
+                      className="h-6 text-[10px] px-1"
                     />
                   </div>
                   <div className="col-span-1">
@@ -497,7 +497,7 @@ export default function FinalizarOSDialog({
                       value={p.perc}
                       onChange={(e) => updateParcela(idx, { perc: Number(e.target.value) || 0 })}
                       onBlur={(e) => handlePercChange(idx, Number(e.target.value) || 0)}
-                      className="h-6 text-[11px] text-right px-1.5"
+                      className="h-6 text-[10px] text-right px-1"
                     />
                   </div>
                   <div className="col-span-2">
@@ -507,7 +507,7 @@ export default function FinalizarOSDialog({
                       value={p.valor}
                       onChange={(e) => updateParcela(idx, { valor: Number(e.target.value) || 0 })}
                       onBlur={(e) => handleValorChange(idx, Number(e.target.value) || 0)}
-                      className="h-6 text-[11px] text-right px-1.5 font-medium"
+                      className="h-6 text-[10px] text-right px-1 font-medium"
                     />
                   </div>
                   <div className="col-span-2">
