@@ -23,6 +23,7 @@ import {
   getFormasPagamentos,
   getFormasPagamentosItens,
   getGerarVencimentos,
+  getParametros,
   setFinalizarOS,
   type FormaPagamento,
   type FormaPagamentoItem,
