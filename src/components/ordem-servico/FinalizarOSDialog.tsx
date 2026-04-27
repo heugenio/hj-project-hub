@@ -438,7 +438,7 @@ export default function FinalizarOSDialog({
 
         <div className="space-y-3">
           <div className="grid grid-cols-12 gap-2">
-            <div className="col-span-3 flex flex-col gap-1">
+            <div className={unemIdServico ? "col-span-3 flex flex-col gap-1" : "col-span-4 flex flex-col gap-1"}>
               <Label className="text-[10px] uppercase text-muted-foreground">Cofre</Label>
               <Select value={cofrId} onValueChange={setCofrId}>
                 <SelectTrigger className="h-8 text-xs">
@@ -453,22 +453,24 @@ export default function FinalizarOSDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-3 flex flex-col gap-1">
-              <Label className="text-[10px] uppercase text-muted-foreground">Cofre Serviço</Label>
-              <Select value={cofrServicoId} onValueChange={setCofrServicoId}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="SELECIONE" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cofres.map((c) => (
-                    <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-xs">
-                      {c.COFR_NOME}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-6 flex flex-col gap-1">
+            {unemIdServico && (
+              <div className="col-span-3 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Cofre Serviço</Label>
+                <Select value={cofrServicoId} onValueChange={setCofrServicoId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="SELECIONE" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(cofresServico.length > 0 ? cofresServico : cofres).map((c) => (
+                      <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-xs">
+                        {c.COFR_NOME}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className={unemIdServico ? "col-span-6 flex flex-col gap-1" : "col-span-8 flex flex-col gap-1"}>
               <Label className="text-[10px] uppercase text-muted-foreground">Forma de Pagamento</Label>
               <Select value={formaSelecionada} onValueChange={setFormaSelecionada} disabled={loading}>
                 <SelectTrigger className="h-8 text-xs">
