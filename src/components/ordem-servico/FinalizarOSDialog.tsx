@@ -23,6 +23,7 @@ import {
   getFormasPagamentos,
   getFormasPagamentosItens,
   getGerarVencimentos,
+  getParametros,
   setFinalizarOS,
   type FormaPagamento,
   type FormaPagamentoItem,
@@ -91,6 +92,8 @@ export default function FinalizarOSDialog({
   const [saving, setSaving] = useState(false);
   const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cofres, setCofres] = useState<Cofre[]>([]);
+  const [cofresServico, setCofresServico] = useState<Cofre[]>([]);
+  const [unemIdServico, setUnemIdServico] = useState<string>("");
   const [formaSelecionada, setFormaSelecionada] = useState<string>("");
   const [cofrId, setCofrId] = useState<string>("");
   const [cofrServicoId, setCofrServicoId] = useState<string>("");
@@ -120,13 +123,18 @@ export default function FinalizarOSDialog({
     setFormaSelecionada("");
     setCofrId("");
     setCofrServicoId("");
+    setUnemIdServico("");
+    setCofresServico([]);
     setParcelas([]);
     (async () => {
       setLoading(true);
       try {
-        const [fp, cf] = await Promise.all([
+        const [fp, cf, params] = await Promise.all([
           getFormasPagamentos(unemId).catch(() => [] as FormaPagamento[]),
           getCofres().catch(() => [] as Cofre[]),
+          unemId
+            ? getParametros({ unem_id: unemId, nome: "LojaFaturamentoServico" }).catch(() => [])
+            : Promise.resolve([] as any[]),
         ]);
         setFormas(fp);
         setCofres(cf);
@@ -134,7 +142,32 @@ export default function FinalizarOSDialog({
           const carteira = cf.find((c) => /carteira/i.test(c.COFR_NOME || ""));
           const def = (carteira || cf[0]).COFR_ID;
           setCofrId(def);
-          setCofrServicoId(def);
+        }
+
+        // Parametro retorna o UNEM_ID da unidade de serviço
+        const paramVal = Array.isArray(params) && params.length > 0
+          ? String(
+              (params[0] as any).PARM_VALOR ||
+              (params[0] as any).PARAM_VALOR ||
+              (params[0] as any).VALOR ||
+              (params[0] as any).UNEM_ID ||
+              ""
+            )
+          : "";
+        if (paramVal) {
+          setUnemIdServico(paramVal);
+          // Carrega cofres específicos da unidade de serviço
+          try {
+            const cfServ = await getCofres();
+            setCofresServico(cfServ);
+            if (cfServ.length > 0) {
+              const carteira = cfServ.find((c) => /carteira/i.test(c.COFR_NOME || ""));
+              setCofrServicoId((carteira || cfServ[0]).COFR_ID);
+            }
+          } catch {
+            setCofresServico(cf);
+            if (cf.length > 0) setCofrServicoId(cf[0].COFR_ID);
+          }
         }
       } catch (e: any) {
         toast.error("Erro ao carregar formas de pagamento: " + e.message);
@@ -365,7 +398,7 @@ export default function FinalizarOSDialog({
         FPAG_ID: fpagIdSelecionado,
         FVEN_ID: fvenIdSelecionado,
         COFR_ID: cofrId,
-        COFR_SERVICO_ID: cofrServicoId,
+        ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
         VALOR_TOTAL: round2(valorTotal),
         DATA_FINALIZACAO: dataFinalizacao,
         parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
@@ -405,7 +438,7 @@ export default function FinalizarOSDialog({
 
         <div className="space-y-3">
           <div className="grid grid-cols-12 gap-2">
-            <div className="col-span-3 flex flex-col gap-1">
+            <div className={unemIdServico ? "col-span-3 flex flex-col gap-1" : "col-span-4 flex flex-col gap-1"}>
               <Label className="text-[10px] uppercase text-muted-foreground">Cofre</Label>
               <Select value={cofrId} onValueChange={setCofrId}>
                 <SelectTrigger className="h-8 text-xs">
@@ -420,22 +453,24 @@ export default function FinalizarOSDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-3 flex flex-col gap-1">
-              <Label className="text-[10px] uppercase text-muted-foreground">Cofre Serviço</Label>
-              <Select value={cofrServicoId} onValueChange={setCofrServicoId}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="SELECIONE" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cofres.map((c) => (
-                    <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-xs">
-                      {c.COFR_NOME}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-6 flex flex-col gap-1">
+            {unemIdServico && (
+              <div className="col-span-3 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Cofre Serviço</Label>
+                <Select value={cofrServicoId} onValueChange={setCofrServicoId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="SELECIONE" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(cofresServico.length > 0 ? cofresServico : cofres).map((c) => (
+                      <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-xs">
+                        {c.COFR_NOME}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className={unemIdServico ? "col-span-6 flex flex-col gap-1" : "col-span-8 flex flex-col gap-1"}>
               <Label className="text-[10px] uppercase text-muted-foreground">Forma de Pagamento</Label>
               <Select value={formaSelecionada} onValueChange={setFormaSelecionada} disabled={loading}>
                 <SelectTrigger className="h-8 text-xs">
