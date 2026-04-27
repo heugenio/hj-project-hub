@@ -435,6 +435,26 @@ export const getFormasPagamentosItens = async (
   return arr.map((c) => normalizeApiKeys<FormaPagamentoItem>(c));
 };
 
+// ===== Parâmetros (configurações por unidade) =====
+
+export interface Parametro {
+  PARM_ID?: string;
+  PARM_NOME?: string;
+  PARM_VALOR?: string; // Valor do parâmetro (ex.: UNEM_ID de serviço)
+  UNEM_ID?: string;
+}
+
+export const getParametros = async (params: { unem_id: string; nome: string }) => {
+  const qs = new URLSearchParams({
+    UNEM_ID: params.unem_id,
+    nome: params.nome,
+  }).toString();
+  const raw = await proxyGet<any>(`/getParametros?${qs}`);
+  if (raw && !Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [] as Parametro[];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c) => normalizeApiKeys<Parametro>(c));
+};
+
 export interface ParcelaFinalizacao {
   parcela: number;
   itfv_id?: string;
