@@ -123,13 +123,18 @@ export default function FinalizarOSDialog({
     setFormaSelecionada("");
     setCofrId("");
     setCofrServicoId("");
+    setUnemIdServico("");
+    setCofresServico([]);
     setParcelas([]);
     (async () => {
       setLoading(true);
       try {
-        const [fp, cf] = await Promise.all([
+        const [fp, cf, params] = await Promise.all([
           getFormasPagamentos(unemId).catch(() => [] as FormaPagamento[]),
           getCofres().catch(() => [] as Cofre[]),
+          unemId
+            ? getParametros({ unem_id: unemId, nome: "LojaFaturamentoServico" }).catch(() => [])
+            : Promise.resolve([] as any[]),
         ]);
         setFormas(fp);
         setCofres(cf);
@@ -137,7 +142,32 @@ export default function FinalizarOSDialog({
           const carteira = cf.find((c) => /carteira/i.test(c.COFR_NOME || ""));
           const def = (carteira || cf[0]).COFR_ID;
           setCofrId(def);
-          setCofrServicoId(def);
+        }
+
+        // Parametro retorna o UNEM_ID da unidade de serviço
+        const paramVal = Array.isArray(params) && params.length > 0
+          ? String(
+              (params[0] as any).PARM_VALOR ||
+              (params[0] as any).PARAM_VALOR ||
+              (params[0] as any).VALOR ||
+              (params[0] as any).UNEM_ID ||
+              ""
+            )
+          : "";
+        if (paramVal) {
+          setUnemIdServico(paramVal);
+          // Carrega cofres específicos da unidade de serviço
+          try {
+            const cfServ = await getCofres();
+            setCofresServico(cfServ);
+            if (cfServ.length > 0) {
+              const carteira = cfServ.find((c) => /carteira/i.test(c.COFR_NOME || ""));
+              setCofrServicoId((carteira || cfServ[0]).COFR_ID);
+            }
+          } catch {
+            setCofresServico(cf);
+            if (cf.length > 0) setCofrServicoId(cf[0].COFR_ID);
+          }
         }
       } catch (e: any) {
         toast.error("Erro ao carregar formas de pagamento: " + e.message);
