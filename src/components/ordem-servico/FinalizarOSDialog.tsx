@@ -92,6 +92,8 @@ export default function FinalizarOSDialog({
   const [saving, setSaving] = useState(false);
   const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cofres, setCofres] = useState<Cofre[]>([]);
+  const [cofresServico, setCofresServico] = useState<Cofre[]>([]);
+  const [unemIdServico, setUnemIdServico] = useState<string>("");
   const [formaSelecionada, setFormaSelecionada] = useState<string>("");
   const [cofrId, setCofrId] = useState<string>("");
   const [cofrServicoId, setCofrServicoId] = useState<string>("");
