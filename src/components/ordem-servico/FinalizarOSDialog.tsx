@@ -398,7 +398,7 @@ export default function FinalizarOSDialog({
         FPAG_ID: fpagIdSelecionado,
         FVEN_ID: fvenIdSelecionado,
         COFR_ID: cofrId,
-        COFR_SERVICO_ID: cofrServicoId,
+        ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
         VALOR_TOTAL: round2(valorTotal),
         DATA_FINALIZACAO: dataFinalizacao,
         parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
