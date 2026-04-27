@@ -475,7 +475,8 @@ export interface FinalizarOSPayload {
   FPAG_ID: string;
   FVEN_ID?: string;
   COFR_ID?: string;
-  COFR_SERVICO_ID?: string;
+  COFR_ID_SERVICO?: string;
+  UNEM_ID_SERVICO?: string;
   VALOR_TOTAL: number;
   DATA_FINALIZACAO: string; // YYYY/MM/DD
   parcelas: ParcelaFinalizacao[];
