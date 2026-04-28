@@ -562,6 +562,8 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
       if (result.ORSV_NUMERO) setNumeroOS(result.ORSV_NUMERO);
       setStatusOS(finalizar ? 'Finalizado' : 'Aberto');
       toast.success(finalizar ? 'OS finalizada com sucesso!' : 'OS salva com sucesso!');
+      // Após salvar, fechar a tela e voltar para a listagem (que executará Consultar)
+      setTimeout(() => onBack(), 300);
     } catch (e: any) {
       toast.error('Erro ao salvar OS: ' + e.message);
     } finally {
