@@ -118,7 +118,7 @@ export default function OrdemServico() {
           setShowForm(false);
           setEditingOS(null);
           setViewMode(false);
-          if (searched) handleSearch();
+          handleSearch();
         }}
       />
     );
