@@ -1358,6 +1358,8 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
             setStatusOS('Faturado');
             setFinalizarDialogOpen(false);
             toast.success('OS finalizada com sucesso!');
+            // Após finalizar, fechar a tela e voltar para a listagem (que executará Consultar)
+            setTimeout(() => onBack(), 300);
           }}
         />
       )}
