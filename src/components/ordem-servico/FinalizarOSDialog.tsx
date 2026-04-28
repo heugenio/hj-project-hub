@@ -147,13 +147,16 @@ export default function FinalizarOSDialog({
         // Parametro retorna o UNEM_ID da unidade de serviço
         const paramVal = Array.isArray(params) && params.length > 0
           ? String(
+              (params[0] as any).PRMT_VALOR ||
               (params[0] as any).PARM_VALOR ||
               (params[0] as any).PARAM_VALOR ||
+              (params[0] as any).PRMT_VALR ||
               (params[0] as any).VALOR ||
               (params[0] as any).UNEM_ID ||
               ""
-            )
+            ).trim()
           : "";
+        console.log("[FinalizarOS] LojaFaturamentoServico param:", params, "→ UNEM_ID_SERVICO:", paramVal);
         if (paramVal) {
           setUnemIdServico(paramVal);
           // Carrega cofres específicos da unidade de serviço
