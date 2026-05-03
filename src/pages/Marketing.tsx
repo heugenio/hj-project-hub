@@ -861,7 +861,7 @@ export default function Marketing() {
                 text: texto,
               };
 
-              if (curProvider === 'BrasilAPI') payload.device = curDevice;
+              if (curProvider === 'BrasilAPI' || curProvider === 'n8n') payload.device = curDevice;
               if (curProvider === 'WhatsAppOficial') payload.phoneNumberId = curPhoneNumberId;
 
               if (bgImagemUrl) {
