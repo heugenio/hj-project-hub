@@ -685,6 +685,39 @@ export default function FinalizarOSDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Preview da chamada ao backend */}
+      <Dialog open={!!previewPayload} onOpenChange={(o) => { if (!o && !saving) setPreviewPayload(null); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Confirmação — Chamada ao Backend</DialogTitle>
+            <DialogDescription>
+              Revise os dados que serão enviados ao endpoint <span className="font-mono font-semibold">/setFinalizarOS</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="text-xs">
+              <span className="font-semibold">Método:</span> <span className="font-mono">POST</span>
+            </div>
+            <div className="text-xs">
+              <span className="font-semibold">Endpoint:</span> <span className="font-mono">/setFinalizarOS</span>
+            </div>
+            <div className="text-xs font-semibold">Payload (JSON):</div>
+            <pre className="bg-muted p-3 rounded text-[11px] font-mono max-h-[400px] overflow-auto whitespace-pre-wrap break-all">
+{previewPayload ? JSON.stringify(previewPayload, null, 2) : ""}
+            </pre>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPreviewPayload(null)} disabled={saving}>
+              Voltar
+            </Button>
+            <Button size="sm" onClick={executarFinalizacao} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+              Enviar e Finalizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
