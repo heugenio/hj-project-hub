@@ -143,9 +143,9 @@ function notifyBgListeners() {
 }
 
 // Random delay between messages to avoid blocking
-// n8n: 1s, 2s, 3s — others: 60s, 90s, 120s
+// n8n: 4s, 6s, 10s, 12s — others: 60s, 90s, 120s
 const MESSAGE_DELAYS_STANDARD = [60000, 90000, 120000];
-const MESSAGE_DELAYS_N8N = [1000, 2000, 3000];
+const MESSAGE_DELAYS_N8N = [4000, 6000, 10000, 12000];
 function getRandomMessageDelay(provider?: string): number {
   const delays = provider === 'n8n' ? MESSAGE_DELAYS_N8N : MESSAGE_DELAYS_STANDARD;
   return delays[Math.floor(Math.random() * delays.length)];
