@@ -74,6 +74,21 @@ export default function Configuracoes() {
 
       <Card className="border-border/50">
         <CardHeader>
+          <CardTitle className="text-base">Envio de Mensagens (n8n)</CardTitle>
+          <CardDescription>URL do webhook n8n usado para envio direto de mensagens WhatsApp</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="n8n">Webhook n8n</Label>
+            <Input id="n8n" value={n8nUrl} onChange={(e) => setN8nUrl(e.target.value)} placeholder="https://..." />
+            <p className="text-xs text-muted-foreground">URL atual: {localStorage.getItem("n8n_webhook_url") || N8N_DEFAULT}</p>
+          </div>
+          <Button onClick={handleSave}>Salvar</Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader>
           <CardTitle className="text-base">Aparência</CardTitle>
           <CardDescription>Personalizar aparência do sistema</CardDescription>
         </CardHeader>
