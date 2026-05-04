@@ -364,6 +364,49 @@ export default function Marketing() {
     fetchMensagem();
   }, [campanhaAtiva]);
 
+  // Compress image to target size (~40KB)
+  const compressImage = (file: File, targetBytes = 40 * 1024): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target?.result as string; };
+      reader.onerror = reject;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas indisponível'));
+
+        const tryCompress = (maxDim: number, quality: number): Promise<Blob | null> => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) { height = height * (maxDim / width); width = maxDim; }
+          else if (height > maxDim) { width = width * (maxDim / height); height = maxDim; }
+          canvas.width = Math.round(width);
+          canvas.height = Math.round(height);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          return new Promise(res => canvas.toBlob(b => res(b), 'image/jpeg', quality));
+        };
+
+        (async () => {
+          const dims = [1280, 1024, 800, 640, 480, 360];
+          const qualities = [0.8, 0.7, 0.6, 0.5, 0.4, 0.3];
+          let best: Blob | null = null;
+          for (const d of dims) {
+            for (const q of qualities) {
+              const blob = await tryCompress(d, q);
+              if (!blob) continue;
+              best = blob;
+              if (blob.size <= targetBytes) return resolve(blob);
+            }
+          }
+          if (best) resolve(best); else reject(new Error('Falha ao comprimir'));
+        })();
+      };
+      img.onerror = () => reject(new Error('Imagem inválida'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Upload image file to storage
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -371,12 +414,13 @@ export default function Marketing() {
 
     setUploadingImage(true);
     try {
-      const ext = file.name.split('.').pop() || 'jpg';
-      const fileName = `campanha_${Date.now()}.${ext}`;
+      const compressed = file.type.startsWith('image/') ? await compressImage(file) : file;
+      const sizeKb = Math.round(compressed.size / 1024);
+      const fileName = `campanha_${Date.now()}.jpg`;
 
       const { data, error } = await supabase.storage
         .from('marketing-images')
-        .upload(fileName, file, { contentType: file.type, upsert: true });
+        .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true });
 
       if (error) throw error;
 
@@ -385,7 +429,7 @@ export default function Marketing() {
         .getPublicUrl(data.path);
 
       setImagemUrl(publicData.publicUrl);
-      toast.success('Imagem enviada com sucesso!');
+      toast.success(`Imagem enviada (${sizeKb} KB)`);
     } catch (err: any) {
       console.error('Erro no upload:', err);
       toast.error('Erro ao enviar imagem: ' + err.message);
@@ -394,6 +438,7 @@ export default function Marketing() {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
 
   // Fetch contacts from API
   const gerarLista = useCallback(async () => {
