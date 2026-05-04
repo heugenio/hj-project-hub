@@ -1257,8 +1257,8 @@ export default function Marketing() {
                 <div className="bg-card rounded-lg rounded-tl-none p-3 shadow-sm border border-border/40 max-w-[280px]">
                   <p className="text-xs leading-relaxed whitespace-pre-wrap text-foreground">{previewMsg}</p>
                   {imagemUrl && (
-                    <div className="mt-2 rounded-md overflow-hidden border border-border/30">
-                      <img src={imagemUrl} alt="Preview" className="w-full h-auto max-h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    <div className="mt-2 rounded-md overflow-hidden border border-border/30 max-w-[140px]">
+                      <img src={imagemUrl} alt="Preview" className="w-full h-auto max-h-20 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     </div>
                   )}
                   <span className="text-[9px] text-muted-foreground mt-1.5 block text-right">14:32 ✓✓</span>

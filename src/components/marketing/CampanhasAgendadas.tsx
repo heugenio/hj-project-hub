@@ -552,6 +552,11 @@ export default function CampanhasAgendadas({ unidades }: Props) {
             <div>
               <Label className="text-xs">URL da Imagem (opcional)</Label>
               <Input value={form.imagem_url} onChange={e => setForm(f => ({ ...f, imagem_url: e.target.value }))} placeholder="https://..." className="h-8 text-xs mt-1" />
+              {form.imagem_url && (
+                <div className="mt-2 rounded-md overflow-hidden border border-border/30 max-w-[120px]">
+                  <img src={form.imagem_url} alt="Preview" className="w-full h-auto max-h-20 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                </div>
+              )}
             </div>
 
             <Button onClick={salvarCampanha} disabled={saving} className="w-full gap-2">
