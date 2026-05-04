@@ -9,14 +9,18 @@ import { getLogo } from "@/lib/api";
 import { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from "@/lib/base-url";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 
+const N8N_DEFAULT = "https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto";
+
 export default function Configuracoes() {
   const [urlBase, setUrlBase] = useState(() => getApiBaseUrl());
+  const [n8nUrl, setN8nUrl] = useState(() => localStorage.getItem("n8n_webhook_url") || N8N_DEFAULT);
   const [darkMode, setDarkMode] = useState(false);
   const [testing, setTesting] = useState(false);
 
   const handleSave = () => {
     setApiBaseUrl(urlBase);
-    toast.success("URL salva com sucesso! Será usada em todas as chamadas de API.");
+    localStorage.setItem("n8n_webhook_url", n8nUrl.trim());
+    toast.success("Configurações salvas com sucesso!");
   };
 
   const handleTest = async () => {
