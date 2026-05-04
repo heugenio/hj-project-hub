@@ -29,6 +29,7 @@ export type Database = {
           id: string
           imagem_url: string | null
           mensagem: string
+          n8n_webhook_url: string | null
           nome: string
           proxima_execucao: string | null
           recorrencia: string
@@ -53,6 +54,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           mensagem?: string
+          n8n_webhook_url?: string | null
           nome: string
           proxima_execucao?: string | null
           recorrencia?: string
@@ -77,6 +79,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           mensagem?: string
+          n8n_webhook_url?: string | null
           nome?: string
           proxima_execucao?: string | null
           recorrencia?: string
