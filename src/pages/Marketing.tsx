@@ -591,6 +591,7 @@ export default function Marketing() {
     .replace("{NOME_LOJA}", "Filial Sul")
     .replace("{URL_LOJA}", "https://loja.exemplo.com")
     .replace("{ENDLOJA}", enderecoLoja || "Rua Exemplo, 123 - Centro")
+    .replace(/<br\s*\/?>/gi, "\n")
     .replace(/\\n/g, "\n");
 
   // Check if message was already sent via API
