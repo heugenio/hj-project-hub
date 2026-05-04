@@ -862,6 +862,10 @@ export default function Marketing() {
               };
 
               if (curProvider === 'BrasilAPI' || curProvider === 'n8n') payload.device = curDevice;
+              if (curProvider === 'n8n') {
+                const n8nUrl = localStorage.getItem('n8n_webhook_url');
+                if (n8nUrl) payload.webhookUrl = n8nUrl;
+              }
               if (curProvider === 'WhatsAppOficial') payload.phoneNumberId = curPhoneNumberId;
 
               if (bgImagemUrl) {
