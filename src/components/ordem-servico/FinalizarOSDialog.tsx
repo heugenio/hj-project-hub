@@ -98,6 +98,7 @@ export default function FinalizarOSDialog({
   const [cofrId, setCofrId] = useState<string>("");
   const [cofrServicoId, setCofrServicoId] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
+  const [previewPayload, setPreviewPayload] = useState<any | null>(null);
 
   const formasOptions = useMemo(
     () =>
