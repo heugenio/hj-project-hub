@@ -353,7 +353,7 @@ export default function FinalizarOSDialog({
   };
 
   const handleConfirmar = async () => {
-    if (!fpagIdSelecionado) {
+    if (!formaAtual) {
       toast.error("Selecione a forma de pagamento.");
       return;
     }
@@ -397,8 +397,8 @@ export default function FinalizarOSDialog({
       USRS_ID: usrsId,
       UNEM_ID: unemId,
       EMPR_ID: emprId,
-      FPAG_ID: fpagIdSelecionado,
-      FVEN_ID: fvenIdSelecionado,
+      FPAG_ID: fpagIdSelecionado || String(formaAtual?.forma.FPAG_ID || formaAtual?.forma.FVEN_ID || ""),
+      FVEN_ID: fvenIdSelecionado || String(formaAtual?.forma.FVEN_ID || formaAtual?.forma.FPAG_ID || ""),
       COFR_ID: cofrId,
       ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
       VALOR_TOTAL: round2(valorTotal),
