@@ -253,8 +253,11 @@ async function fetchImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
+let lastSendUrl = '';
+
 async function sendN8n(req: SendRequest): Promise<Response> {
   const webhookUrl = req.webhookUrl || 'https://n8n.srv1576408.hstgr.cloud/webhook/webhook-envio-direto';
+  lastSendUrl = webhookUrl;
   let phone = req.number.replace(/\D/g, '');
   if (!phone.startsWith('55')) phone = '55' + phone;
 
