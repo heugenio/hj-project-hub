@@ -674,7 +674,7 @@ export default function FinalizarOSDialog({
           <Button
             size="sm"
             onClick={handleConfirmar}
-            disabled={saving || loading || !fpagIdSelecionado || parcelas.length === 0}
+            disabled={saving || loading}
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1" />
