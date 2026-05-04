@@ -254,6 +254,7 @@ export default function CampanhasAgendadas({ unidades }: Props) {
         todas_unidades: form.todas_unidades,
         base_url: baseUrl,
         empr_id: emprId,
+        n8n_webhook_url: localStorage.getItem('n8n_webhook_url') || 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto',
         updated_at: new Date().toISOString(),
       };
 
