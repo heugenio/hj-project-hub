@@ -353,7 +353,7 @@ Deno.serve(async (req) => {
       try { jsonData = JSON.parse(data); } catch { jsonData = { raw: data }; }
 
       return new Response(
-        JSON.stringify({ success: response.ok, status: response.status, data: jsonData }),
+        JSON.stringify({ success: response.ok, status: response.status, data: jsonData, sendUrl: lastSendUrl || response.url }),
         { status: response.ok ? 200 : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
