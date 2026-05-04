@@ -353,7 +353,7 @@ export default function FinalizarOSDialog({
   };
 
   const handleConfirmar = async () => {
-    if (!fpagIdSelecionado) {
+    if (!formaAtual) {
       toast.error("Selecione a forma de pagamento.");
       return;
     }
