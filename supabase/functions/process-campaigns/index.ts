@@ -178,6 +178,7 @@ Deno.serve(async (req) => {
         .replace('{NOME_LOJA}', contato.UNEM_FANTASIA || '')
         .replace('{URL_LOJA}', contato.UNEM_MSG_ASSINATURA || '')
         .replace('{ENDLOJA}', contato.UNEM_ENDERECO || '')
+        .replace(/<br\s*\/?>/gi, '\n')
         .replace(/\\n/g, '\n');
 
       const payload: any = {
