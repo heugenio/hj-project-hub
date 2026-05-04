@@ -98,6 +98,7 @@ export default function FinalizarOSDialog({
   const [cofrId, setCofrId] = useState<string>("");
   const [cofrServicoId, setCofrServicoId] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
+  const [previewPayload, setPreviewPayload] = useState<any | null>(null);
 
   const formasOptions = useMemo(
     () =>
@@ -386,37 +387,43 @@ export default function FinalizarOSDialog({
       );
       return;
     }
+    const today = new Date();
+    const dataFinalizacao = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getDate()).padStart(2, "0")}`;
+    const fvenIdSelecionado = String(formaAtual?.forma.FVEN_ID || "");
+
+    const payload = {
+      ORSV_ID: orsvId,
+      ORSV_NUMERO: orsvNumero,
+      USRS_ID: usrsId,
+      UNEM_ID: unemId,
+      EMPR_ID: emprId,
+      FPAG_ID: fpagIdSelecionado,
+      FVEN_ID: fvenIdSelecionado,
+      COFR_ID: cofrId,
+      ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
+      VALOR_TOTAL: round2(valorTotal),
+      DATA_FINALIZACAO: dataFinalizacao,
+      parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
+        parcela: p.parcela,
+        itfv_id: p.itfv_id,
+        dias: p.dias,
+        vencimento: isoToBrSlash(p.vencimento),
+        perc: round4(p.perc),
+        valor: round2(p.valor),
+        tipo_pagamento: p.tipo_pagamento,
+        cofr_id: p.cofr_id,
+      })),
+    };
+    setPreviewPayload(payload);
+  };
+
+  const executarFinalizacao = async () => {
+    if (!previewPayload) return;
     setSaving(true);
     try {
-      const today = new Date();
-      const dataFinalizacao = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getDate()).padStart(2, "0")}`;
-      const fvenIdSelecionado = String(formaAtual?.forma.FVEN_ID || "");
-
-      const payload = {
-        ORSV_ID: orsvId,
-        ORSV_NUMERO: orsvNumero,
-        USRS_ID: usrsId,
-        UNEM_ID: unemId,
-        EMPR_ID: emprId,
-        FPAG_ID: fpagIdSelecionado,
-        FVEN_ID: fvenIdSelecionado,
-        COFR_ID: cofrId,
-        ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
-        VALOR_TOTAL: round2(valorTotal),
-        DATA_FINALIZACAO: dataFinalizacao,
-        parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
-          parcela: p.parcela,
-          itfv_id: p.itfv_id,
-          dias: p.dias,
-          vencimento: isoToBrSlash(p.vencimento),
-          perc: round4(p.perc),
-          valor: round2(p.valor),
-          tipo_pagamento: p.tipo_pagamento,
-          cofr_id: p.cofr_id,
-        })),
-      };
-      await setFinalizarOS(payload);
+      await setFinalizarOS(previewPayload);
       toast.success(`OS #${orsvNumero || ""} finalizada com sucesso.`);
+      setPreviewPayload(null);
       onFinalized();
       onClose();
     } catch (e: any) {
@@ -678,6 +685,39 @@ export default function FinalizarOSDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Preview da chamada ao backend */}
+      <Dialog open={!!previewPayload} onOpenChange={(o) => { if (!o && !saving) setPreviewPayload(null); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Confirmação — Chamada ao Backend</DialogTitle>
+            <DialogDescription>
+              Revise os dados que serão enviados ao endpoint <span className="font-mono font-semibold">/setFinalizarOS</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="text-xs">
+              <span className="font-semibold">Método:</span> <span className="font-mono">POST</span>
+            </div>
+            <div className="text-xs">
+              <span className="font-semibold">Endpoint:</span> <span className="font-mono">/setFinalizarOS</span>
+            </div>
+            <div className="text-xs font-semibold">Payload (JSON):</div>
+            <pre className="bg-muted p-3 rounded text-[11px] font-mono max-h-[400px] overflow-auto whitespace-pre-wrap break-all">
+{previewPayload ? JSON.stringify(previewPayload, null, 2) : ""}
+            </pre>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPreviewPayload(null)} disabled={saving}>
+              Voltar
+            </Button>
+            <Button size="sm" onClick={executarFinalizacao} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+              Enviar e Finalizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
