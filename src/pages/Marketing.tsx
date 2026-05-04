@@ -898,6 +898,7 @@ export default function Marketing() {
                 .replace("{NOME_LOJA}", contato.loja || "")
                 .replace("{URL_LOJA}", contato.lojaUrl || "")
                 .replace("{ENDLOJA}", contato.lojaEndereco || bgEnderecoLoja || "")
+                .replace(/<br\s*\/?>/gi, "\n")
                 .replace(/\\n/g, "\n");
 
               const payload: any = {
