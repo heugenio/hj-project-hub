@@ -887,15 +887,33 @@ export default function Marketing() {
 
               console.log(`=== RESPOSTA ENVIO (${sendDuration}ms) ===`);
               console.log('Response Data:', JSON.stringify(respData, null, 2));
-              if (error) console.log('Response Error:', error);
+              if (respData?.sendUrl) console.log('🌐 URL de envio:', respData.sendUrl);
+
+              let errorBody: any = null;
+              if (error) {
+                try {
+                  const ctxResp = (error as any)?.context;
+                  if (ctxResp && typeof ctxResp.text === 'function') {
+                    const txt = await ctxResp.text();
+                    try { errorBody = JSON.parse(txt); } catch { errorBody = txt; }
+                    console.log('Response Error Body:', errorBody);
+                    if (errorBody?.sendUrl) console.log('🌐 URL de envio:', errorBody.sendUrl);
+                  }
+                } catch (e) { console.log('Falha ler body do erro:', e); }
+                console.log('Response Error:', error);
+              }
 
               if (error) {
-                console.error(`❌ Erro envio ${phone}:`, error);
+                const msg = errorBody?.data?.message || errorBody?.error || (error as any).message;
+                console.error(`❌ Erro envio ${phone}: ${msg}`, errorBody || error);
+                toast.error(`Erro envio ${phone}: ${msg}`);
                 await registrarEnvio(texto, msweTipo, phone, "Nao");
                 if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
                 bgSend.progress.erros++;
               } else if (respData && respData.success === false) {
-                console.error(`❌ Erro envio (API) ${phone}:`, JSON.stringify(respData));
+                const msg = respData?.data?.message || `status ${respData?.status}`;
+                console.error(`❌ Erro envio (API) ${phone}: ${msg}`, respData);
+                toast.error(`Erro envio ${phone}: ${msg}`);
                 await registrarEnvio(texto, msweTipo, phone, "Nao");
                 if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
                 bgSend.progress.erros++;

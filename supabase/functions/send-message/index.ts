@@ -253,8 +253,11 @@ async function fetchImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
+let lastSendUrl = '';
+
 async function sendN8n(req: SendRequest): Promise<Response> {
   const webhookUrl = req.webhookUrl || 'https://n8n.srv1576408.hstgr.cloud/webhook/webhook-envio-direto';
+  lastSendUrl = webhookUrl;
   let phone = req.number.replace(/\D/g, '');
   if (!phone.startsWith('55')) phone = '55' + phone;
 
@@ -350,7 +353,7 @@ Deno.serve(async (req) => {
       try { jsonData = JSON.parse(data); } catch { jsonData = { raw: data }; }
 
       return new Response(
-        JSON.stringify({ success: response.ok, status: response.status, data: jsonData }),
+        JSON.stringify({ success: response.ok, status: response.status, data: jsonData, sendUrl: lastSendUrl || response.url }),
         { status: response.ok ? 200 : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
