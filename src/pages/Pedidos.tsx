@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, ShoppingCart, Plus, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPedidos, type Pedido, type OrdemServico as OrdemServicoType } from "@/lib/api";
+import { getPedidos, type Pedido } from "@/lib/api";
 import { toast } from "sonner";
-import OrdemServicoForm from "@/components/ordem-servico/OrdemServicoForm";
+import PedidoForm from "@/components/pedidos/PedidoForm";
 
 const statusColor: Record<string, string> = {
   Aberto: "bg-primary text-primary-foreground",
@@ -24,7 +24,7 @@ export default function Pedidos() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [editingPedido, setEditingPedido] = useState<OrdemServicoType | null>(null);
+  const [editingPedido, setEditingPedido] = useState<Pedido | null>(null);
   const [viewMode, setViewMode] = useState(false);
 
   const today = new Date();
@@ -67,8 +67,8 @@ export default function Pedidos() {
 
   if (showForm) {
     return (
-      <OrdemServicoForm
-        editingOS={editingPedido}
+      <PedidoForm
+        editingPedido={editingPedido}
         viewMode={viewMode}
         onBack={() => {
           setShowForm(false);
