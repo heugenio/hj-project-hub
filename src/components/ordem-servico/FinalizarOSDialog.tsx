@@ -545,7 +545,54 @@ export default function FinalizarOSDialog({
             </div>
           </div>
 
-          {/* Grade de parcelas */}
+          {/* Campos específicos de Cartão */}
+          {tipoCartaoInfo.isCartao && (
+            <div className="grid grid-cols-12 gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-2">
+              <div className="col-span-2 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Tipo Cartão</Label>
+                <Input
+                  value={tipoCartaoInfo.tipoCartao}
+                  readOnly
+                  className="h-7 text-[11px] uppercase font-semibold bg-muted/50"
+                />
+              </div>
+              <div className="col-span-2 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">
+                  Qtd. Parcelas <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={qtdParcelasCartao}
+                  onChange={(e) => setQtdParcelasCartao(e.target.value)}
+                  className="h-7 text-[11px]"
+                  placeholder="1"
+                />
+              </div>
+              <div className="col-span-3 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Nr. Auto (opcional)</Label>
+                <Input
+                  value={nrAutoCartao}
+                  onChange={(e) => setNrAutoCartao(e.target.value.toUpperCase())}
+                  className="h-7 text-[11px] uppercase"
+                />
+              </div>
+              <div className="col-span-5 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Bandeira (opcional)</Label>
+                <Select value={bandeiraCartao} onValueChange={setBandeiraCartao}>
+                  <SelectTrigger className="h-7 text-[11px]">
+                    <SelectValue placeholder="SELECIONE A BANDEIRA" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["VISA", "MASTERCARD", "ELO", "AMEX", "HIPERCARD", "DINERS", "OUTRA"].map((b) => (
+                      <SelectItem key={b} value={b} className="text-[11px]">{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border border-border/60 overflow-hidden bg-card shadow-sm">
             <div className="grid grid-cols-12 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
               <div className="col-span-1">Parc.</div>
