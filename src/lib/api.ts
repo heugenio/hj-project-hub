@@ -284,6 +284,37 @@ export const getOrdemServicos = (
   return apiGet<OrdemServico[]>(`/getOrdemServicos?${params.toString()}`);
 };
 
+// Pedidos (mesma estrutura de OS no backend legado)
+export interface Pedido {
+  vEIC_MARCA?: string;
+  oRSV_DATA?: string;
+  vEIC_PLACA?: string;
+  oRSV_OBSERVACOES?: string;
+  oRSV_HODOMETRO?: string;
+  vEND_NOME?: string;
+  oRSV_DATA_CANC?: string;
+  oRSV_CPFCNPJ?: string;
+  oRSV_ID: string;
+  oRSV_NUMERO: string;
+  oRSV_STATUS?: string;
+  vEIC_MODELO?: string;
+  oRSV_VLR_TOTAL?: number;
+  oRSV_MOTIVO_CANC?: string;
+  oRSV_NOME?: string;
+}
+
+export const getPedidos = (
+  unem_id: string,
+  filtros?: { id?: string; status?: string; dtInicial?: string; dtFinal?: string }
+) => {
+  const params = new URLSearchParams({ unem_id });
+  if (filtros?.id) params.append('id', filtros.id);
+  if (filtros?.status && filtros.status.toUpperCase() !== 'TODOS') params.append('status', filtros.status);
+  if (filtros?.dtInicial) params.append('dtInicial', filtros.dtInicial);
+  if (filtros?.dtFinal) params.append('dtFinal', filtros.dtFinal);
+  return apiGet<Pedido[]>(`/getPedidos?${params.toString()}`);
+};
+
 // Cofres (configuração PIX dos bancos)
 export interface Cofre {
   COFR_NOME?: string;
