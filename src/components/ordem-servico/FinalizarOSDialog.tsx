@@ -42,7 +42,22 @@ interface ParcelaUI {
   itfv_id?: string; // ID retornado por getGerarVencimentos para buscar tipos pagto
   tipoOptions?: FormaPagamentoItem[]; // opções carregadas via API
   loadingTipos?: boolean;
+  // Campos de cartão por parcela
+  tipo_cartao?: "" | "CREDITO" | "DEBITO";
+  qtd_parcelas_cartao?: string;
+  nr_auto?: string;
+  bandeira?: string;
 }
+
+// Detecta se um tipo de pagamento textual é cartão e seu tipo
+const detectarCartao = (texto: string): { isCartao: boolean; tipo: "" | "CREDITO" | "DEBITO" } => {
+  const t = (texto || "").toUpperCase();
+  const isCartao = /CART[ÃA]O|CARTAO/.test(t);
+  if (!isCartao) return { isCartao: false, tipo: "" };
+  const isDebito = /D[ÉE]BITO|DEBITO/.test(t);
+  const isCredito = /CR[ÉE]DITO|CREDITO/.test(t);
+  return { isCartao: true, tipo: isDebito && !isCredito ? "DEBITO" : "CREDITO" };
+};
 
 interface Props {
   open: boolean;
