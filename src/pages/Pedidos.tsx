@@ -67,8 +67,8 @@ export default function Pedidos() {
 
   if (showForm) {
     return (
-      <OrdemServicoForm
-        editingOS={editingPedido}
+      <PedidoForm
+        editingPedido={editingPedido}
         viewMode={viewMode}
         onBack={() => {
           setShowForm(false);
