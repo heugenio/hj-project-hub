@@ -200,6 +200,13 @@ export default function FinalizarOSDialog({
     })();
   }, [open, unemId]);
 
+  // Reset campos cartão ao trocar forma de pagamento
+  useEffect(() => {
+    setQtdParcelasCartao("");
+    setNrAutoCartao("");
+    setBandeiraCartao("");
+  }, [formaSelecionada]);
+
   // Quando seleciona forma de pagamento -> chama getGerarVencimentos para popular a grid
   useEffect(() => {
     if (!formaAtual?.forma) {
