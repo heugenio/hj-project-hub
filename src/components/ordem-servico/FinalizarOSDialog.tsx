@@ -99,6 +99,10 @@ export default function FinalizarOSDialog({
   const [cofrServicoId, setCofrServicoId] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
   const [previewPayload, setPreviewPayload] = useState<any | null>(null);
+  // Campos específicos de cartão
+  const [qtdParcelasCartao, setQtdParcelasCartao] = useState<string>("");
+  const [nrAutoCartao, setNrAutoCartao] = useState<string>("");
+  const [bandeiraCartao, setBandeiraCartao] = useState<string>("");
 
   const formasOptions = useMemo(
     () =>
@@ -118,6 +122,18 @@ export default function FinalizarOSDialog({
   const formaAtualLabel = formaAtual?.label || "";
   const fpagIdSelecionado = String(formaAtual?.forma.FPAG_ID || "");
 
+  // Detecta tipo cartão pela forma de pagamento (FPAG_TIPO ou nome)
+  const tipoCartaoInfo = useMemo(() => {
+    const tipoStr = `${formaAtual?.forma.FPAG_TIPO || ""} ${formaAtualLabel}`.toUpperCase();
+    const isCartao = /CART[ÃA]O|CARTAO/.test(tipoStr);
+    if (!isCartao) return { isCartao: false, tipoCartao: "" as "" | "CREDITO" | "DEBITO" };
+    const isDebito = /D[ÉE]BITO|DEBITO/.test(tipoStr);
+    const isCredito = /CR[ÉE]DITO|CREDITO/.test(tipoStr);
+    const tipoCartao: "CREDITO" | "DEBITO" = isDebito && !isCredito ? "DEBITO" : "CREDITO";
+    return { isCartao: true, tipoCartao };
+  }, [formaAtual, formaAtualLabel]);
+  const isCartaoCredito = tipoCartaoInfo.isCartao && tipoCartaoInfo.tipoCartao === "CREDITO";
+
   // Reset on open
   useEffect(() => {
     if (!open) return;
@@ -127,6 +143,9 @@ export default function FinalizarOSDialog({
     setUnemIdServico("");
     setCofresServico([]);
     setParcelas([]);
+    setQtdParcelasCartao("");
+    setNrAutoCartao("");
+    setBandeiraCartao("");
     (async () => {
       setLoading(true);
       try {
@@ -180,6 +199,13 @@ export default function FinalizarOSDialog({
       }
     })();
   }, [open, unemId]);
+
+  // Reset campos cartão ao trocar forma de pagamento
+  useEffect(() => {
+    setQtdParcelasCartao("");
+    setNrAutoCartao("");
+    setBandeiraCartao("");
+  }, [formaSelecionada]);
 
   // Quando seleciona forma de pagamento -> chama getGerarVencimentos para popular a grid
   useEffect(() => {
@@ -361,6 +387,13 @@ export default function FinalizarOSDialog({
       toast.error("Nenhuma parcela gerada.");
       return;
     }
+    if (tipoCartaoInfo.isCartao) {
+      const qtd = Number(qtdParcelasCartao);
+      if (!qtd || qtd < 1) {
+        toast.error("Informe a quantidade de parcelas do cartão.");
+        return;
+      }
+    }
     // Ajuste automático para diferenças até R$ 0,10 antes de validar
     const somaAtual = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
     const diffAuto = round2(valorTotal - somaAtual);
@@ -403,6 +436,14 @@ export default function FinalizarOSDialog({
       ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
       VALOR_TOTAL: round2(valorTotal),
       DATA_FINALIZACAO: dataFinalizacao,
+      ...(tipoCartaoInfo.isCartao
+        ? {
+            TIPO_CARTAO: tipoCartaoInfo.tipoCartao,
+            QTD_PARCELAS: Number(qtdParcelasCartao) || 0,
+            ...(nrAutoCartao ? { NR_AUTO: nrAutoCartao } : {}),
+            ...(bandeiraCartao ? { BANDEIRA_CARTAO: bandeiraCartao } : {}),
+          }
+        : {}),
       parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
         parcela: p.parcela,
         itfv_id: p.itfv_id,
@@ -504,7 +545,54 @@ export default function FinalizarOSDialog({
             </div>
           </div>
 
-          {/* Grade de parcelas */}
+          {/* Campos específicos de Cartão */}
+          {tipoCartaoInfo.isCartao && (
+            <div className="grid grid-cols-12 gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-2">
+              <div className="col-span-2 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Tipo Cartão</Label>
+                <Input
+                  value={tipoCartaoInfo.tipoCartao}
+                  readOnly
+                  className="h-7 text-[11px] uppercase font-semibold bg-muted/50"
+                />
+              </div>
+              <div className="col-span-2 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">
+                  Qtd. Parcelas <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={qtdParcelasCartao}
+                  onChange={(e) => setQtdParcelasCartao(e.target.value)}
+                  className="h-7 text-[11px]"
+                  placeholder="1"
+                />
+              </div>
+              <div className="col-span-3 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Nr. Auto (opcional)</Label>
+                <Input
+                  value={nrAutoCartao}
+                  onChange={(e) => setNrAutoCartao(e.target.value.toUpperCase())}
+                  className="h-7 text-[11px] uppercase"
+                />
+              </div>
+              <div className="col-span-5 flex flex-col gap-1">
+                <Label className="text-[10px] uppercase text-muted-foreground">Bandeira (opcional)</Label>
+                <Select value={bandeiraCartao} onValueChange={setBandeiraCartao}>
+                  <SelectTrigger className="h-7 text-[11px]">
+                    <SelectValue placeholder="SELECIONE A BANDEIRA" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["VISA", "MASTERCARD", "ELO", "AMEX", "HIPERCARD", "DINERS", "OUTRA"].map((b) => (
+                      <SelectItem key={b} value={b} className="text-[11px]">{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border border-border/60 overflow-hidden bg-card shadow-sm">
             <div className="grid grid-cols-12 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
               <div className="col-span-1">Parc.</div>
