@@ -42,7 +42,6 @@ export default function Pedidos() {
     setLoading(true);
     try {
       const result = await getPedidos(auth.unidade.unem_Id, {
-        id: pedidoId.trim() || undefined,
         status,
         dtInicial,
         dtFinal,
