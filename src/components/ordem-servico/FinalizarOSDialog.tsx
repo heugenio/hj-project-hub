@@ -436,6 +436,14 @@ export default function FinalizarOSDialog({
       ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
       VALOR_TOTAL: round2(valorTotal),
       DATA_FINALIZACAO: dataFinalizacao,
+      ...(tipoCartaoInfo.isCartao
+        ? {
+            TIPO_CARTAO: tipoCartaoInfo.tipoCartao,
+            QTD_PARCELAS: Number(qtdParcelasCartao) || 0,
+            ...(nrAutoCartao ? { NR_AUTO: nrAutoCartao } : {}),
+            ...(bandeiraCartao ? { BANDEIRA_CARTAO: bandeiraCartao } : {}),
+          }
+        : {}),
       parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
         parcela: p.parcela,
         itfv_id: p.itfv_id,
