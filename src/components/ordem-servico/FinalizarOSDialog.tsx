@@ -99,6 +99,10 @@ export default function FinalizarOSDialog({
   const [cofrServicoId, setCofrServicoId] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
   const [previewPayload, setPreviewPayload] = useState<any | null>(null);
+  // Campos específicos de cartão
+  const [qtdParcelasCartao, setQtdParcelasCartao] = useState<string>("");
+  const [nrAutoCartao, setNrAutoCartao] = useState<string>("");
+  const [bandeiraCartao, setBandeiraCartao] = useState<string>("");
 
   const formasOptions = useMemo(
     () =>
