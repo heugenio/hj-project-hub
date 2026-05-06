@@ -387,6 +387,13 @@ export default function FinalizarOSDialog({
       toast.error("Nenhuma parcela gerada.");
       return;
     }
+    if (tipoCartaoInfo.isCartao) {
+      const qtd = Number(qtdParcelasCartao);
+      if (!qtd || qtd < 1) {
+        toast.error("Informe a quantidade de parcelas do cartão.");
+        return;
+      }
+    }
     // Ajuste automático para diferenças até R$ 0,10 antes de validar
     const somaAtual = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
     const diffAuto = round2(valorTotal - somaAtual);
