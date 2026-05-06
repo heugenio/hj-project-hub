@@ -600,12 +600,14 @@ export default function FinalizarOSDialog({
                   <div className="col-span-1">
                     <Input
                       type="number"
-                      value={p.dias}
+                      value={isCartaoLinha && tipoCartaoLinha === "DEBITO" ? 1 : p.dias}
                       onChange={(e) => {
                         const dias = Number(e.target.value) || 0;
                         const venc = toISODate(addDays(new Date(), dias));
                         updateParcela(idx, { dias, vencimento: venc });
                       }}
+                      disabled={isCartaoLinha && tipoCartaoLinha === "DEBITO"}
+                      readOnly={isCartaoLinha && tipoCartaoLinha === "DEBITO"}
                       className="h-6 text-[10px] px-1"
                     />
                   </div>
@@ -656,10 +658,16 @@ export default function FinalizarOSDialog({
                       value={p.tipo_pagamento}
                       onValueChange={(v) => {
                         const info = detectarCartao(v);
-                        updateParcela(idx, {
+                        const isDeb = info.isCartao && info.tipo === "DEBITO";
+                        const patch: Partial<ParcelaUI> = {
                           tipo_pagamento: v,
                           tipo_cartao: info.isCartao ? info.tipo : "",
-                        });
+                        };
+                        if (isDeb) {
+                          patch.dias = 1;
+                          patch.vencimento = toISODate(addDays(new Date(), 1));
+                        }
+                        updateParcela(idx, patch);
                       }}
                       onOpenChange={(o) => { if (o) carregarTiposPagto(idx); }}
                     >
