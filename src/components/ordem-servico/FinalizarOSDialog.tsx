@@ -659,7 +659,7 @@ export default function FinalizarOSDialog({
                       onValueChange={(v) => {
                         const info = detectarCartao(v);
                         const isDeb = info.isCartao && info.tipo === "DEBITO";
-                        const patch: Partial<Parcela> = {
+                        const patch: Partial<ParcelaUI> = {
                           tipo_pagamento: v,
                           tipo_cartao: info.isCartao ? info.tipo : "",
                         };
