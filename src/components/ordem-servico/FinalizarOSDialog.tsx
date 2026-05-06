@@ -143,6 +143,9 @@ export default function FinalizarOSDialog({
     setUnemIdServico("");
     setCofresServico([]);
     setParcelas([]);
+    setQtdParcelasCartao("");
+    setNrAutoCartao("");
+    setBandeiraCartao("");
     (async () => {
       setLoading(true);
       try {
