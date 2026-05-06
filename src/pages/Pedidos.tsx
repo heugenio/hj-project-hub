@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, ShoppingCart, Plus, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPedidos, type Pedido } from "@/lib/api";
+import { getPedidos, type Pedido, type OrdemServico as OrdemServicoType } from "@/lib/api";
 import { toast } from "sonner";
+import OrdemServicoForm from "@/components/ordem-servico/OrdemServicoForm";
 
 const statusColor: Record<string, string> = {
   Aberto: "bg-primary text-primary-foreground",
@@ -22,6 +23,9 @@ export default function Pedidos() {
   const [data, setData] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingPedido, setEditingPedido] = useState<OrdemServicoType | null>(null);
+  const [viewMode, setViewMode] = useState(false);
 
   const today = new Date();
   const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
@@ -29,7 +33,6 @@ export default function Pedidos() {
   const [dtInicial, setDtInicial] = useState(toISO(sevenDaysAgo));
   const [dtFinal, setDtFinal] = useState(toISO(today));
   const [status, setStatus] = useState<string>("Abertos");
-  const [pedidoId, setPedidoId] = useState("");
 
   const handleSearch = async () => {
     if (!auth?.unidade?.unem_Id) {
