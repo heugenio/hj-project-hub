@@ -24,7 +24,7 @@ export default function Pedidos() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [editingPedido, setEditingPedido] = useState<OrdemServicoType | null>(null);
+  const [editingPedido, setEditingPedido] = useState<Pedido | null>(null);
   const [viewMode, setViewMode] = useState(false);
 
   const today = new Date();
