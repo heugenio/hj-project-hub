@@ -765,14 +765,14 @@ export default function FinalizarOSDialog({
               const okPerc = Math.abs(diffPerc) <= 0.01;
               return (
                 <div className="grid grid-cols-24 gap-1 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60 items-center">
-                  <div className="col-span-5 text-right uppercase tracking-wide text-muted-foreground">Totais</div>
+                  <div className="col-span-5 text-right uppercase tracking-wide text-muted-foreground">TOTAIS</div>
                   <div className={`col-span-2 text-right ${okPerc ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                     {totalPercentual.toFixed(2)}%
                   </div>
                   <div className={`col-span-3 text-right ${okValor ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                     {fmtBRL(totalSomado)}
                   </div>
-                  <div className="col-span-14 text-right text-muted-foreground flex items-center justify-end gap-2">
+                  <div className="col-span-14 text-right text-muted-foreground flex items-center justify-end gap-2 uppercase tracking-wide">
                     {!okValor && Math.abs(diffValor) > 0 && (
                       <button
                         type="button"
@@ -780,10 +780,10 @@ export default function FinalizarOSDialog({
                         className="px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[9px] uppercase tracking-wide"
                         title="Ajustar diferença na última parcela"
                       >
-                        Ajustar {fmtBRL(diffValor)}
+                        AJUSTAR {fmtBRL(diffValor)}
                       </button>
                     )}
-                    Total OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
+                    TOTAL OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
                   </div>
                 </div>
               );
