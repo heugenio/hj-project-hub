@@ -658,10 +658,16 @@ export default function FinalizarOSDialog({
                       value={p.tipo_pagamento}
                       onValueChange={(v) => {
                         const info = detectarCartao(v);
-                        updateParcela(idx, {
+                        const isDeb = info.isCartao && info.tipo === "DEBITO";
+                        const patch: Partial<Parcela> = {
                           tipo_pagamento: v,
                           tipo_cartao: info.isCartao ? info.tipo : "",
-                        });
+                        };
+                        if (isDeb) {
+                          patch.dias = 1;
+                          patch.vencimento = toISODate(addDays(new Date(), 1));
+                        }
+                        updateParcela(idx, patch);
                       }}
                       onOpenChange={(o) => { if (o) carregarTiposPagto(idx); }}
                     >
