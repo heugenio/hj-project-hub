@@ -1,81 +1,198 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Search, ShoppingCart, Plus, Eye } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getPedidos, type Pedido } from "@/lib/api";
+import { toast } from "sonner";
 
-const mockPedidos = [
-  { id: "PED-001", cliente: "João Silva", data: "2026-03-15", valor: 4500.00, status: "Aprovado", itens: 3 },
-  { id: "PED-002", cliente: "Maria Santos", data: "2026-03-14", valor: 1280.50, status: "Pendente", itens: 2 },
-  { id: "PED-003", cliente: "Carlos Lima", data: "2026-03-14", valor: 8920.00, status: "Aprovado", itens: 5 },
-  { id: "PED-004", cliente: "Ana Costa", data: "2026-03-13", valor: 650.00, status: "Cancelado", itens: 1 },
-  { id: "PED-005", cliente: "Pedro Oliveira", data: "2026-03-12", valor: 3200.00, status: "Entregue", itens: 4 },
-  { id: "PED-006", cliente: "Lucia Ferreira", data: "2026-03-11", valor: 15400.00, status: "Aprovado", itens: 8 },
-  { id: "PED-007", cliente: "Roberto Alves", data: "2026-03-10", valor: 790.00, status: "Entregue", itens: 2 },
-];
-
-const statusVariant: Record<string, string> = {
-  Aprovado: "bg-primary text-primary-foreground",
-  Pendente: "bg-warning text-warning-foreground",
+const statusColor: Record<string, string> = {
+  Aberto: "bg-primary text-primary-foreground",
+  Faturado: "bg-accent text-accent-foreground",
   Cancelado: "bg-destructive text-destructive-foreground",
-  Entregue: "bg-accent text-accent-foreground",
 };
 
 export default function Pedidos() {
-  const [search, setSearch] = useState("");
+  const { auth } = useAuth();
+  const [data, setData] = useState<Pedido[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-  const filtered = mockPedidos.filter(
-    (p) => p.cliente.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const today = new Date();
+  const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+  const toISO = (d: Date) => d.toISOString().slice(0, 10);
+  const [dtInicial, setDtInicial] = useState(toISO(sevenDaysAgo));
+  const [dtFinal, setDtFinal] = useState(toISO(today));
+  const [status, setStatus] = useState<string>("Abertos");
+  const [pedidoId, setPedidoId] = useState("");
+
+  const handleSearch = async () => {
+    if (!auth?.unidade?.unem_Id) {
+      toast.error("Selecione uma unidade empresarial.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await getPedidos(auth.unidade.unem_Id, {
+        id: pedidoId.trim() || undefined,
+        status,
+        dtInicial,
+        dtFinal,
+      });
+      setData(Array.isArray(result) ? result : []);
+      setSearched(true);
+      if (!result || result.length === 0) toast.info("Nenhum pedido encontrado.");
+    } catch (e: any) {
+      toast.error("Erro ao buscar pedidos: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (value?: number) =>
+    (Number(value) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("pt-BR");
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Pedidos</h1>
-        <p className="text-muted-foreground text-sm mt-1">Gerenciamento de pedidos</p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <ShoppingCart className="h-6 w-6" /> Pedidos
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Gerenciamento de pedidos</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => toast.info("Cadastro de pedido em construção.")} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Novo Pedido
+          </Button>
+        </div>
       </div>
 
       <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por cliente ou nº pedido..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <CardContent className="p-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Nº Pedido</Label>
+              <Input
+                value={pedidoId}
+                onChange={(e) => setPedidoId(e.target.value)}
+                placeholder="ID"
+                className="h-8 text-xs w-[110px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Data Inicial</Label>
+              <Input
+                type="date"
+                value={dtInicial}
+                onChange={(e) => setDtInicial(e.target.value)}
+                className="h-8 text-xs w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Data Final</Label>
+              <Input
+                type="date"
+                value={dtFinal}
+                onChange={(e) => setDtFinal(e.target.value)}
+                className="h-8 text-xs w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-8 text-xs w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todos">Todos</SelectItem>
+                  <SelectItem value="Abertos">Abertos</SelectItem>
+                  <SelectItem value="Faturados">Faturados</SelectItem>
+                  <SelectItem value="Cancelados">Cancelados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleSearch} disabled={loading} size="sm" className="h-8">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+              Consultar
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="text-[11px]">
             <TableHeader>
-              <TableRow>
-                <TableHead>Nº Pedido</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-center">Itens</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="[&>th]:h-7 [&>th]:px-2 [&>th]:py-1">
+                <TableHead className="text-[10px] uppercase">Nº Pedido</TableHead>
+                <TableHead className="text-[10px] uppercase">Data</TableHead>
+                <TableHead className="text-[10px] uppercase">Cliente</TableHead>
+                <TableHead className="text-[10px] uppercase">CPF/CNPJ</TableHead>
+                <TableHead className="text-[10px] uppercase">Veículo</TableHead>
+                <TableHead className="text-[10px] uppercase">Placa</TableHead>
+                <TableHead className="text-[10px] uppercase text-right">Vlr Total</TableHead>
+                <TableHead className="text-[10px] uppercase">Status</TableHead>
+                <TableHead className="text-[10px] uppercase text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((pedido) => (
-                <TableRow key={pedido.id}>
-                  <TableCell className="font-mono text-sm font-medium">{pedido.id}</TableCell>
-                  <TableCell>{pedido.cliente}</TableCell>
-                  <TableCell>{new Date(pedido.data).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell className="text-center">{pedido.itens}</TableCell>
-                  <TableCell className="text-right font-medium">R$ {pedido.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                  <TableCell>
-                    <Badge className={statusVariant[pedido.status] + " text-xs"}>{pedido.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filtered.length === 0 && (
+              {data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                    Nenhum pedido encontrado
+                  <TableCell colSpan={9} className="text-center text-muted-foreground text-sm py-8">
+                    {searched ? "Nenhum pedido encontrado." : "Clique em Consultar para buscar os pedidos."}
                   </TableCell>
                 </TableRow>
               )}
+              {data.map((p, idx) => {
+                const rowStatus = String(
+                  p.oRSV_STATUS ?? (p as any).ORSV_STATUS ?? (p as any).orsv_status ?? ""
+                );
+                return (
+                  <TableRow
+                    key={p.oRSV_ID + idx}
+                    className={`[&>td]:px-2 [&>td]:py-1 ${idx % 2 === 0 ? "" : "bg-muted/40"}`}
+                  >
+                    <TableCell className="font-mono text-[10px] font-medium whitespace-nowrap">{p.oRSV_NUMERO}</TableCell>
+                    <TableCell className="text-[10px] whitespace-nowrap">{formatDate(p.oRSV_DATA)}</TableCell>
+                    <TableCell className="text-[10px] max-w-[180px] truncate" title={p.oRSV_NOME}>{p.oRSV_NOME}</TableCell>
+                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.oRSV_CPFCNPJ}</TableCell>
+                    <TableCell className="text-[10px] max-w-[120px] truncate" title={`${p.vEIC_MARCA ?? ""} ${p.vEIC_MODELO ?? ""}`}>{p.vEIC_MARCA} {p.vEIC_MODELO}</TableCell>
+                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.vEIC_PLACA}</TableCell>
+                    <TableCell className="text-[10px] text-right whitespace-nowrap">{formatCurrency(p.oRSV_VLR_TOTAL)}</TableCell>
+                    <TableCell>
+                      <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-[9px] px-1.5 py-0 whitespace-nowrap"}>
+                        {rowStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={() => toast.info(`Visualizar pedido #${p.oRSV_NUMERO}`)}
+                          title="Visualizar Pedido"
+                          aria-label="Visualizar Pedido"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
