@@ -704,9 +704,14 @@ export default function FinalizarOSDialog({
                     <Input
                       type="number"
                       min={1}
-                      value={p.qtd_parcelas_cartao || ""}
+                      value={
+                        isCartaoLinha && tipoCartaoLinha === "DEBITO"
+                          ? "1"
+                          : p.qtd_parcelas_cartao || ""
+                      }
                       onChange={(e) => updateParcela(idx, { qtd_parcelas_cartao: e.target.value })}
-                      disabled={!isCartaoLinha}
+                      disabled={!isCartaoLinha || tipoCartaoLinha === "DEBITO"}
+                      readOnly={tipoCartaoLinha === "DEBITO"}
                       placeholder={isCartaoLinha ? "1" : ""}
                       className="h-6 text-[10px] px-1"
                     />
@@ -764,15 +769,15 @@ export default function FinalizarOSDialog({
               const okValor = Math.abs(diffValor) <= 0.1;
               const okPerc = Math.abs(diffPerc) <= 0.01;
               return (
-                <div className="grid grid-cols-24 gap-1 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60 items-center">
-                  <div className="col-span-5 text-right uppercase tracking-wide text-muted-foreground">TOTAIS</div>
-                  <div className={`col-span-2 text-right ${okPerc ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                <div className="flex items-center gap-3 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60 uppercase tracking-wide">
+                  <div className="text-muted-foreground">TOTAIS</div>
+                  <div className={`${okPerc ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                     {totalPercentual.toFixed(2)}%
                   </div>
-                  <div className={`col-span-3 text-right ${okValor ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                  <div className={`${okValor ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                     {fmtBRL(totalSomado)}
                   </div>
-                  <div className="col-span-14 text-right text-muted-foreground flex items-center justify-end gap-2 uppercase tracking-wide">
+                  <div className="ml-auto flex items-center gap-3">
                     {!okValor && Math.abs(diffValor) > 0 && (
                       <button
                         type="button"
@@ -783,7 +788,9 @@ export default function FinalizarOSDialog({
                         AJUSTAR {fmtBRL(diffValor)}
                       </button>
                     )}
-                    TOTAL OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
+                    <div className="text-muted-foreground">
+                      TOTAL OS: <span className="text-foreground">{fmtBRL(valorTotal)}</span>
+                    </div>
                   </div>
                 </div>
               );
