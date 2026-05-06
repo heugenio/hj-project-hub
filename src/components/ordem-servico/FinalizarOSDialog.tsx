@@ -455,24 +455,27 @@ export default function FinalizarOSDialog({
       ...(unemIdServico ? { COFR_ID_SERVICO: cofrServicoId, UNEM_ID_SERVICO: unemIdServico } : {}),
       VALOR_TOTAL: round2(valorTotal),
       DATA_FINALIZACAO: dataFinalizacao,
-      ...(tipoCartaoInfo.isCartao
-        ? {
-            TIPO_CARTAO: tipoCartaoInfo.tipoCartao,
-            QTD_PARCELAS: Number(qtdParcelasCartao) || 0,
-            ...(nrAutoCartao ? { NR_AUTO: nrAutoCartao } : {}),
-            ...(bandeiraCartao ? { BANDEIRA_CARTAO: bandeiraCartao } : {}),
-          }
-        : {}),
-      parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => ({
-        parcela: p.parcela,
-        itfv_id: p.itfv_id,
-        dias: p.dias,
-        vencimento: isoToBrSlash(p.vencimento),
-        perc: round4(p.perc),
-        valor: round2(p.valor),
-        tipo_pagamento: p.tipo_pagamento,
-        cofr_id: p.cofr_id,
-      })),
+      parcelas: parcelasAjustadas.map<ParcelaFinalizacao>((p) => {
+        const info = detectarCartao(p.tipo_pagamento || formaAtualLabel);
+        return {
+          parcela: p.parcela,
+          itfv_id: p.itfv_id,
+          dias: p.dias,
+          vencimento: isoToBrSlash(p.vencimento),
+          perc: round4(p.perc),
+          valor: round2(p.valor),
+          tipo_pagamento: p.tipo_pagamento,
+          cofr_id: p.cofr_id,
+          ...(info.isCartao
+            ? {
+                TIPO_CARTAO: (p.tipo_cartao || info.tipo) as string,
+                QTD_PARCELAS: Number(p.qtd_parcelas_cartao) || 0,
+                ...(p.nr_auto ? { NR_AUTO: p.nr_auto } : {}),
+                ...(p.bandeira ? { BANDEIRA_CARTAO: p.bandeira } : {}),
+              }
+            : {}),
+        } as ParcelaFinalizacao;
+      }),
     };
     setPreviewPayload(payload);
   };
