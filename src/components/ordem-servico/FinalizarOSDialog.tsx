@@ -704,9 +704,14 @@ export default function FinalizarOSDialog({
                     <Input
                       type="number"
                       min={1}
-                      value={p.qtd_parcelas_cartao || ""}
+                      value={
+                        isCartaoLinha && tipoCartaoLinha === "DEBITO"
+                          ? "1"
+                          : p.qtd_parcelas_cartao || ""
+                      }
                       onChange={(e) => updateParcela(idx, { qtd_parcelas_cartao: e.target.value })}
-                      disabled={!isCartaoLinha}
+                      disabled={!isCartaoLinha || tipoCartaoLinha === "DEBITO"}
+                      readOnly={tipoCartaoLinha === "DEBITO"}
                       placeholder={isCartaoLinha ? "1" : ""}
                       className="h-6 text-[10px] px-1"
                     />
