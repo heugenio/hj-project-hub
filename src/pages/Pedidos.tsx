@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, ShoppingCart, Plus, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPedidos, type Pedido } from "@/lib/api";
+import { getPedidos, type Pedido, type OrdemServico as OrdemServicoType } from "@/lib/api";
 import { toast } from "sonner";
+import OrdemServicoForm from "@/components/ordem-servico/OrdemServicoForm";
 
 const statusColor: Record<string, string> = {
   Aberto: "bg-primary text-primary-foreground",
@@ -22,6 +23,9 @@ export default function Pedidos() {
   const [data, setData] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingPedido, setEditingPedido] = useState<OrdemServicoType | null>(null);
+  const [viewMode, setViewMode] = useState(false);
 
   const today = new Date();
   const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
@@ -29,7 +33,6 @@ export default function Pedidos() {
   const [dtInicial, setDtInicial] = useState(toISO(sevenDaysAgo));
   const [dtFinal, setDtFinal] = useState(toISO(today));
   const [status, setStatus] = useState<string>("Abertos");
-  const [pedidoId, setPedidoId] = useState("");
 
   const handleSearch = async () => {
     if (!auth?.unidade?.unem_Id) {
@@ -39,7 +42,6 @@ export default function Pedidos() {
     setLoading(true);
     try {
       const result = await getPedidos(auth.unidade.unem_Id, {
-        id: pedidoId.trim() || undefined,
         status,
         dtInicial,
         dtFinal,
@@ -63,6 +65,21 @@ export default function Pedidos() {
     return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("pt-BR");
   };
 
+  if (showForm) {
+    return (
+      <OrdemServicoForm
+        editingOS={editingPedido}
+        viewMode={viewMode}
+        onBack={() => {
+          setShowForm(false);
+          setEditingPedido(null);
+          setViewMode(false);
+          handleSearch();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -73,7 +90,7 @@ export default function Pedidos() {
           <p className="text-muted-foreground text-sm mt-1">Gerenciamento de pedidos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => toast.info("Cadastro de pedido em construção.")} size="sm">
+          <Button onClick={() => { setEditingPedido(null); setViewMode(false); setShowForm(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Novo Pedido
           </Button>
         </div>
@@ -82,15 +99,6 @@ export default function Pedidos() {
       <Card className="border-border/50">
         <CardContent className="p-3">
           <div className="flex flex-wrap items-end gap-2">
-            <div className="flex flex-col gap-1">
-              <Label className="text-[10px] uppercase text-muted-foreground">Nº Pedido</Label>
-              <Input
-                value={pedidoId}
-                onChange={(e) => setPedidoId(e.target.value)}
-                placeholder="ID"
-                className="h-8 text-xs w-[110px]"
-              />
-            </div>
             <div className="flex flex-col gap-1">
               <Label className="text-[10px] uppercase text-muted-foreground">Data Inicial</Label>
               <Input
