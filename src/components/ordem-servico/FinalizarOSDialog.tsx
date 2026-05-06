@@ -466,14 +466,12 @@ export default function FinalizarOSDialog({
           valor: round2(p.valor),
           tipo_pagamento: p.tipo_pagamento,
           cofr_id: p.cofr_id,
-          ...(info.isCartao
-            ? {
-                TIPO_CARTAO: (p.tipo_cartao || info.tipo) as string,
-                QTD_PARCELAS: Number(p.qtd_parcelas_cartao) || 0,
-                ...(p.nr_auto ? { NR_AUTO: p.nr_auto } : {}),
-                ...(p.bandeira ? { BANDEIRA_CARTAO: p.bandeira } : {}),
-              }
-            : {}),
+          TIPO_CARTAO: info.isCartao ? (p.tipo_cartao || info.tipo) : "",
+          QTD_PARCELAS: info.isCartao
+            ? (info.tipo === "DEBITO" ? 1 : Number(p.qtd_parcelas_cartao) || 0)
+            : 0,
+          NR_AUTO: info.isCartao ? (p.nr_auto || "") : "",
+          BANDEIRA_CARTAO: info.isCartao ? (p.bandeira || "") : "",
         } as ParcelaFinalizacao;
       }),
     };
