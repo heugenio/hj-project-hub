@@ -402,11 +402,15 @@ export default function FinalizarOSDialog({
       toast.error("Nenhuma parcela gerada.");
       return;
     }
-    if (tipoCartaoInfo.isCartao) {
-      const qtd = Number(qtdParcelasCartao);
-      if (!qtd || qtd < 1) {
-        toast.error("Informe a quantidade de parcelas do cartão.");
-        return;
+    // Validar parcelas que são cartão
+    for (const p of parcelas) {
+      const info = detectarCartao(p.tipo_pagamento || formaAtualLabel);
+      if (info.isCartao) {
+        const qtd = Number(p.qtd_parcelas_cartao);
+        if (!qtd || qtd < 1) {
+          toast.error(`Informe a Qtd. Parcelas do cartão na parcela ${p.parcela}.`);
+          return;
+        }
       }
     }
     // Ajuste automático para diferenças até R$ 0,10 antes de validar
