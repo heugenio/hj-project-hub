@@ -122,6 +122,18 @@ export default function FinalizarOSDialog({
   const formaAtualLabel = formaAtual?.label || "";
   const fpagIdSelecionado = String(formaAtual?.forma.FPAG_ID || "");
 
+  // Detecta tipo cartão pela forma de pagamento (FPAG_TIPO ou nome)
+  const tipoCartaoInfo = useMemo(() => {
+    const tipoStr = `${formaAtual?.forma.FPAG_TIPO || ""} ${formaAtualLabel}`.toUpperCase();
+    const isCartao = /CART[ÃA]O|CARTAO/.test(tipoStr);
+    if (!isCartao) return { isCartao: false, tipoCartao: "" as "" | "CREDITO" | "DEBITO" };
+    const isDebito = /D[ÉE]BITO|DEBITO/.test(tipoStr);
+    const isCredito = /CR[ÉE]DITO|CREDITO/.test(tipoStr);
+    const tipoCartao: "CREDITO" | "DEBITO" = isDebito && !isCredito ? "DEBITO" : "CREDITO";
+    return { isCartao: true, tipoCartao };
+  }, [formaAtual, formaAtualLabel]);
+  const isCartaoCredito = tipoCartaoInfo.isCartao && tipoCartaoInfo.tipoCartao === "CREDITO";
+
   // Reset on open
   useEffect(() => {
     if (!open) return;
