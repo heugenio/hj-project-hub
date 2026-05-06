@@ -600,12 +600,14 @@ export default function FinalizarOSDialog({
                   <div className="col-span-1">
                     <Input
                       type="number"
-                      value={p.dias}
+                      value={isCartaoLinha && tipoCartaoLinha === "DEBITO" ? 1 : p.dias}
                       onChange={(e) => {
                         const dias = Number(e.target.value) || 0;
                         const venc = toISODate(addDays(new Date(), dias));
                         updateParcela(idx, { dias, vencimento: venc });
                       }}
+                      disabled={isCartaoLinha && tipoCartaoLinha === "DEBITO"}
+                      readOnly={isCartaoLinha && tipoCartaoLinha === "DEBITO"}
                       className="h-6 text-[10px] px-1"
                     />
                   </div>
