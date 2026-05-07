@@ -272,6 +272,28 @@ export const getMidias = (params: { id?: string; nome?: string }) => {
   return proxyGet<Midia[]>(`/getMidias?${query}`);
 };
 
+export interface OperacaoComercial {
+  OPCM_ID: string;
+  OPCM_NOME: string;
+  [k: string]: any;
+}
+
+export const getOperacoesComerciais = (params: {
+  nome?: string; pess_id?: string; unem_id?: string; vddr_id?: string;
+}) => {
+  const map: Record<string, string | undefined> = {
+    NOME: params.nome,
+    PESS_ID: params.pess_id,
+    UNEM_ID: params.unem_id,
+    VDDR_ID: params.vddr_id,
+  };
+  const query = Object.entries(map)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v!)}`)
+    .join('&');
+  return proxyGet<OperacaoComercial[]>(`/getOperacoesComerciais?${query}`);
+};
+
 export const getItensOrdemServicos = (orsvId: string) =>
   proxyGet<ItemOS[]>(`/getItensOrdemServicos?id=${encodeURIComponent(orsvId)}`);
 

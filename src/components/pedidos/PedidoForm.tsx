@@ -16,10 +16,11 @@ import { ItensTable } from '@/components/ordem-servico/ItensTable';
 import { ResumoFinanceiro } from '@/components/ordem-servico/ResumoFinanceiro';
 import { AutocompleteInput } from '@/components/ordem-servico/AutocompleteInput';
 import {
-  getTiposOrdemServicos, getVendedores, getMidias,
+  getTiposOrdemServicos, getVendedores, getMidias, getOperacoesComerciais,
   setOrdemServico as saveOS,
   type Cliente, type ItemOS, type TipoOS,
   type Vendedor, type Midia, type OrdemServicoFull,
+  type OperacaoComercial,
 } from '@/lib/api-os';
 import type { Pedido as PedidoListItem } from '@/lib/api';
 
@@ -35,8 +36,9 @@ interface PedidoFormProps {
 export default function PedidoForm({ onBack, editingPedido, viewMode = false }: PedidoFormProps) {
   const { auth } = useAuth();
 
-  const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
-  const [tipoOS, setTipoOS] = useState('');
+  const [operacoes, setOperacoes] = useState<OperacaoComercial[]>([]);
+  const [opcmId, setOpcmId] = useState('');
+  const [loadingOperacoes, setLoadingOperacoes] = useState(false);
   const [orsvId, setOrsvId] = useState('');
   const [numeroPedido, setNumeroPedido] = useState('NOVO');
   const [statusPedido, setStatusPedido] = useState('Aberto');
@@ -61,19 +63,8 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
   const [observacoes, setObservacoes] = useState('');
 
   const [saving, setSaving] = useState(false);
-  const [loadingTipos, setLoadingTipos] = useState(false);
 
   useEffect(() => {
-    setLoadingTipos(true);
-    getTiposOrdemServicos()
-      .then((tipos) => {
-        setTiposOS(tipos);
-        const padrao = tipos.find((t) => (t.TPOS_PADRAO || '').toUpperCase() === 'SIM');
-        if (padrao) setTipoOS((current) => current || padrao.TPOS_ID);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingTipos(false));
-
     setLoadingMidias(true);
     getMidias({})
       .then(setMidias)
@@ -97,6 +88,25 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         .catch(() => {});
     }
   }, [auth?.user?.pess_ID, editingPedido]);
+
+  // Carrega operações comerciais conforme cliente/vendedor/loja
+  useEffect(() => {
+    const unem_id = auth?.unidade?.unem_Id;
+    const vddr_id = vendedor?.VDDR_ID;
+    const pess_id = cliente?.PESS_ID;
+    if (!unem_id) return;
+    setLoadingOperacoes(true);
+    getOperacoesComerciais({ unem_id, vddr_id, pess_id })
+      .then((ops) => {
+        setOperacoes(ops || []);
+        setOpcmId((cur) => {
+          if (cur && (ops || []).some((o: any) => o.OPCM_ID === cur)) return cur;
+          return ops && ops.length > 0 ? ops[0].OPCM_ID : '';
+        });
+      })
+      .catch(() => setOperacoes([]))
+      .finally(() => setLoadingOperacoes(false));
+  }, [auth?.unidade?.unem_Id, vendedor?.VDDR_ID, cliente?.PESS_ID]);
 
   const fetchVendedores = useCallback(async (query: string) => {
     try {
@@ -152,7 +162,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         ORSV_ID: orsvId || '',
         ORSV_NUMERO: orsvId ? numeroPedido : '',
         ORSV_DATA: dataPedido,
-        TPOS_ID: tipoOS || '',
+        OPCM_ID: opcmId || '',
         PESS_ID: cliente.PESS_ID,
         VDDR_ID: vendedor?.VDDR_ID || '',
         MDIA_ID: midiaId || '',
@@ -228,7 +238,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <Label className="text-xs">Data do Pedido</Label>
               <Input
@@ -239,14 +249,24 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
               />
             </div>
             <div>
-              <Label className="text-xs">Tipo</Label>
-              <Select value={tipoOS} onValueChange={setTipoOS}>
+              <Label className="text-xs">Vendedor</Label>
+              <AutocompleteInput
+                placeholder="BUSCAR VENDEDOR..."
+                value={vendedorText}
+                onChange={setVendedorText}
+                onSelect={(opt) => { setVendedor({ VDDR_ID: opt.id, VDDR_NOME: opt.label }); setVendedorText(opt.label); }}
+                fetchOptions={fetchVendedores}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Tipo (Operação Comercial)</Label>
+              <Select value={opcmId} onValueChange={setOpcmId} disabled={loadingOperacoes || operacoes.length === 0}>
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder={loadingTipos ? 'Carregando...' : 'Selecione o tipo'} />
+                  <SelectValue placeholder={loadingOperacoes ? 'Carregando...' : (operacoes.length === 0 ? 'Sem operações' : 'Selecione a operação')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {tiposOS.map((t) => (
-                    <SelectItem key={t.TPOS_ID} value={t.TPOS_ID}>{t.TPOS_NOME}</SelectItem>
+                  {operacoes.map((o) => (
+                    <SelectItem key={o.OPCM_ID} value={o.OPCM_ID}>{o.OPCM_NOME}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -271,27 +291,8 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       {/* Itens */}
       <ItensTable itens={itens} onChange={setItens} unemId={auth?.unidade?.unem_Id} />
 
-      {/* Vendedor + Resumo */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Vendedor
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <Label className="text-xs">Vendedor</Label>
-              <AutocompleteInput
-                placeholder="Buscar vendedor..."
-                value={vendedorText}
-                onChange={setVendedorText}
-                onSelect={(opt) => { setVendedor({ VDDR_ID: opt.id, VDDR_NOME: opt.label }); setVendedorText(opt.label); }}
-                fetchOptions={fetchVendedores}
-              />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Resumo */}
+      <div className="grid grid-cols-1 gap-4">
 
         <ResumoFinanceiro
           itens={itens}
