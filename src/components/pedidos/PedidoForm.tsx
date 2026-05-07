@@ -16,10 +16,11 @@ import { ItensTable } from '@/components/ordem-servico/ItensTable';
 import { ResumoFinanceiro } from '@/components/ordem-servico/ResumoFinanceiro';
 import { AutocompleteInput } from '@/components/ordem-servico/AutocompleteInput';
 import {
-  getTiposOrdemServicos, getVendedores, getMidias,
+  getTiposOrdemServicos, getVendedores, getMidias, getOperacoesComerciais,
   setOrdemServico as saveOS,
   type Cliente, type ItemOS, type TipoOS,
   type Vendedor, type Midia, type OrdemServicoFull,
+  type OperacaoComercial,
 } from '@/lib/api-os';
 import type { Pedido as PedidoListItem } from '@/lib/api';
 
