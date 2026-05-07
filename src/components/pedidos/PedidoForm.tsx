@@ -162,7 +162,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         ORSV_ID: orsvId || '',
         ORSV_NUMERO: orsvId ? numeroPedido : '',
         ORSV_DATA: dataPedido,
-        TPOS_ID: tipoOS || '',
+        OPCM_ID: opcmId || '',
         PESS_ID: cliente.PESS_ID,
         VDDR_ID: vendedor?.VDDR_ID || '',
         MDIA_ID: midiaId || '',
