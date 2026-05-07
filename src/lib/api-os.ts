@@ -330,6 +330,9 @@ export const setItensOrdemServicos = (itens: Partial<ItemOS>[]) =>
 export const setOrdemServico = (os: Partial<OrdemServicoFull>) =>
   proxyPost<OrdemServicoFull>('/setOrdemServicos', os);
 
+export const setPedido = (pedido: Partial<OrdemServicoFull>) =>
+  proxyPost<OrdemServicoFull>('/setPedidos', pedido);
+
 export const setCancelarOrdemServico = (
   orsvId: string,
   motivo: string,
