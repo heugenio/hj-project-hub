@@ -274,7 +274,7 @@ export const getMidias = (params: { id?: string; nome?: string }) => {
 
 export interface OperacaoComercial {
   OPCM_ID: string;
-  OPCM_NOME: string;
+  OPCM_NOME_PADRAO: string;
   [k: string]: any;
 }
 
