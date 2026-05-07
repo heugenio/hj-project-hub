@@ -17,7 +17,7 @@ import { ResumoFinanceiro } from '@/components/ordem-servico/ResumoFinanceiro';
 import { AutocompleteInput } from '@/components/ordem-servico/AutocompleteInput';
 import {
   getTiposOrdemServicos, getVendedores, getMidias, getOperacoesComerciais, getParametros,
-  setOrdemServico as saveOS,
+  setPedido as savePedido,
   type Cliente, type ItemOS, type TipoOS,
   type Vendedor, type Midia, type OrdemServicoFull,
   type OperacaoComercial,
