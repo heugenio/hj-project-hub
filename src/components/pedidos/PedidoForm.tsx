@@ -185,7 +185,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         itens: itensPayload,
       };
       console.log('=== PAYLOAD PEDIDO ===', JSON.stringify(payload, null, 2));
-      const result = await saveOS(payload as Partial<OrdemServicoFull>);
+      const result = await savePedido(payload as Partial<OrdemServicoFull>);
       if (result.ORSV_ID) setOrsvId(result.ORSV_ID);
       if (result.ORSV_NUMERO) setNumeroPedido(result.ORSV_NUMERO);
       setStatusPedido('Aberto');
