@@ -36,8 +36,9 @@ interface PedidoFormProps {
 export default function PedidoForm({ onBack, editingPedido, viewMode = false }: PedidoFormProps) {
   const { auth } = useAuth();
 
-  const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
-  const [tipoOS, setTipoOS] = useState('');
+  const [operacoes, setOperacoes] = useState<OperacaoComercial[]>([]);
+  const [opcmId, setOpcmId] = useState('');
+  const [loadingOperacoes, setLoadingOperacoes] = useState(false);
   const [orsvId, setOrsvId] = useState('');
   const [numeroPedido, setNumeroPedido] = useState('NOVO');
   const [statusPedido, setStatusPedido] = useState('Aberto');
@@ -62,7 +63,6 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
   const [observacoes, setObservacoes] = useState('');
 
   const [saving, setSaving] = useState(false);
-  const [loadingTipos, setLoadingTipos] = useState(false);
 
   useEffect(() => {
     setLoadingTipos(true);
