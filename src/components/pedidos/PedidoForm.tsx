@@ -238,7 +238,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <Label className="text-xs">Data do Pedido</Label>
               <Input
@@ -249,14 +249,24 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
               />
             </div>
             <div>
-              <Label className="text-xs">Tipo</Label>
-              <Select value={tipoOS} onValueChange={setTipoOS}>
+              <Label className="text-xs">Vendedor</Label>
+              <AutocompleteInput
+                placeholder="BUSCAR VENDEDOR..."
+                value={vendedorText}
+                onChange={setVendedorText}
+                onSelect={(opt) => { setVendedor({ VDDR_ID: opt.id, VDDR_NOME: opt.label }); setVendedorText(opt.label); }}
+                fetchOptions={fetchVendedores}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Tipo (Operação Comercial)</Label>
+              <Select value={opcmId} onValueChange={setOpcmId} disabled={loadingOperacoes || operacoes.length === 0}>
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder={loadingTipos ? 'Carregando...' : 'Selecione o tipo'} />
+                  <SelectValue placeholder={loadingOperacoes ? 'Carregando...' : (operacoes.length === 0 ? 'Sem operações' : 'Selecione a operação')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {tiposOS.map((t) => (
-                    <SelectItem key={t.TPOS_ID} value={t.TPOS_ID}>{t.TPOS_NOME}</SelectItem>
+                  {operacoes.map((o) => (
+                    <SelectItem key={o.OPCM_ID} value={o.OPCM_ID}>{o.OPCM_NOME}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -281,27 +291,8 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       {/* Itens */}
       <ItensTable itens={itens} onChange={setItens} unemId={auth?.unidade?.unem_Id} />
 
-      {/* Vendedor + Resumo */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Vendedor
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <Label className="text-xs">Vendedor</Label>
-              <AutocompleteInput
-                placeholder="Buscar vendedor..."
-                value={vendedorText}
-                onChange={setVendedorText}
-                onSelect={(opt) => { setVendedor({ VDDR_ID: opt.id, VDDR_NOME: opt.label }); setVendedorText(opt.label); }}
-                fetchOptions={fetchVendedores}
-              />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Resumo */}
+      <div className="grid grid-cols-1 gap-4">
 
         <ResumoFinanceiro
           itens={itens}
