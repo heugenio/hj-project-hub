@@ -266,7 +266,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
                 </SelectTrigger>
                 <SelectContent>
                   {operacoes.map((o) => (
-                    <SelectItem key={o.OPCM_ID} value={o.OPCM_ID}>{o.OPCM_NOME}</SelectItem>
+                    <SelectItem key={o.OPCM_ID} value={o.OPCM_ID}>{o.OPCM_NOME_PADRAO}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
