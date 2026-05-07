@@ -16,7 +16,7 @@ import { ItensTable } from '@/components/ordem-servico/ItensTable';
 import { ResumoFinanceiro } from '@/components/ordem-servico/ResumoFinanceiro';
 import { AutocompleteInput } from '@/components/ordem-servico/AutocompleteInput';
 import {
-  getTiposOrdemServicos, getVendedores, getMidias, getOperacoesComerciais,
+  getTiposOrdemServicos, getVendedores, getMidias, getOperacoesComerciais, getParametros,
   setOrdemServico as saveOS,
   type Cliente, type ItemOS, type TipoOS,
   type Vendedor, type Midia, type OrdemServicoFull,
@@ -96,12 +96,20 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     const pess_id = cliente?.PESS_ID;
     if (!unem_id) return;
     setLoadingOperacoes(true);
-    getOperacoesComerciais({ unem_id, vddr_id, pess_id })
-      .then((ops) => {
-        setOperacoes(ops || []);
+    Promise.all([
+      getOperacoesComerciais({ unem_id, vddr_id, pess_id }),
+      getParametros({ unem_id, nome: 'OPCMPadraoSaida' }).catch(() => [] as any[]),
+    ])
+      .then(([ops, params]) => {
+        const list = ops || [];
+        setOperacoes(list);
+        const padrao = Array.isArray(params) && params.length > 0
+          ? String(((params[0] as any).PRMT_STRING || (params[0] as any).PRMT_VALOR || '')).trim()
+          : '';
         setOpcmId((cur) => {
-          if (cur && (ops || []).some((o: any) => o.OPCM_ID === cur)) return cur;
-          return ops && ops.length > 0 ? ops[0].OPCM_ID : '';
+          if (cur && list.some((o: any) => o.OPCM_ID === cur)) return cur;
+          if (padrao && list.some((o: any) => o.OPCM_ID === padrao)) return padrao;
+          return list.length > 0 ? list[0].OPCM_ID : '';
         });
       })
       .catch(() => setOperacoes([]))
