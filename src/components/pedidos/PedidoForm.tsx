@@ -65,16 +65,6 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setLoadingTipos(true);
-    getTiposOrdemServicos()
-      .then((tipos) => {
-        setTiposOS(tipos);
-        const padrao = tipos.find((t) => (t.TPOS_PADRAO || '').toUpperCase() === 'SIM');
-        if (padrao) setTipoOS((current) => current || padrao.TPOS_ID);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingTipos(false));
-
     setLoadingMidias(true);
     getMidias({})
       .then(setMidias)
@@ -98,6 +88,25 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         .catch(() => {});
     }
   }, [auth?.user?.pess_ID, editingPedido]);
+
+  // Carrega operações comerciais conforme cliente/vendedor/loja
+  useEffect(() => {
+    const unem_id = auth?.unidade?.unem_Id;
+    const vddr_id = vendedor?.VDDR_ID;
+    const pess_id = cliente?.PESS_ID;
+    if (!unem_id) return;
+    setLoadingOperacoes(true);
+    getOperacoesComerciais({ unem_id, vddr_id, pess_id })
+      .then((ops) => {
+        setOperacoes(ops || []);
+        setOpcmId((cur) => {
+          if (cur && (ops || []).some((o: any) => o.OPCM_ID === cur)) return cur;
+          return ops && ops.length > 0 ? ops[0].OPCM_ID : '';
+        });
+      })
+      .catch(() => setOperacoes([]))
+      .finally(() => setLoadingOperacoes(false));
+  }, [auth?.unidade?.unem_Id, vendedor?.VDDR_ID, cliente?.PESS_ID]);
 
   const fetchVendedores = useCallback(async (query: string) => {
     try {
