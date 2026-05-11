@@ -15,6 +15,7 @@ import { ClienteSection } from '@/components/ordem-servico/ClienteSection';
 import { ItensTable } from '@/components/ordem-servico/ItensTable';
 import { ResumoFinanceiro } from '@/components/ordem-servico/ResumoFinanceiro';
 import { AutocompleteInput } from '@/components/ordem-servico/AutocompleteInput';
+import FormaVencimentoCard, { type ParcelaUI } from '@/components/pedidos/FormaVencimentoCard';
 import {
   getTiposOrdemServicos, getVendedores, getMidias, getOperacoesComerciais, getParametros,
   setPedido as savePedido,
@@ -61,6 +62,10 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
   const [loadingMidias, setLoadingMidias] = useState(false);
 
   const [observacoes, setObservacoes] = useState('');
+
+  const [formaPagamento, setFormaPagamento] = useState('');
+  const [cofrId, setCofrId] = useState('');
+  const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
 
   const [saving, setSaving] = useState(false);
 
@@ -299,9 +304,18 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       {/* Itens */}
       <ItensTable itens={itens} onChange={setItens} unemId={auth?.unidade?.unem_Id} />
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 gap-4">
-
+      {/* Resumo + Forma de Vencimento */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <FormaVencimentoCard
+          valorTotal={totalFinal}
+          unemId={auth?.unidade?.unem_Id}
+          formaSelecionada={formaPagamento}
+          onFormaChange={setFormaPagamento}
+          cofrId={cofrId}
+          onCofrChange={setCofrId}
+          parcelas={parcelas}
+          onParcelasChange={setParcelas}
+        />
         <ResumoFinanceiro
           itens={itens}
           descontoOS={descontoOS}
