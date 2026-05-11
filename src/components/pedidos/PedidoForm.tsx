@@ -304,18 +304,23 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       {/* Itens */}
       <ItensTable itens={itens} onChange={setItens} unemId={auth?.unidade?.unem_Id} />
 
-      {/* Resumo + Forma de Vencimento */}
+      {/* Resumo + Observações */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        <FormaVencimentoCard
-          valorTotal={totalFinal}
-          unemId={auth?.unidade?.unem_Id}
-          formaSelecionada={formaPagamento}
-          onFormaChange={setFormaPagamento}
-          cofrId={cofrId}
-          onCofrChange={setCofrId}
-          parcelas={parcelas}
-          onParcelasChange={setParcelas}
-        />
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-primary" /> Observações
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="OBSERVAÇÕES DO PEDIDO..."
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value.toUpperCase())}
+              className="min-h-[100px] text-sm"
+            />
+          </CardContent>
+        </Card>
         <ResumoFinanceiro
           itens={itens}
           descontoOS={descontoOS}
@@ -325,22 +330,17 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         />
       </div>
 
-      {/* Observações */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-primary" /> Observações
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            placeholder="OBSERVAÇÕES DO PEDIDO..."
-            value={observacoes}
-            onChange={(e) => setObservacoes(e.target.value.toUpperCase())}
-            className="min-h-[100px] text-sm"
-          />
-        </CardContent>
-      </Card>
+      {/* Forma de Vencimento */}
+      <FormaVencimentoCard
+        valorTotal={totalFinal}
+        unemId={auth?.unidade?.unem_Id}
+        formaSelecionada={formaPagamento}
+        onFormaChange={setFormaPagamento}
+        cofrId={cofrId}
+        onCofrChange={setCofrId}
+        parcelas={parcelas}
+        onParcelasChange={setParcelas}
+      />
 
       {/* Ações */}
       <div className="flex items-center justify-between bg-card border rounded-lg p-4 sticky bottom-0 shadow-lg">
