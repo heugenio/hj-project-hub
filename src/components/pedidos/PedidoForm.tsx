@@ -63,6 +63,10 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
 
   const [observacoes, setObservacoes] = useState('');
 
+  const [formaPagamento, setFormaPagamento] = useState('');
+  const [cofrId, setCofrId] = useState('');
+  const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
