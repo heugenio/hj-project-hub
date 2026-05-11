@@ -171,6 +171,18 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         };
       });
 
+      const [fvenIdSel, fpagIdSel] = (formaPagamento || '').split('|');
+      const vencimentosPayload = parcelas.map((p) => ({
+        ITPV_PARCELA: p.parcela,
+        ITPV_ITFV_ID: p.itfv_id || '',
+        ITPV_DIAS: p.dias,
+        ITPV_DATA: (p.vencimento || '').replace(/-/g, '/'),
+        ITPV_PERC: p.perc,
+        ITPV_VLR: p.valor,
+        ITPV_TIPO_PAGAMENTO: p.tipo_pagamento,
+        COFR_ID: p.cofr_id,
+      }));
+
       const payload: Record<string, any> = {
         PDDS_ID: orsvId || '',
         PDDS_NUMERO: orsvId ? numeroPedido : '',
@@ -187,7 +199,11 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         PDDS_VLR_TOTAL: totalFinal,
         PDDS_STATUS: 'Aberto',
         UNEM_ID: auth?.unidade?.unem_Id,
+        FVEN_ID: fvenIdSel || '',
+        FPAG_ID: fpagIdSel || '',
+        COFR_ID: cofrId || '',
         itens: itensPayload,
+        vencimentos: vencimentosPayload,
       };
       console.log('=== PAYLOAD PEDIDO ===', JSON.stringify(payload, null, 2));
       const result: any = await savePedido(payload as any);
