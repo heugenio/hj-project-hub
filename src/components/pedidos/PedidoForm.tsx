@@ -304,9 +304,18 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       {/* Itens */}
       <ItensTable itens={itens} onChange={setItens} unemId={auth?.unidade?.unem_Id} />
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 gap-4">
-
+      {/* Resumo + Forma de Vencimento */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <FormaVencimentoCard
+          valorTotal={totalFinal}
+          unemId={auth?.unidade?.unem_Id}
+          formaSelecionada={formaPagamento}
+          onFormaChange={setFormaPagamento}
+          cofrId={cofrId}
+          onCofrChange={setCofrId}
+          parcelas={parcelas}
+          onParcelasChange={setParcelas}
+        />
         <ResumoFinanceiro
           itens={itens}
           descontoOS={descontoOS}
