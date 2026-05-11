@@ -15,6 +15,7 @@ import { ClienteSection } from '@/components/ordem-servico/ClienteSection';
 import { ItensTable } from '@/components/ordem-servico/ItensTable';
 import { ResumoFinanceiro } from '@/components/ordem-servico/ResumoFinanceiro';
 import { AutocompleteInput } from '@/components/ordem-servico/AutocompleteInput';
+import FormaVencimentoCard, { type ParcelaUI } from '@/components/pedidos/FormaVencimentoCard';
 import {
   getTiposOrdemServicos, getVendedores, getMidias, getOperacoesComerciais, getParametros,
   setPedido as savePedido,
