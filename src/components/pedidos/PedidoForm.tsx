@@ -155,44 +155,44 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
           ? Number(((descontoOS * liquidoItem) / baseRateio).toFixed(2))
           : 0;
         return {
-          ITRQ_ID: i.ITRQ_ID || '',
-          ITOS_ID: i.ITOS_ID || '',
-          ORSV_ID: i.ORSV_ID || orsvId || '',
+          ITPD_ID: i.ITRQ_ID || '',
+          ITPD_ITOS_ID: i.ITOS_ID || '',
+          PDDS_ID: i.ORSV_ID || orsvId || '',
           PROD_ID: i.PROD_ID || '',
-          ITOS_TIPO: i.ITOS_TIPO,
-          ITOS_DESCRICAO: i.ITOS_DESCRICAO,
-          ITOS_QTDE: i.ITOS_QTDE,
-          ITOS_UNIDADE_MEDIDA: i.ITOS_UNIDADE_MEDIDA || 'UN',
-          ITOS_VLR_UNITARIO: i.ITOS_VLR_UNITARIO,
-          ITOS_DESCONTO: i.ITOS_DESCONTO,
-          ITOS_VLR_TOTAL: i.ITOS_VLR_TOTAL,
-          ITRQ_PRECO_TABELA: i.ITRQ_PRECO_TABELA ?? i.ITOS_VLR_UNITARIO,
-          ITRQ_VLR_DESCONTO_SOBRE_TOTAL: rateioDescontoTotal,
+          ITPD_TIPO: i.ITOS_TIPO,
+          ITPD_DESCRICAO: i.ITOS_DESCRICAO,
+          ITPD_QTDE: i.ITOS_QTDE,
+          ITPD_UNIDADE_MEDIDA: i.ITOS_UNIDADE_MEDIDA || 'UN',
+          ITPD_VLR_UNITARIO: i.ITOS_VLR_UNITARIO,
+          ITPD_DESCONTO: i.ITOS_DESCONTO,
+          ITPD_VLR_TOTAL: i.ITOS_VLR_TOTAL,
+          ITPD_PRECO_TABELA: i.ITRQ_PRECO_TABELA ?? i.ITOS_VLR_UNITARIO,
+          ITPD_VLR_DESCONTO_SOBRE_TOTAL: rateioDescontoTotal,
         };
       });
 
       const payload: Record<string, any> = {
-        ORSV_ID: orsvId || '',
-        ORSV_NUMERO: orsvId ? numeroPedido : '',
-        ORSV_DATA: dataPedido,
+        PDDS_ID: orsvId || '',
+        PDDS_NUMERO: orsvId ? numeroPedido : '',
+        PDDS_DATA: dataPedido,
         OPCM_ID: opcmId || '',
         PESS_ID: cliente.PESS_ID,
         VDDR_ID: vendedor?.VDDR_ID || '',
         MDIA_ID: midiaId || '',
         USRS_ID: auth?.user?.usrs_ID || '',
-        ORSV_OBSERVACOES: observacoes,
-        ORSV_VLR_SUBTOTAL: subtotal,
-        ORSV_VLR_DESCONTO: descontoOS,
-        ORSV_VLR_DESCONTO_SERVICO: descontoServico,
-        ORSV_VLR_TOTAL: totalFinal,
-        ORSV_STATUS: 'Aberto',
+        PDDS_OBSERVACOES: observacoes,
+        PDDS_VLR_SUBTOTAL: subtotal,
+        PDDS_VLR_DESCONTO: descontoOS,
+        PDDS_VLR_DESCONTO_SERVICO: descontoServico,
+        PDDS_VLR_TOTAL: totalFinal,
+        PDDS_STATUS: 'Aberto',
         UNEM_ID: auth?.unidade?.unem_Id,
         itens: itensPayload,
       };
       console.log('=== PAYLOAD PEDIDO ===', JSON.stringify(payload, null, 2));
-      const result = await savePedido(payload as Partial<OrdemServicoFull>);
-      if (result.ORSV_ID) setOrsvId(result.ORSV_ID);
-      if (result.ORSV_NUMERO) setNumeroPedido(result.ORSV_NUMERO);
+      const result: any = await savePedido(payload as any);
+      if (result?.PDDS_ID || result?.ORSV_ID) setOrsvId(result.PDDS_ID || result.ORSV_ID);
+      if (result?.PDDS_NUMERO || result?.ORSV_NUMERO) setNumeroPedido(result.PDDS_NUMERO || result.ORSV_NUMERO);
       setStatusPedido('Aberto');
       toast.success('Pedido salvo com sucesso!');
       setTimeout(() => onBack(), 300);
