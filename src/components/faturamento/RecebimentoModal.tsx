@@ -6,11 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, CreditCard, CheckCircle2, Banknote, Send } from "lucide-react";
+import { Loader2, CheckCircle2, Banknote, Send, CreditCard } from "lucide-react";
 import { toast } from "sonner";
-import { setFaturarPedido, type Pedido } from "@/lib/api";
-import { getNegociacoesPedidos, getFormasPagamentosItens, getParametros, type ItemFormaVencimento, type FormaPagamentoItem } from "@/lib/api-os";
-import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider, type TefResultado } from "@/lib/tef";
+import { setFaturarPedido, getCofres, type Cofre, type Pedido } from "@/lib/api";
+import {
+  getNegociacoesPedidos,
+  getFormasPagamentos,
+  getFormasPagamentosItens,
+  getGerarVencimentos,
+  getParametros,
+  type FormaPagamento,
+  type FormaPagamentoItem,
+} from "@/lib/api-os";
+import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider } from "@/lib/tef";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
@@ -22,163 +30,175 @@ interface Props {
   onPular: (pddsId: string) => void;
 }
 
-interface FormaOpt extends ItemFormaVencimento {
-  ITFV_ID: string;        // pode ser sintético para itens novos (ex: "new-<TPPR_ID>")
-  ITFV_NOME: string;
-  COFR_ID?: string;
-  TPPR_ID?: string;
-  IS_NEW?: boolean;
-}
-
-interface Pagamento {
-  uid: string;
-  itfvId?: string;       // pode ser vazio quando adicionado manualmente
-  itfvNome: string;
-  cofrId?: string;       // COFR_ID do vencimento de origem
-  tpprId?: string;       // quando adicionado via getFormasPagamentosItens
-  tef: boolean;
-  tipoPagamento: string;
+interface ParcelaUI {
+  parcela: number;
+  dias: number;
+  vencimento: string; // YYYY-MM-DD
+  perc: number;
   valor: number;
-  recebido?: number;
-  parcelas?: number;
-  tefStatus?: 'pendente' | 'aprovado' | 'cancelado';
-  tefResult?: TefResultado;
+  tipo_pagamento: string;
+  cofr_id: string;
+  itfv_id?: string;
+  tipoOptions?: FormaPagamentoItem[];
+  loadingTipos?: boolean;
+  tipo_cartao?: "" | "CREDITO" | "DEBITO";
+  qtd_parcelas_cartao?: string;
+  nr_auto?: string;
+  bandeira?: string;
+  tefStatus?: "pendente" | "aprovado" | "cancelado";
 }
 
 const fmtBRL = (v: number) =>
   (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const isDinheiro = (tipo: string) => /DINHEIRO|ESPECIE/i.test(tipo);
-const isCartao = (tipo: string) => /CART|CREDITO|DEBITO|CRÉDITO|DÉBITO/i.test(tipo);
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const round4 = (n: number) => Math.round(n * 10000) / 10000;
 
-// Mapeamento completo do parâmetro TefTipoGP (índice → identificador/label)
-const TEF_GP_LIST: { idx: number; value: string; label: string }[] = [
-  { idx: 0, value: 'gpNenhum', label: 'Sem gerenciador padrão' },
-  { idx: 1, value: 'gpTEF_Dial', label: 'TEF Discado antigo' },
-  { idx: 2, value: 'gpTEF_Disc', label: 'TEF Dedicado' },
-  { idx: 3, value: 'gpCliSiTef', label: 'Software Express / CliSiTef' },
-  { idx: 4, value: 'gpPayGo', label: 'Pay&Go' },
-  { idx: 5, value: 'gpAPI', label: 'Integração TEF via API' },
-  { idx: 6, value: 'gpTEF_Dial_Hipercard', label: 'TEF Dial Hipercard' },
-  { idx: 7, value: 'gpTEF_Disc_Hipercard', label: 'TEF Dedicado Hipercard' },
-  { idx: 8, value: 'gpCardScope', label: 'CardScope' },
-  { idx: 9, value: 'gpAuttar', label: 'Auttar' },
-  { idx: 10, value: 'gpVeSPague', label: 'VeSPague' },
-  { idx: 11, value: 'gpCappta', label: 'Cappta' },
-  { idx: 12, value: 'gpNTK', label: 'NTK Solutions' },
-  { idx: 13, value: 'gpGetNetLio', label: 'GetNet Lio' },
-  { idx: 14, value: 'gpPagSeguro', label: 'PagSeguro' },
-  { idx: 15, value: 'gpStone', label: 'Stone' },
-  { idx: 16, value: 'gpSafraPay', label: 'SafraPay' },
-  { idx: 17, value: 'gpBin', label: 'Bin' },
-  { idx: 18, value: 'gpCieloLio', label: 'Cielo Lio' },
-  { idx: 19, value: 'gpMercadoPago', label: 'Mercado Pago' },
-  { idx: 20, value: 'gpFiserv', label: 'Fiserv' },
-  { idx: 21, value: 'gpTefId', label: 'TEF ID' },
-];
-
-// Mapeia o gp* legado para o provider implementado em src/lib/tef.ts
-const GP_TO_PROVIDER: Record<string, TefProvider> = {
-  gpPayGo: 'paygo',
-  gpTefId: 'tef-id',
-  gpCappta: 'cappta',
-  gpCliSiTef: 'clisitef',
-  gpAPI: 'sw-express',
+const toISODate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
-const gpToProvider = (gp: string): TefProvider => GP_TO_PROVIDER[gp] || 'simulado';
+const addDays = (base: Date, days: number) => {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d;
+};
+
+const detectarCartao = (texto: string): { isCartao: boolean; tipo: "" | "CREDITO" | "DEBITO" } => {
+  const t = (texto || "").toUpperCase();
+  const isCartao = /CART[ÃA]O|CARTAO/.test(t);
+  if (!isCartao) return { isCartao: false, tipo: "" };
+  const isDebito = /D[ÉE]BITO|DEBITO/.test(t);
+  const isCredito = /CR[ÉE]DITO|CREDITO/.test(t);
+  return { isCartao: true, tipo: isDebito && !isCredito ? "DEBITO" : "CREDITO" };
+};
+
+// TEF Provider list (TefTipoGP)
+const TEF_GP_LIST: { idx: number; value: string; label: string }[] = [
+  { idx: 0, value: "gpNenhum", label: "Sem gerenciador padrão" },
+  { idx: 1, value: "gpTEF_Dial", label: "TEF Discado antigo" },
+  { idx: 2, value: "gpTEF_Disc", label: "TEF Dedicado" },
+  { idx: 3, value: "gpCliSiTef", label: "Software Express / CliSiTef" },
+  { idx: 4, value: "gpPayGo", label: "Pay&Go" },
+  { idx: 5, value: "gpAPI", label: "Integração TEF via API" },
+  { idx: 6, value: "gpTEF_Dial_Hipercard", label: "TEF Dial Hipercard" },
+  { idx: 7, value: "gpTEF_Disc_Hipercard", label: "TEF Dedicado Hipercard" },
+  { idx: 8, value: "gpCardScope", label: "CardScope" },
+  { idx: 9, value: "gpAuttar", label: "Auttar" },
+  { idx: 10, value: "gpVeSPague", label: "VeSPague" },
+  { idx: 11, value: "gpCappta", label: "Cappta" },
+  { idx: 12, value: "gpNTK", label: "NTK Solutions" },
+  { idx: 13, value: "gpGetNetLio", label: "GetNet Lio" },
+  { idx: 14, value: "gpPagSeguro", label: "PagSeguro" },
+  { idx: 15, value: "gpStone", label: "Stone" },
+  { idx: 16, value: "gpSafraPay", label: "SafraPay" },
+  { idx: 17, value: "gpBin", label: "Bin" },
+  { idx: 18, value: "gpCieloLio", label: "Cielo Lio" },
+  { idx: 19, value: "gpMercadoPago", label: "Mercado Pago" },
+  { idx: 20, value: "gpFiserv", label: "Fiserv" },
+  { idx: 21, value: "gpTefId", label: "TEF ID" },
+];
+const GP_TO_PROVIDER: Record<string, TefProvider> = {
+  gpPayGo: "paygo",
+  gpTefId: "tef-id",
+  gpCappta: "cappta",
+  gpCliSiTef: "clisitef",
+  gpAPI: "sw-express",
+};
+const gpToProvider = (gp: string): TefProvider => GP_TO_PROVIDER[gp] || "simulado";
 
 export default function RecebimentoModal({ open, pedido, fila, onClose, onFaturado, onPular }: Props) {
-  const [loadingFormas, setLoadingFormas] = useState(false);
-  const [formas, setFormas] = useState<FormaOpt[]>([]);
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const { auth } = useAuth();
+  const unemId = String((auth?.unidade as any)?.unem_Id || (auth?.unidade as any)?.unem_id || "");
+
+  const [loading, setLoading] = useState(false);
+  const [formas, setFormas] = useState<FormaPagamento[]>([]);
+  const [cofres, setCofres] = useState<Cofre[]>([]);
+  const [cofrId, setCofrId] = useState<string>("");
+  const [formaSelecionada, setFormaSelecionada] = useState<string>("");
+  const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
   const [confirmando, setConfirmando] = useState(false);
+
+  // TEF Provider (TefTipoGP)
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
   const [tefGpIdx, setTefGpIdx] = useState<number>(0);
-  const [tefGpLabel, setTefGpLabel] = useState<string>('Sem gerenciador padrão');
-  const [cofrIdPedido, setCofrIdPedido] = useState<string | undefined>(undefined);
-  const [loadingAdd, setLoadingAdd] = useState(false);
-  const { auth } = useAuth();
-  const unemId = String((auth?.unidade as any)?.unem_Id || (auth?.unidade as any)?.unem_id || '');
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
 
-  const totalPago = pagamentos.reduce((s, p) => s + (Number(p.valor) || 0), 0);
-  const totalRecebido = pagamentos.reduce(
-    (s, p) => s + (isDinheiro(p.tipoPagamento) ? Number(p.recebido || 0) : Number(p.valor || 0)),
-    0
+  const formasOptions = useMemo(
+    () =>
+      formas.map((forma, index) => ({
+        value: `${String(forma.FVEN_ID || forma.FPAG_ID || "")}|${String(forma.FPAG_ID || "")}|${index}`,
+        forma,
+        label: String(forma.FVEN_NOME || forma.FPAG_NOME || ""),
+      })),
+    [formas]
   );
-  const troco = Math.max(0, totalRecebido - total);
-  const saldo = +(total - totalPago).toFixed(2);
-  const podeConfirmar =
-    Math.abs(saldo) < 0.01 &&
-    pagamentos.length > 0 &&
-    pagamentos.every((p) => {
-      if (p.tef) return p.tefStatus === 'aprovado';
-      if (isDinheiro(p.tipoPagamento)) return (p.recebido || 0) >= p.valor - 0.01;
-      return p.valor > 0;
-    });
+  const formaAtual = useMemo(
+    () => formasOptions.find((i) => i.value === formaSelecionada),
+    [formasOptions, formaSelecionada]
+  );
+  const formaAtualLabel = formaAtual?.label || "";
 
-  // Carrega pagamentos diretamente das negociações do pedido (somente conferir)
+  const totalSomado = useMemo(
+    () => parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0),
+    [parcelas]
+  );
+  const totalPercentual = useMemo(
+    () => parcelas.reduce((s, p) => s + (Number(p.perc) || 0), 0),
+    [parcelas]
+  );
+
+  // Reset + load base data
   useEffect(() => {
     if (!open || !pedido) return;
-    setPagamentos([]);
-    setFormas([]);
-    setCofrIdPedido(undefined);
+    setFormaSelecionada("");
+    setCofrId("");
+    setParcelas([]);
+
     (async () => {
-      setLoadingFormas(true);
+      setLoading(true);
       try {
-        const negs = await getNegociacoesPedidos(pedido.PDDS_ID);
-        const list = Array.isArray(negs) ? negs : [];
-        let cofrFromNegs: string | undefined;
-        const pags: Pagamento[] = list.map((n: any, idx: number) => {
-          const itfvId = String(n.ITFV_ID || n.itfv_id || `neg-${idx}`);
-          const nome = String(
-            n.ITFV_NOME || n.itfv_nome || n.NGPD_TIPO_PAGAMENTO || n.TPPR_NOME || itfvId
-          );
-          const tipo = String(n.NGPD_TIPO_PAGAMENTO || n.ITFV_NOME || nome).toUpperCase();
-          const tef = String(n.ITFV_TEF || n.itfv_tef || '').toLowerCase() === 'sim';
-          const valor = +Number(String(n.NGPD_VLR_PARCELA || '0').replace(',', '.')).toFixed(2);
-          const parcelas = Number(n.NGPD_QTD_PCLS || 1);
-          const cofrId = n.NGPD_COFR_ID || n.COFR_ID || n.cofr_id || undefined;
-          if (!cofrFromNegs && cofrId) cofrFromNegs = String(cofrId);
-          return {
-            uid: Math.random().toString(36).slice(2),
-            itfvId,
-            itfvNome: nome,
-            cofrId: cofrId ? String(cofrId) : undefined,
-            tef,
-            tipoPagamento: tipo,
-            valor,
-            recebido: isDinheiro(tipo) ? valor : undefined,
-            parcelas: tef || isCartao(tipo) ? parcelas : undefined,
-            tefStatus: tef ? 'pendente' : undefined,
-          };
-        });
-        setPagamentos(pags);
-        setCofrIdPedido(cofrFromNegs);
-        // Lista para o select (originados das negociações)
-        const dedup = Array.from(
-          new Map(pags.map((p) => [p.itfvId!, { ITFV_ID: p.itfvId!, ITFV_NOME: p.itfvNome, ITFV_TEF: p.tef ? 'Sim' : 'Nao', TPPR_TIPO_PAGAMENTO: p.tipoPagamento, COFR_ID: p.cofrId } as FormaOpt])).values()
-        );
-        setFormas(dedup);
+        const [fp, cf, negs] = await Promise.all([
+          getFormasPagamentos(unemId).catch(() => [] as FormaPagamento[]),
+          getCofres().catch(() => [] as Cofre[]),
+          getNegociacoesPedidos(pedido.PDDS_ID).catch(() => [] as any[]),
+        ]);
+        setFormas(fp);
+        setCofres(cf);
+
+        // Cofre default: do pedido (negociações), senão "carteira", senão primeiro
+        const cofrFromNegs = Array.isArray(negs)
+          ? (negs.find((n: any) => n?.NGPD_COFR_ID || n?.COFR_ID) as any)
+          : null;
+        const cofrPedido = cofrFromNegs
+          ? String(cofrFromNegs.NGPD_COFR_ID || cofrFromNegs.COFR_ID || "")
+          : "";
+        if (cofrPedido) {
+          setCofrId(cofrPedido);
+        } else if (cf.length > 0) {
+          const carteira = cf.find((c) => /carteira/i.test(c.COFR_NOME || ""));
+          setCofrId((carteira || cf[0]).COFR_ID);
+        }
       } catch (e: any) {
-        toast.error('Erro ao carregar pagamentos do pedido: ' + (e?.message || ''));
+        toast.error("Erro ao carregar dados: " + (e?.message || ""));
       } finally {
-        setLoadingFormas(false);
+        setLoading(false);
       }
     })();
-  }, [open, pedido?.PDDS_ID]);
+  }, [open, pedido?.PDDS_ID, unemId]);
 
-  // Carrega o provedor TEF padrão da unidade via getParametros?nome=TefTipoGP
+  // TEF Provider via getParametros TefTipoGP
   useEffect(() => {
     if (!open || !unemId) return;
     (async () => {
       try {
-        const res = await getParametros({ unem_id: unemId, nome: 'TefTipoGP' });
+        const res = await getParametros({ unem_id: unemId, nome: "TefTipoGP" });
         const arr = Array.isArray(res) ? res : [];
-        const valRaw = (arr[0] as any)?.PARM_VALOR ?? (arr[0] as any)?.parm_valor ?? '0';
-        // PARM_VALOR pode vir como número (índice) ou como o próprio identificador gp*
+        const valRaw = (arr[0] as any)?.PARM_VALOR ?? (arr[0] as any)?.parm_valor ?? "0";
         let item = TEF_GP_LIST[0];
         const num = Number(String(valRaw).trim());
         if (!Number.isNaN(num) && TEF_GP_LIST[num]) {
@@ -188,153 +208,224 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           item = TEF_GP_LIST.find((x) => x.value.toLowerCase() === s.toLowerCase()) || TEF_GP_LIST[0];
         }
         setTefGpIdx(item.idx);
-        setTefGpLabel(item.label);
         const prov = gpToProvider(item.value);
         setTefProvider(prov);
         setTefProviderState(prov);
       } catch (e: any) {
-        console.warn('[Recebimento] getParametros TefTipoGP falhou:', e?.message || e);
+        console.warn("[Recebimento] getParametros TefTipoGP falhou:", e?.message || e);
       }
     })();
   }, [open, unemId]);
 
-
-  function buildPagamento(forma: FormaOpt, valor: number): Pagamento {
-    const tipo = String(forma.TPPR_TIPO_PAGAMENTO || forma.ITFV_NOME || '').toUpperCase();
-    const tef = String(forma.ITFV_TEF || '').toLowerCase() === 'sim';
-    const isNew = !!forma.IS_NEW;
-    return {
-      uid: Math.random().toString(36).slice(2),
-      // Itens novos NÃO carregam ITFV_ID — apenas COFR_ID do vencimento
-      itfvId: isNew ? undefined : forma.ITFV_ID,
-      itfvNome: forma.ITFV_NOME,
-      cofrId: forma.COFR_ID,
-      tpprId: forma.TPPR_ID,
-      tef,
-      tipoPagamento: tipo,
-      valor: +valor.toFixed(2),
-      recebido: isDinheiro(tipo) ? +valor.toFixed(2) : undefined,
-      parcelas: tef || isCartao(tipo) ? Number(forma.NGPD_QTD_PCLS || 1) : undefined,
-      tefStatus: tef ? 'pendente' : undefined,
-    };
-  }
-
-  const adicionarPagamento = async () => {
-    if (!cofrIdPedido) {
-      toast.error('Não foi possível identificar o COFR_ID do vencimento.');
+  // Quando seleciona forma + cofre -> getGerarVencimentos
+  useEffect(() => {
+    if (!formaAtual?.forma) {
+      setParcelas([]);
       return;
     }
-    setLoadingAdd(true);
-    try {
-      const itens = await getFormasPagamentosItens({ cofr_id: cofrIdPedido });
-      if (!Array.isArray(itens) || itens.length === 0) {
-        toast.error('Nenhuma forma de pagamento encontrada para o cofre informado.');
-        return;
+    const forma = formaAtual.forma;
+    const fvenId = String(forma.FVEN_ID || forma.FPAG_ID || "");
+    if (!fvenId || !cofrId || !total) {
+      setParcelas([]);
+      return;
+    }
+    (async () => {
+      setLoading(true);
+      try {
+        const today = new Date();
+        const dataref = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getDate()).padStart(2, "0")}`;
+        const vencs = await getGerarVencimentos({
+          fven_id: fvenId,
+          cofr_id: cofrId,
+          valor: total,
+          dataref,
+        });
+        if (!vencs || vencs.length === 0) {
+          toast.error("Nenhum vencimento gerado pela API.");
+          setParcelas([]);
+          return;
+        }
+        const base: ParcelaUI[] = vencs
+          .map((v: any, i) => {
+            const vencRaw = String(v.ITFV_DATA || v.VENCIMENTO || "").replace(/\//g, "-").slice(0, 10);
+            const dias = Number(v.ITFV_DIAS ?? v.DIAS ?? 0);
+            const perc = Number(v.ITFV_PERC ?? v.PERC ?? 0);
+            const valor = Number(v.ITFV_VLR ?? v.VALOR ?? 0);
+            const tipo = String(v.TPPR_TIPO_PAGAMENTO || v.TIPO_PAGAMENTO || forma?.FPAG_TIPO || "");
+            const parcela = Number(v.PARCELA) || i + 1;
+            return {
+              parcela,
+              dias,
+              vencimento: vencRaw,
+              perc,
+              valor,
+              tipo_pagamento: tipo,
+              cofr_id: String(v.COFR_ID || cofrId || ""),
+              itfv_id: String(v.ITFV_ID || ""),
+              tipoOptions: [],
+              loadingTipos: false,
+            };
+          })
+          .sort((a, b) => a.parcela - b.parcela);
+        setParcelas(base);
+      } catch (e: any) {
+        toast.error("Erro ao gerar vencimentos: " + e.message);
+        setParcelas([]);
+      } finally {
+        setLoading(false);
       }
-      // Mapeia para FormaOpt sintéticos (sem ITFV_ID real, apenas COFR_ID)
-      const novas: FormaOpt[] = itens.map((it, idx) => {
-        const tppr = String(it.TPPR_ID || `${idx}`);
-        const nome = String(it.TPPR_NOME || it.TPPR_TIPO_PAGAMENTO || `Forma ${idx + 1}`);
-        return {
-          ITFV_ID: `new-${tppr}`,
-          ITFV_NOME: nome,
-          ITFV_TEF: 'Nao',
-          TPPR_TIPO_PAGAMENTO: it.TPPR_TIPO_PAGAMENTO || nome,
-          COFR_ID: it.COFR_ID || cofrIdPedido,
-          TPPR_ID: tppr,
-          IS_NEW: true,
-        } as FormaOpt;
-      });
-      // Mescla na lista (evita duplicar pelo ITFV_ID sintético)
-      setFormas((prev) => {
-        const map = new Map(prev.map((f) => [f.ITFV_ID, f]));
-        for (const n of novas) if (!map.has(n.ITFV_ID)) map.set(n.ITFV_ID, n);
-        return Array.from(map.values());
-      });
-      setPagamentos((prev) => [...prev, buildPagamento(novas[0], Math.max(0, saldo))]);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formaAtual, cofrId, total]);
+
+  const updateParcela = (idx: number, patch: Partial<ParcelaUI>) => {
+    setParcelas((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+
+  const carregarTiposPagto = async (idx: number) => {
+    const p = parcelas[idx];
+    if (!p) return;
+    if (p.tipoOptions && p.tipoOptions.length > 0) return;
+    if (!p.itfv_id || !p.cofr_id) return;
+    updateParcela(idx, { loadingTipos: true });
+    try {
+      const itens = await getFormasPagamentosItens({ itfv_id: p.itfv_id, cofr_id: p.cofr_id });
+      updateParcela(idx, { tipoOptions: itens, loadingTipos: false });
     } catch (e: any) {
-      toast.error('Erro ao carregar formas: ' + (e?.message || ''));
-    } finally {
-      setLoadingAdd(false);
+      toast.error("Erro ao carregar tipos: " + e.message);
+      updateParcela(idx, { loadingTipos: false });
     }
   };
 
-  const removerPagamento = (uid: string) => {
-    setPagamentos((prev) => prev.filter((p) => p.uid !== uid));
+  const redistribuir = (idx: number, novoValor: number) => {
+    setParcelas((prev) => {
+      if (prev.length === 0) return prev;
+      const valorClamp = Math.max(0, Math.min(novoValor, total));
+      const restante = round2(total - valorClamp);
+      const outros = prev.filter((_, i) => i !== idx);
+      const qtdOutros = outros.length;
+      const next = prev.map((p, i) => {
+        if (i === idx) {
+          return {
+            ...p,
+            valor: round2(valorClamp),
+            perc: total > 0 ? round4((valorClamp / total) * 100) : 0,
+          };
+        }
+        return p;
+      });
+      if (qtdOutros === 0) return next;
+      const fatia = round2(restante / qtdOutros);
+      let acumulado = 0;
+      let contador = 0;
+      return next.map((p, i) => {
+        if (i === idx) return p;
+        contador++;
+        const isUltimo = contador === qtdOutros;
+        const v = isUltimo ? round2(restante - acumulado) : fatia;
+        acumulado = round2(acumulado + v);
+        return { ...p, valor: v, perc: total > 0 ? round4((v / total) * 100) : 0 };
+      });
+    });
+  };
+  const handlePercChange = (idx: number, novoPerc: number) =>
+    redistribuir(idx, round2((novoPerc / 100) * total));
+  const handleValorChange = (idx: number, novoValor: number) =>
+    redistribuir(idx, round2(novoValor));
+
+  const ajustarDiferenca = () => {
+    setParcelas((prev) => {
+      if (prev.length === 0) return prev;
+      const soma = prev.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+      const diff = round2(total - soma);
+      if (Math.abs(diff) === 0 || Math.abs(diff) > 0.1) return prev;
+      const lastIdx = prev.length - 1;
+      return prev.map((p, i) => {
+        if (i !== lastIdx) return p;
+        const novoValor = round2((Number(p.valor) || 0) + diff);
+        return { ...p, valor: novoValor, perc: total > 0 ? round4((novoValor / total) * 100) : 0 };
+      });
+    });
   };
 
-  const atualizar = (uid: string, patch: Partial<Pagamento>) => {
-    setPagamentos((prev) => prev.map((p) => (p.uid === uid ? { ...p, ...patch } : p)));
-  };
-
-  const trocarForma = (uid: string, itfvId: string) => {
-    const f = formas.find((x) => x.ITFV_ID === itfvId);
-    if (!f) return;
-    const atual = pagamentos.find((p) => p.uid === uid);
-    const valorAtual = atual?.valor ?? 0;
-    setPagamentos((prev) =>
-      prev.map((p) => (p.uid === uid ? { ...buildPagamento(f, valorAtual), uid } : p))
-    );
-  };
-
-  const executarTef = async (uid: string) => {
-    const pg = pagamentos.find((p) => p.uid === uid);
-    if (!pg) return;
-    const tipoCartao: 'credito' | 'debito' = /DEBITO|DÉBITO/i.test(pg.tipoPagamento) ? 'debito' : 'credito';
-    atualizar(uid, { tefStatus: 'pendente' });
+  const executarTefParcela = async (idx: number) => {
+    const p = parcelas[idx];
+    if (!p) return;
+    const tipoCartao: "credito" | "debito" = /DEBITO|DÉBITO/i.test(p.tipo_pagamento) ? "debito" : "credito";
+    updateParcela(idx, { tefStatus: "pendente" });
     toast.info(`TEF: iniciando transação (${tefProvider})...`);
     try {
       const res = await iniciarTransacaoTef({
         provider: tefProvider,
         tipo: tipoCartao,
-        valor: pg.valor,
-        parcelas: pg.parcelas || 1,
+        valor: p.valor,
+        parcelas: Number(p.qtd_parcelas_cartao) || 1,
       });
       if (res.ok) {
-        atualizar(uid, { tefStatus: 'aprovado', tefResult: res });
+        updateParcela(idx, {
+          tefStatus: "aprovado",
+          nr_auto: res.autorizacao || p.nr_auto,
+          bandeira: res.bandeira || p.bandeira,
+        });
         toast.success(`TEF aprovado • NSU ${res.nsu} • AUT ${res.autorizacao}`);
       } else {
-        atualizar(uid, { tefStatus: 'cancelado', tefResult: res });
-        toast.error('TEF: ' + (res.mensagem || 'transação não aprovada'));
+        updateParcela(idx, { tefStatus: "cancelado" });
+        toast.error("TEF: " + (res.mensagem || "transação não aprovada"));
       }
     } catch (e: any) {
-      atualizar(uid, { tefStatus: 'cancelado' });
-      toast.error('Erro TEF: ' + (e?.message || ''));
+      updateParcela(idx, { tefStatus: "cancelado" });
+      toast.error("Erro TEF: " + (e?.message || ""));
     }
   };
 
   const confirmarFaturamento = async () => {
     if (!pedido) return;
-    if (!podeConfirmar) {
-      toast.error('Saldo deve ser zero e todos os pagamentos válidos.');
+    if (!formaAtual) {
+      toast.error("Selecione a forma de pagamento.");
       return;
     }
-    // valida TEF
-    const algumTefPendente = pagamentos.some((p) => p.tef && p.tefStatus !== 'aprovado');
-    if (algumTefPendente) {
-      toast.error('Existe pagamento TEF não aprovado. Cancele ou execute o TEF.');
+    if (parcelas.length === 0) {
+      toast.error("Nenhuma parcela gerada.");
+      return;
+    }
+    for (const p of parcelas) {
+      const info = detectarCartao(p.tipo_pagamento || formaAtualLabel);
+      if (info.isCartao) {
+        const qtd = Number(p.qtd_parcelas_cartao);
+        if (!qtd || qtd < 1) {
+          toast.error(`Informe a Qtd. Parcelas do cartão na parcela ${p.parcela}.`);
+          return;
+        }
+      }
+    }
+    const somaAtual = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const diff = Math.abs(somaAtual - total);
+    if (diff > 0.1) {
+      toast.error(`Soma das parcelas (${fmtBRL(somaAtual)}) difere do total (${fmtBRL(total)}).`);
       return;
     }
 
     setConfirmando(true);
     try {
-      console.log('[Recebimento] Faturando pedido', {
+      console.log("[Recebimento] Faturando pedido", {
         pddsId: pedido.PDDS_ID,
         numero: pedido.PDDS_NUMERO,
         total,
-        pagamentos,
+        forma: formaAtualLabel,
+        cofrId,
+        parcelas,
       });
       const res = await setFaturarPedido(pedido.PDDS_ID);
-      console.log('[Recebimento] Resposta faturamento', res);
+      console.log("[Recebimento] Resposta faturamento", res);
       if (!res.ok) {
-        toast.error('Falha ao faturar pedido ' + pedido.PDDS_NUMERO);
+        toast.error("Falha ao faturar pedido " + pedido.PDDS_NUMERO);
         setConfirmando(false);
         return;
       }
       toast.success(`Pedido ${pedido.PDDS_NUMERO} faturado.`);
       onFaturado(pedido.PDDS_ID);
     } catch (e: any) {
-      toast.error('Erro: ' + (e?.message || ''));
+      toast.error("Erro: " + (e?.message || ""));
     } finally {
       setConfirmando(false);
     }
@@ -342,9 +433,12 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
   if (!pedido) return null;
 
+  const okValor = Math.abs(round2(total - totalSomado)) <= 0.1;
+  const podeConfirmar = !!formaAtual && parcelas.length > 0 && okValor;
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Banknote className="h-5 w-5" />
@@ -356,7 +450,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         </DialogHeader>
 
         {/* Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Card className="md:col-span-2">
             <CardContent className="p-3">
               <div className="text-[10px] uppercase text-muted-foreground">Cliente</div>
@@ -371,21 +465,9 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
               <div className="text-2xl font-bold">{fmtBRL(total)}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-3">
-              <div className="text-[10px] uppercase text-muted-foreground">Saldo</div>
-              <div
-                className={`text-2xl font-bold ${
-                  Math.abs(saldo) < 0.01 ? 'text-emerald-600' : 'text-destructive'
-                }`}
-              >
-                {fmtBRL(saldo)}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* TEF Provider (carregado de getParametros?nome=TefTipoGP) */}
+        {/* TEF Provider */}
         <div className="flex items-center gap-2 text-xs flex-wrap">
           <span className="text-muted-foreground">Provedor TEF:</span>
           <Select
@@ -394,7 +476,6 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
               const idx = Number(v);
               const item = TEF_GP_LIST.find((x) => x.idx === idx) || TEF_GP_LIST[0];
               setTefGpIdx(idx);
-              setTefGpLabel(item.label);
               const prov = gpToProvider(item.value);
               setTefProvider(prov);
               setTefProviderState(prov);
@@ -414,185 +495,293 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           <Badge variant="outline" className="text-[10px]">driver: {tefProvider}</Badge>
         </div>
 
-        {/* Pagamentos */}
-        <Card>
-          <CardContent className="p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold text-sm">Pagamentos</div>
-              <Button size="sm" variant="outline" onClick={adicionarPagamento} disabled={loadingFormas || loadingAdd}>
-                {loadingAdd ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />} Adicionar
-              </Button>
-            </div>
+        {/* Forma + Cofre */}
+        <div className="grid grid-cols-12 gap-2">
+          <div className="col-span-4 flex flex-col gap-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">Cofre</Label>
+            <Select value={cofrId} onValueChange={setCofrId}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="SELECIONE" />
+              </SelectTrigger>
+              <SelectContent>
+                {cofres.map((c) => (
+                  <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-xs">
+                    {c.COFR_NOME}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-8 flex flex-col gap-1">
+            <Label className="text-[10px] uppercase text-muted-foreground">Forma de Pagamento</Label>
+            <Select value={formaSelecionada} onValueChange={setFormaSelecionada} disabled={loading}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder={loading ? "CARREGANDO..." : "SELECIONE A FORMA DE PAGAMENTO"}>
+                  {formaAtualLabel ? <span className="block truncate pr-4">{formaAtualLabel}</span> : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {formasOptions.length === 0 && (
+                  <div className="px-2 py-1 text-xs text-muted-foreground">Nenhuma forma cadastrada</div>
+                )}
+                {formasOptions.map((item) => (
+                  <SelectItem key={item.value} value={item.value} className="text-xs">
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-            {loadingFormas && (
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 mr-2 animate-spin" /> Carregando formas...
+        {/* Grid de Parcelas (mesmo padrão da Finalizar OS) */}
+        <div className="rounded-lg border border-border/60 overflow-hidden bg-card shadow-sm">
+          <div className="grid grid-cols-24 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
+            <div className="col-span-1">Parc.</div>
+            <div className="col-span-1">Dias</div>
+            <div className="col-span-3">Vencimento</div>
+            <div className="col-span-2 text-right">%</div>
+            <div className="col-span-3 text-right">Valor</div>
+            <div className="col-span-3">Tipo Pagto</div>
+            <div className="col-span-2">Tipo Cartão</div>
+            <div className="col-span-2">Qtd. Parc. <span className="text-destructive">*</span></div>
+            <div className="col-span-2">Nr. Auto</div>
+            <div className="col-span-2">Bandeira</div>
+            <div className="col-span-3">Cofre Portador</div>
+          </div>
+          <div className="max-h-[300px] overflow-auto divide-y divide-border/40">
+            {parcelas.length === 0 && (
+              <div className="px-2 py-4 text-center text-[11px] text-muted-foreground">
+                {formaAtual ? "Nenhuma parcela." : "Selecione a forma de pagamento."}
               </div>
             )}
-
-            {!loadingFormas && pagamentos.length === 0 && (
-              <div className="text-xs text-muted-foreground">Nenhum pagamento adicionado.</div>
-            )}
-
-            <div className="space-y-2">
-              {pagamentos.map((p) => (
+            {parcelas.map((p, idx) => {
+              const cartaoInfo = detectarCartao(p.tipo_pagamento || formaAtualLabel);
+              const isCartaoLinha = cartaoInfo.isCartao;
+              const tipoCartaoLinha = p.tipo_cartao || cartaoInfo.tipo;
+              return (
                 <div
-                  key={p.uid}
-                  className="grid grid-cols-12 gap-2 items-end border rounded-md p-2 bg-muted/20"
+                  key={idx}
+                  className={`grid grid-cols-24 gap-1 px-2 py-0.5 items-center text-[11px] transition-colors hover:bg-accent/30 ${
+                    idx % 2 === 0 ? "" : "bg-muted/20"
+                  }`}
                 >
-                  <div className="col-span-12 md:col-span-4">
-                    <Label className="text-[10px]">Forma</Label>
-                    <Select value={p.itfvId ?? `new-${p.tpprId ?? p.uid}`} onValueChange={(v) => trocarForma(p.uid, v)}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formas.map((f) => (
-                          <SelectItem key={f.ITFV_ID} value={f.ITFV_ID} className="text-xs">
-                            {f.ITFV_NOME}
-                            {String(f.ITFV_TEF || '').toLowerCase() === 'sim' ? ' • TEF' : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="col-span-1 font-mono text-[11px] text-foreground/80">{p.parcela}</div>
+                  <div className="col-span-1">
+                    <Input
+                      type="number"
+                      value={isCartaoLinha && tipoCartaoLinha === "DEBITO" ? 1 : p.dias}
+                      onChange={(e) => {
+                        const dias = Number(e.target.value) || 0;
+                        updateParcela(idx, { dias, vencimento: toISODate(addDays(new Date(), dias)) });
+                      }}
+                      disabled={isCartaoLinha && tipoCartaoLinha === "DEBITO"}
+                      className="h-6 text-[10px] px-1"
+                    />
                   </div>
-
-                  <div className="col-span-6 md:col-span-2">
-                    <Label className="text-[10px]">Valor</Label>
+                  <div className="col-span-3">
+                    <Input
+                      type="date"
+                      value={p.vencimento}
+                      onChange={(e) => updateParcela(idx, { vencimento: e.target.value })}
+                      className="h-6 text-[10px] px-1"
+                    />
+                  </div>
+                  <div className="col-span-2">
                     <Input
                       type="number"
                       step="0.01"
-                      inputMode="decimal"
-                      className="h-8 text-right tabular-nums"
-                      value={(p.valor ?? 0).toFixed(2)}
-                      onChange={(e) => atualizar(p.uid, { valor: Number(e.target.value) || 0 })}
-                      onBlur={(e) =>
-                        atualizar(p.uid, { valor: +(Number(e.target.value) || 0).toFixed(2) })
-                      }
+                      value={p.perc}
+                      onChange={(e) => updateParcela(idx, { perc: Number(e.target.value) || 0 })}
+                      onBlur={(e) => handlePercChange(idx, Number(e.target.value) || 0)}
+                      className="h-6 text-[10px] text-right px-1"
                     />
                   </div>
-
-                  {isDinheiro(p.tipoPagamento) && (
-                    <div className="col-span-6 md:col-span-2">
-                      <Label className="text-[10px]">Recebido</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        className="h-8 text-right tabular-nums"
-                        value={(p.recebido ?? 0).toFixed(2)}
-                        onChange={(e) => atualizar(p.uid, { recebido: Number(e.target.value) || 0 })}
-                        onBlur={(e) =>
-                          atualizar(p.uid, { recebido: +(Number(e.target.value) || 0).toFixed(2) })
+                  <div className="col-span-3">
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={
+                        Number.isFinite(p.valor)
+                          ? p.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          : "0,00"
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                        const num = Number(raw);
+                        updateParcela(idx, { valor: Number.isFinite(num) ? num : 0 });
+                      }}
+                      onBlur={(e) => {
+                        const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                        handleValorChange(idx, Number(raw) || 0);
+                      }}
+                      className="h-6 text-[10px] text-right px-1 font-medium"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Select
+                      value={p.tipo_pagamento}
+                      onValueChange={(v) => {
+                        const info = detectarCartao(v);
+                        const isDeb = info.isCartao && info.tipo === "DEBITO";
+                        const patch: Partial<ParcelaUI> = {
+                          tipo_pagamento: v,
+                          tipo_cartao: info.isCartao ? info.tipo : "",
+                        };
+                        if (isDeb) {
+                          patch.dias = 1;
+                          patch.vencimento = toISODate(addDays(new Date(), 1));
                         }
-                      />
-                    </div>
-                  )}
-
-                  {(p.tef || isCartao(p.tipoPagamento)) && (
-                    <div className="col-span-6 md:col-span-2">
-                      <Label className="text-[10px]">Parcelas</Label>
+                        updateParcela(idx, patch);
+                      }}
+                      onOpenChange={(o) => { if (o) carregarTiposPagto(idx); }}
+                    >
+                      <SelectTrigger className="h-6 text-[11px] px-1.5">
+                        <SelectValue placeholder={p.loadingTipos ? "..." : "SELECIONE"}>
+                          <span className="block truncate">{p.tipo_pagamento}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {p.loadingTipos && (
+                          <div className="px-2 py-1 text-[11px] text-muted-foreground">Carregando...</div>
+                        )}
+                        {!p.loadingTipos && (!p.tipoOptions || p.tipoOptions.length === 0) && (
+                          <div className="px-2 py-1 text-[11px] text-muted-foreground">Sem opções</div>
+                        )}
+                        {p.tipoOptions?.map((it, i) => {
+                          const label = String(it.TPPR_TIPO_PAGAMENTO || it.TPPR_NOME || it.FPGI_TIPO_PAGAMENTO || "");
+                          if (!label) return null;
+                          return (
+                            <SelectItem key={`${it.TPPR_ID || it.FPGI_ID || i}-${i}`} value={label} className="text-[11px]">
+                              {label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2">
+                    <Input
+                      value={isCartaoLinha ? tipoCartaoLinha : ""}
+                      readOnly
+                      disabled={!isCartaoLinha}
+                      className="h-6 text-[10px] uppercase font-semibold bg-muted/40 px-1"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={isCartaoLinha && tipoCartaoLinha === "DEBITO" ? "1" : p.qtd_parcelas_cartao || ""}
+                      onChange={(e) => updateParcela(idx, { qtd_parcelas_cartao: e.target.value })}
+                      disabled={!isCartaoLinha || tipoCartaoLinha === "DEBITO"}
+                      placeholder={isCartaoLinha ? "1" : ""}
+                      className="h-6 text-[10px] px-1"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <div className="flex items-center gap-1">
                       <Input
-                        type="number"
-                        min={1}
-                        max={24}
-                        className="h-8 text-right"
-                        value={p.parcelas ?? 1}
-                        onChange={(e) =>
-                          atualizar(p.uid, { parcelas: Math.max(1, Number(e.target.value) || 1) })
-                        }
+                        value={p.nr_auto || ""}
+                        onChange={(e) => updateParcela(idx, { nr_auto: e.target.value.toUpperCase() })}
+                        disabled={!isCartaoLinha}
+                        className="h-6 text-[10px] uppercase px-1"
                       />
+                      {isCartaoLinha && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-6 px-1 shrink-0"
+                          onClick={() => executarTefParcela(idx)}
+                          title="Executar TEF"
+                        >
+                          <CreditCard className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
-                  )}
-
-                  <div className="col-span-6 md:col-span-1 text-[10px]">
-                    {p.tef && (
+                    {p.tefStatus && (
                       <Badge
                         variant={
-                          p.tefStatus === 'aprovado'
-                            ? 'default'
-                            : p.tefStatus === 'cancelado'
-                            ? 'destructive'
-                            : 'outline'
+                          p.tefStatus === "aprovado"
+                            ? "default"
+                            : p.tefStatus === "cancelado"
+                            ? "destructive"
+                            : "outline"
                         }
-                        className="text-[10px]"
+                        className="text-[9px] mt-0.5"
                       >
                         TEF {p.tefStatus}
                       </Badge>
                     )}
                   </div>
-
-                  <div className="col-span-6 md:col-span-1 flex gap-1 justify-end">
-                    {p.tef && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-7 px-2"
-                        onClick={() => executarTef(p.uid)}
-                      >
-                        <CreditCard className="h-3 w-3" />
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2"
-                      onClick={() => removerPagamento(p.uid)}
+                  <div className="col-span-2">
+                    <Select
+                      value={p.bandeira || ""}
+                      onValueChange={(v) => updateParcela(idx, { bandeira: v })}
+                      disabled={!isCartaoLinha}
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                      <SelectTrigger className="h-6 text-[10px] px-1.5">
+                        <SelectValue placeholder={isCartaoLinha ? "SEL." : ""} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["VISA", "MASTERCARD", "ELO", "AMEX", "HIPERCARD", "DINERS", "OUTRA"].map((b) => (
+                          <SelectItem key={b} value={b} className="text-[10px]">
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-
-                  {p.tef && p.tefResult?.ok && (
-                    <div className="col-span-12 text-[10px] text-muted-foreground bg-background rounded p-2 font-mono whitespace-pre-wrap">
-                      NSU {p.tefResult.nsu} • AUT {p.tefResult.autorizacao} • {p.tefResult.bandeira} •{' '}
-                      {p.tefResult.adquirente} • {p.tefResult.parcelas}x
-                    </div>
-                  )}
-
-                  {isDinheiro(p.tipoPagamento) && (p.recebido || 0) > p.valor && (
-                    <div className="col-span-12 text-[11px] text-emerald-600 font-semibold">
-                      Troco: {fmtBRL((p.recebido || 0) - p.valor)}
-                    </div>
-                  )}
+                  <div className="col-span-3">
+                    <Select value={p.cofr_id} onValueChange={(v) => updateParcela(idx, { cofr_id: v })}>
+                      <SelectTrigger className="h-6 text-[11px] px-1.5">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cofres.map((c) => (
+                          <SelectItem key={c.COFR_ID} value={c.COFR_ID} className="text-[11px]">
+                            {c.COFR_NOME}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Totais */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-          <Card>
-            <CardContent className="p-2">
-              <div className="text-[10px] uppercase text-muted-foreground">Total Pedido</div>
-              <div className="font-bold">{fmtBRL(total)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-2">
-              <div className="text-[10px] uppercase text-muted-foreground">Recebido</div>
-              <div className="font-bold">{fmtBRL(totalRecebido)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-2">
-              <div className="text-[10px] uppercase text-muted-foreground">Troco</div>
-              <div className="font-bold text-emerald-600">{fmtBRL(troco)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-2">
-              <div className="text-[10px] uppercase text-muted-foreground">Saldo</div>
-              <div
-                className={`font-bold ${
-                  Math.abs(saldo) < 0.01 ? 'text-emerald-600' : 'text-destructive'
-                }`}
-              >
-                {fmtBRL(saldo)}
+              );
+            })}
+          </div>
+          {parcelas.length > 0 && (() => {
+            const diffValor = round2(total - totalSomado);
+            const diffPerc = round2(100 - totalPercentual);
+            const okV = Math.abs(diffValor) <= 0.1;
+            const okP = Math.abs(diffPerc) <= 0.01;
+            return (
+              <div className="flex items-center gap-3 px-2 py-1.5 bg-muted/40 text-[10px] font-semibold border-t border-border/60 uppercase tracking-wide">
+                <div className="text-muted-foreground">TOTAIS</div>
+                <div className={okP ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}>
+                  {totalPercentual.toFixed(2)}%
+                </div>
+                <div className={okV ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}>
+                  {fmtBRL(totalSomado)}
+                </div>
+                <div className="ml-auto flex items-center gap-3">
+                  {!okV && Math.abs(diffValor) > 0 && (
+                    <button
+                      type="button"
+                      onClick={ajustarDiferenca}
+                      className="px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[9px] uppercase tracking-wide"
+                      title="Ajustar diferença na última parcela"
+                    >
+                      AJUSTAR {fmtBRL(diffValor)}
+                    </button>
+                  )}
+                  <div className="text-muted-foreground">
+                    TOTAL PEDIDO: <span className="text-foreground">{fmtBRL(total)}</span>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            );
+          })()}
         </div>
 
         {/* Ações */}
@@ -607,9 +796,9 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             variant="secondary"
             disabled={!podeConfirmar || confirmando}
             onClick={() => {
-              const cliente = pedido.PESS_NOME || pedido.PESS_RAZAO_SOCIAL || '';
-              const msg = `Olá ${cliente}, segue confirmação do pedido ${pedido.PDDS_NUMERO} no valor de ${fmtBRL(total)}.`;
-              window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+              const cli = pedido.PESS_NOME || pedido.PESS_RAZAO_SOCIAL || "";
+              const msg = `Olá ${cli}, segue confirmação do pedido ${pedido.PDDS_NUMERO} no valor de ${fmtBRL(total)}.`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
             }}
           >
             <Send className="h-4 w-4 mr-1" /> WhatsApp
