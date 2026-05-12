@@ -318,6 +318,13 @@ export const getPedidos = (
   return apiGet<Pedido[]>(`/getPedidos?${params.toString()}`);
 };
 
+export async function setFaturarPedido(pddsId: string): Promise<{ ok: boolean; raw: string }> {
+  const text = await proxyFetch(`/setFaturarPedidos?id=${encodeURIComponent(pddsId)}`);
+  const lower = (text || '').toLowerCase();
+  const ok = !/(erro|error|falha|fail)/.test(lower);
+  return { ok, raw: text };
+}
+
 // Cofres (configuração PIX dos bancos)
 export interface Cofre {
   COFR_NOME?: string;
