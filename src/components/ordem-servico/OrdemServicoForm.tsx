@@ -851,10 +851,11 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
 
     // ===== Rodapé: Assinaturas =====
     y += 10;
-    const sigW = contentW / 3;
+    const sigW = contentW / 4;
     const dataStr = `${dataOS.split('-').reverse().join('/')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
     [
       { titulo: 'DATA', valor: dataStr },
+      { titulo: 'VENDEDOR', valor: vendedor?.VDDR_NOME || vendedorText || '' },
       { titulo: 'TÉCNICO', valor: tecnico?.TCNC_NOME || '' },
       { titulo: 'CLIENTE', valor: cliente?.PESS_NOME || '' },
     ].forEach((s, idx) => {
@@ -868,7 +869,7 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
     });
 
     return doc;
-  }, [auth, numeroOS, orsvId, dataOS, cliente, veiculo, hodometro, tecnico, itens, descontoItens, descontoOS, descontoServico, totalFinal, observacoes, checklist]);
+  }, [auth, unidadeHeader, logoEmpresa, numeroOS, orsvId, dataOS, cliente, veiculo, hodometro, tecnico, vendedor, vendedorText, itens, descontoItens, descontoOS, descontoServico, totalFinal, observacoes, checklist]);
 
   const handlePrint = useCallback(() => {
     if (!osPersistida) return;
