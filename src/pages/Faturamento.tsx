@@ -10,6 +10,7 @@ import { Loader2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } fro
 import { useAuth } from "@/contexts/AuthContext";
 import { getPedidos, setFaturarPedido, type Pedido } from "@/lib/api";
 import { getNegociacoesPedidos } from "@/lib/api-os";
+import { getApiBaseUrl } from "@/lib/base-url";
 import { toast } from "sonner";
 
 interface Vencimento {
@@ -28,7 +29,7 @@ export default function Faturamento() {
   const [searched, setSearched] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [faturando, setFaturando] = useState(false);
-  const [payloads, setPayloads] = useState<{ id: string; numero?: string; ok: boolean; raw: string; error?: string }[]>([]);
+  
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [vencimentos, setVencimentos] = useState<Record<string, Vencimento[]>>({});
   const [loadingVenc, setLoadingVenc] = useState<Set<string>>(new Set());
@@ -148,33 +149,30 @@ export default function Faturamento() {
     if (!confirm(`Confirma o faturamento de ${selected.size} pedido(s)?`)) return;
 
     setFaturando(true);
-    setPayloads([]);
     let okCount = 0;
     let failCount = 0;
     const failedIds: string[] = [];
-    const results: { id: string; numero?: string; ok: boolean; raw: string; error?: string }[] = [];
 
     for (const id of Array.from(selected)) {
-      const ped = data.find((p) => p.PDDS_ID === id);
       try {
         const res = await setFaturarPedido(id);
-        results.push({ id, numero: ped?.PDDS_NUMERO, ok: res.ok, raw: res.raw });
         if (res.ok) okCount++;
         else { failCount++; failedIds.push(id); }
-      } catch (e: any) {
-        results.push({ id, numero: ped?.PDDS_NUMERO, ok: false, raw: '', error: e?.message || String(e) });
+      } catch {
         failCount++;
         failedIds.push(id);
       }
     }
 
-    setPayloads(results);
     setFaturando(false);
     if (okCount > 0) toast.success(`${okCount} pedido(s) faturado(s) com sucesso.`);
     if (failCount > 0) toast.error(`${failCount} pedido(s) com falha: ${failedIds.join(", ")}`);
     setSelected(new Set());
     handleSearch();
   };
+
+  const baseUrl = getApiBaseUrl();
+  const selectedPedidos = data.filter((p) => selected.has(p.PDDS_ID));
 
   return (
     <div className="space-y-4">
@@ -349,29 +347,20 @@ export default function Faturamento() {
         </CardContent>
       </Card>
 
-      {payloads.length > 0 && (
+      {selectedPedidos.length > 0 && (
         <Card>
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Payload de retorno (setFaturarPedidos)</h2>
-              <Button variant="ghost" size="sm" onClick={() => setPayloads([])}>Limpar</Button>
+              <h2 className="text-sm font-semibold">Payload de envio (setFaturarPedidos)</h2>
+              <span className="text-xs text-muted-foreground">
+                {selectedPedidos.length} requisição(ões) GET — uma por pedido
+              </span>
             </div>
-            <div className="space-y-2">
-              {payloads.map((p, i) => (
-                <div key={i} className="border rounded p-2 text-xs">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge className={p.ok ? "bg-accent text-accent-foreground" : "bg-destructive text-destructive-foreground"}>
-                      {p.ok ? "OK" : "ERRO"}
-                    </Badge>
-                    <span className="font-mono">Nº {p.numero || "-"}</span>
-                    <span className="text-muted-foreground">PDDS_ID: {p.id}</span>
-                  </div>
-                  <pre className="bg-muted/40 p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap break-all">
-{p.error ? `ERROR: ${p.error}` : (p.raw || "(vazio)")}
-                  </pre>
-                </div>
-              ))}
-            </div>
+            <pre className="bg-muted/40 p-2 rounded overflow-auto max-h-60 text-xs whitespace-pre-wrap break-all">
+{selectedPedidos
+  .map((p) => `GET ${baseUrl}/setFaturarPedidos?id=${encodeURIComponent(p.PDDS_ID)}    # Nº ${p.PDDS_NUMERO}`)
+  .join('\n')}
+            </pre>
           </CardContent>
         </Card>
       )}
