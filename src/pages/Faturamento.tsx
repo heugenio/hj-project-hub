@@ -153,12 +153,17 @@ export default function Faturamento() {
     let failCount = 0;
     const failedIds: string[] = [];
 
+    const baseUrlLog = getApiBaseUrl();
     for (const id of Array.from(selected)) {
+      const url = `${baseUrlLog}/setFaturarPedidos?id=${encodeURIComponent(id)}`;
+      console.log('[Faturamento] GET', url);
       try {
         const res = await setFaturarPedido(id);
+        console.log('[Faturamento] Resposta', { id, ok: res.ok, raw: (res as any).raw ?? res });
         if (res.ok) okCount++;
         else { failCount++; failedIds.push(id); }
-      } catch {
+      } catch (err) {
+        console.error('[Faturamento] Erro', { id, err });
         failCount++;
         failedIds.push(id);
       }
@@ -171,8 +176,6 @@ export default function Faturamento() {
     handleSearch();
   };
 
-  const baseUrl = getApiBaseUrl();
-  const selectedPedidos = data.filter((p) => selected.has(p.PDDS_ID));
 
   return (
     <div className="space-y-4">
@@ -347,23 +350,6 @@ export default function Faturamento() {
         </CardContent>
       </Card>
 
-      {selectedPedidos.length > 0 && (
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Payload de envio (setFaturarPedidos)</h2>
-              <span className="text-xs text-muted-foreground">
-                {selectedPedidos.length} requisição(ões) GET — uma por pedido
-              </span>
-            </div>
-            <pre className="bg-muted/40 p-2 rounded overflow-auto max-h-60 text-xs whitespace-pre-wrap break-all">
-{selectedPedidos
-  .map((p) => `GET ${baseUrl}/setFaturarPedidos?id=${encodeURIComponent(p.PDDS_ID)}    # Nº ${p.PDDS_NUMERO}`)
-  .join('\n')}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
