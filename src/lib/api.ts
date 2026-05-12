@@ -5,9 +5,9 @@ function getBaseUrl(): string {
   return getApiBaseUrl();
 }
 
-async function proxyFetch(endpoint: string, method: 'GET' | 'POST' = 'GET'): Promise<string> {
+async function proxyFetch(endpoint: string, method: 'GET' | 'POST' = 'GET', body?: unknown): Promise<string> {
   const { data, error } = await supabase.functions.invoke('api-proxy', {
-    body: { baseUrl: getBaseUrl(), endpoint, method },
+    body: { baseUrl: getBaseUrl(), endpoint, method, body },
   });
   if (error) throw new Error(`API proxy error: ${error.message}`);
   if (typeof data === 'object' && data !== null) return JSON.stringify(data);
