@@ -170,6 +170,34 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     })();
   }, [open, pedido?.PDDS_ID]);
 
+  // Carrega o provedor TEF padrão da unidade via getParametros?nome=TefTipoGP
+  useEffect(() => {
+    if (!open || !unemId) return;
+    (async () => {
+      try {
+        const res = await getParametros({ unem_id: unemId, nome: 'TefTipoGP' });
+        const arr = Array.isArray(res) ? res : [];
+        const valRaw = (arr[0] as any)?.PARM_VALOR ?? (arr[0] as any)?.parm_valor ?? '0';
+        // PARM_VALOR pode vir como número (índice) ou como o próprio identificador gp*
+        let item = TEF_GP_LIST[0];
+        const num = Number(String(valRaw).trim());
+        if (!Number.isNaN(num) && TEF_GP_LIST[num]) {
+          item = TEF_GP_LIST[num];
+        } else {
+          const s = String(valRaw).trim();
+          item = TEF_GP_LIST.find((x) => x.value.toLowerCase() === s.toLowerCase()) || TEF_GP_LIST[0];
+        }
+        setTefGpIdx(item.idx);
+        setTefGpLabel(item.label);
+        const prov = gpToProvider(item.value);
+        setTefProvider(prov);
+        setTefProviderState(prov);
+      } catch (e: any) {
+        console.warn('[Recebimento] getParametros TefTipoGP falhou:', e?.message || e);
+      }
+    })();
+  }, [open, unemId]);
+
 
   function buildPagamento(forma: FormaOpt, valor: number): Pagamento {
     const tipo = String(forma.TPPR_TIPO_PAGAMENTO || forma.ITFV_NOME || '').toUpperCase();
