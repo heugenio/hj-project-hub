@@ -91,21 +91,27 @@ export default function Faturamento() {
     if (!confirm(`Confirma o faturamento de ${selected.size} pedido(s)?`)) return;
 
     setFaturando(true);
+    setPayloads([]);
     let okCount = 0;
     let failCount = 0;
     const failedIds: string[] = [];
+    const results: { id: string; numero?: string; ok: boolean; raw: string; error?: string }[] = [];
 
     for (const id of Array.from(selected)) {
+      const ped = data.find((p) => p.PDDS_ID === id);
       try {
         const res = await setFaturarPedido(id);
+        results.push({ id, numero: ped?.PDDS_NUMERO, ok: res.ok, raw: res.raw });
         if (res.ok) okCount++;
         else { failCount++; failedIds.push(id); }
-      } catch {
+      } catch (e: any) {
+        results.push({ id, numero: ped?.PDDS_NUMERO, ok: false, raw: '', error: e?.message || String(e) });
         failCount++;
         failedIds.push(id);
       }
     }
 
+    setPayloads(results);
     setFaturando(false);
     if (okCount > 0) toast.success(`${okCount} pedido(s) faturado(s) com sucesso.`);
     if (failCount > 0) toast.error(`${failCount} pedido(s) com falha: ${failedIds.join(", ")}`);
