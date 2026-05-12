@@ -376,7 +376,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                 >
                   <div className="col-span-12 md:col-span-4">
                     <Label className="text-[10px]">Forma</Label>
-                    <Select value={p.itfvId} onValueChange={(v) => trocarForma(p.uid, v)}>
+                    <Select value={p.itfvId ?? `new-${p.tpprId ?? p.uid}`} onValueChange={(v) => trocarForma(p.uid, v)}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
