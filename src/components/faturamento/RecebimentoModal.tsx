@@ -286,13 +286,12 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   // Quando seleciona forma + cofre -> getGerarVencimentos
   useEffect(() => {
     if (!formaAtual?.forma) {
-      setParcelas([]);
+      // Não limpar — preserva grid carregada das negociações do pedido
       return;
     }
     const forma = formaAtual.forma;
     const fvenId = String(forma.FVEN_ID || forma.FPAG_ID || "");
     if (!fvenId || !cofrId || !total) {
-      setParcelas([]);
       return;
     }
     (async () => {
