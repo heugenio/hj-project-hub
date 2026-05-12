@@ -138,19 +138,19 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
           } catch {}
         }
 
-        // Itens
+        // Itens (campos reais do getItensPedidos: ITPD_*)
         const itensMapped: ItemOS[] = (itensRaw || []).map((i: any) => ({
-          ITOS_ID: i.ITPD_ITOS_ID || i.ITOS_ID || '',
+          ITOS_ID: '',
           ITRQ_ID: i.ITPD_ID || '',
           ORSV_ID: i.PDDS_ID || pddsId,
-          ITOS_TIPO: (i.ITPD_TIPO || i.ITOS_TIPO || 'P') as 'P' | 'S',
-          ITOS_DESCRICAO: String(i.ITPD_DESCRICAO || i.PROD_DESCRICAO || ''),
+          ITOS_TIPO: 'P' as 'P' | 'S',
+          ITOS_DESCRICAO: String(i.ITPD_PROD_DESCRICAO || i.PROD_NOME || i.ITPD_DESCRICAO_ESTENDIDA || ''),
           ITOS_QTDE: Number(i.ITPD_QTDE || 0),
-          ITOS_VLR_UNITARIO: Number(i.ITPD_VLR_UNITARIO || 0),
+          ITOS_VLR_UNITARIO: Number(i.ITPD_PRECO_UNITARIO || 0),
           ITOS_DESCONTO: Number(i.ITPD_DESCONTO || 0),
-          ITOS_VLR_TOTAL: Number(i.ITPD_VLR_TOTAL || 0),
-          ITOS_UNIDADE_MEDIDA: i.ITPD_UNIDADE_MEDIDA || 'UN',
-          ITRQ_PRECO_TABELA: Number(i.ITPD_PRECO_TABELA || i.ITPD_VLR_UNITARIO || 0),
+          ITOS_VLR_TOTAL: Number(i.ITPD_VLR_FINAL || 0),
+          ITOS_UNIDADE_MEDIDA: i.ITPD_UNID_SIGLA || 'UN',
+          ITRQ_PRECO_TABELA: Number(i.ITPD_PRECO_TABELA || i.ITPD_PRECO_UNITARIO || 0),
           ITRQ_VLR_DESCONTO_SOBRE_TOTAL: Number(i.ITPD_VLR_DESCONTO_SOBRE_TOTAL || 0),
           PROD_ID: i.PROD_ID || '',
           PROD_CODIGO: i.PROD_CODIGO || '',
@@ -160,14 +160,18 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         if (d.PDDS_VLR_DESCONTO) setDescontoOS(Number(d.PDDS_VLR_DESCONTO));
         if (d.PDDS_VLR_DESCONTO_SERVICO) setDescontoServico(Number(d.PDDS_VLR_DESCONTO_SERVICO));
 
-        // Forma de pagamento + Parcelas
-        if (d.FVEN_ID || d.FPAG_ID) {
-          setFormaPagamento(`${String(d.FVEN_ID || '')}|${String(d.FPAG_ID || '')}`);
+        // Forma de pagamento + Parcelas (campos reais: NGPD_*, FVEN_ID, COFR_ID na negociação)
+        const primeiraNeg: any = (negocRaw && negocRaw[0]) || null;
+        const fvenId = d.FVEN_ID || primeiraNeg?.FVEN_ID || '';
+        const fpagId = d.FPAG_ID || primeiraNeg?.FPAG_ID || '';
+        if (fvenId || fpagId) {
+          setFormaPagamento(`${String(fvenId)}|${String(fpagId)}`);
         }
-        if (d.COFR_ID) setCofrId(String(d.COFR_ID));
+        const cofr = d.COFR_ID || primeiraNeg?.COFR_ID || '';
+        if (cofr) setCofrId(String(cofr));
 
         const parcelasMapped: ParcelaUI[] = (negocRaw || []).map((p: any, idx: number) => {
-          const dataRaw = String(p.ITPV_DATA || '');
+          const dataRaw = String(p.NGPD_DATA_VENCIMENTO || '');
           let venc = '';
           if (/^\d{2}\/\d{2}\/\d{4}/.test(dataRaw)) {
             const [dd, mm, yyyy] = dataRaw.slice(0, 10).split('/');
@@ -176,14 +180,14 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
             venc = dataRaw.slice(0, 10).replace(/\//g, '-');
           }
           return {
-            parcela: Number(p.ITPV_PARCELA || idx + 1),
-            dias: Number(p.ITPV_DIAS || 0),
+            parcela: idx + 1,
+            dias: Number(p.NGPD_DIAS_VENCIMENTO || 0),
             vencimento: venc,
-            perc: Number(p.ITPV_PERC || 0),
-            valor: Number(p.ITPV_VLR || 0),
-            tipo_pagamento: String(p.ITPV_TIPO_PAGAMENTO || p.TPPR_TIPO_PAGAMENTO || ''),
+            perc: Number(String(p.NGPD_PERC_VENCIMENTO || '0').replace(',', '.')),
+            valor: Number(String(p.NGPD_VLR_PARCELA || '0').replace(',', '.')),
+            tipo_pagamento: String(p.NGPD_TIPO_PAGAMENTO || ''),
             cofr_id: String(p.COFR_ID || ''),
-            itfv_id: String(p.ITPV_ITFV_ID || ''),
+            itfv_id: String(p.ITFV_ID || ''),
           };
         });
         if (parcelasMapped.length > 0) setParcelas(parcelasMapped);
