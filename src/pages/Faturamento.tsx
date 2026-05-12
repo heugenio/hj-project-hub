@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPedidos, setFaturarPedido, type Pedido } from "@/lib/api";
+import { getPedidos, type Pedido } from "@/lib/api";
 import { getNegociacoesPedidos } from "@/lib/api-os";
-import { getApiBaseUrl } from "@/lib/base-url";
 import { toast } from "sonner";
+import RecebimentoModal from "@/components/faturamento/RecebimentoModal";
 
 interface Vencimento {
   parcela: number;
