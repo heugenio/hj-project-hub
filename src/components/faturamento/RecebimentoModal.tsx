@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Trash2, CreditCard, CheckCircle2, Banknote, Send } from "lucide-react";
 import { toast } from "sonner";
 import { setFaturarPedido, type Pedido } from "@/lib/api";
-import { getNegociacoesPedidos, type ItemFormaVencimento } from "@/lib/api-os";
+import { getNegociacoesPedidos, getFormasPagamentosItens, type ItemFormaVencimento, type FormaPagamentoItem } from "@/lib/api-os";
 import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider, type TefResultado } from "@/lib/tef";
 
 interface Props {
@@ -22,22 +22,24 @@ interface Props {
 }
 
 interface FormaOpt extends ItemFormaVencimento {
-  ITFV_ID: string;
+  ITFV_ID: string;        // pode ser sintético para itens novos (ex: "new-<TPPR_ID>")
   ITFV_NOME: string;
+  COFR_ID?: string;
+  TPPR_ID?: string;
+  IS_NEW?: boolean;
 }
 
 interface Pagamento {
   uid: string;
-  itfvId: string;
+  itfvId?: string;       // pode ser vazio quando adicionado manualmente
   itfvNome: string;
+  cofrId?: string;       // COFR_ID do vencimento de origem
+  tpprId?: string;       // quando adicionado via getFormasPagamentosItens
   tef: boolean;
-  tipoPagamento: string; // ex: "DINHEIRO", "CARTAO CREDITO"...
+  tipoPagamento: string;
   valor: number;
-  // dinheiro
   recebido?: number;
-  // cartão
   parcelas?: number;
-  // tef
   tefStatus?: 'pendente' | 'aprovado' | 'cancelado';
   tefResult?: TefResultado;
 }
@@ -63,6 +65,8 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [confirmando, setConfirmando] = useState(false);
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
+  const [cofrIdPedido, setCofrIdPedido] = useState<string | undefined>(undefined);
+  const [loadingAdd, setLoadingAdd] = useState(false);
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
@@ -88,11 +92,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     if (!open || !pedido) return;
     setPagamentos([]);
     setFormas([]);
+    setCofrIdPedido(undefined);
     (async () => {
       setLoadingFormas(true);
       try {
         const negs = await getNegociacoesPedidos(pedido.PDDS_ID);
         const list = Array.isArray(negs) ? negs : [];
+        let cofrFromNegs: string | undefined;
         const pags: Pagamento[] = list.map((n: any, idx: number) => {
           const itfvId = String(n.ITFV_ID || n.itfv_id || `neg-${idx}`);
           const nome = String(
@@ -102,10 +108,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           const tef = String(n.ITFV_TEF || n.itfv_tef || '').toLowerCase() === 'sim';
           const valor = +Number(String(n.NGPD_VLR_PARCELA || '0').replace(',', '.')).toFixed(2);
           const parcelas = Number(n.NGPD_QTD_PCLS || 1);
+          const cofrId = n.NGPD_COFR_ID || n.COFR_ID || n.cofr_id || undefined;
+          if (!cofrFromNegs && cofrId) cofrFromNegs = String(cofrId);
           return {
             uid: Math.random().toString(36).slice(2),
             itfvId,
             itfvNome: nome,
+            cofrId: cofrId ? String(cofrId) : undefined,
             tef,
             tipoPagamento: tipo,
             valor,
@@ -115,9 +124,10 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           };
         });
         setPagamentos(pags);
-        // Mantém uma lista de formas (apenas para o select usar como fallback)
+        setCofrIdPedido(cofrFromNegs);
+        // Lista para o select (originados das negociações)
         const dedup = Array.from(
-          new Map(pags.map((p) => [p.itfvId, { ITFV_ID: p.itfvId, ITFV_NOME: p.itfvNome, ITFV_TEF: p.tef ? 'Sim' : 'Nao', TPPR_TIPO_PAGAMENTO: p.tipoPagamento } as FormaOpt])).values()
+          new Map(pags.map((p) => [p.itfvId!, { ITFV_ID: p.itfvId!, ITFV_NOME: p.itfvNome, ITFV_TEF: p.tef ? 'Sim' : 'Nao', TPPR_TIPO_PAGAMENTO: p.tipoPagamento, COFR_ID: p.cofrId } as FormaOpt])).values()
         );
         setFormas(dedup);
       } catch (e: any) {
@@ -132,10 +142,14 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   function buildPagamento(forma: FormaOpt, valor: number): Pagamento {
     const tipo = String(forma.TPPR_TIPO_PAGAMENTO || forma.ITFV_NOME || '').toUpperCase();
     const tef = String(forma.ITFV_TEF || '').toLowerCase() === 'sim';
+    const isNew = !!forma.IS_NEW;
     return {
       uid: Math.random().toString(36).slice(2),
-      itfvId: forma.ITFV_ID,
+      // Itens novos NÃO carregam ITFV_ID — apenas COFR_ID do vencimento
+      itfvId: isNew ? undefined : forma.ITFV_ID,
       itfvNome: forma.ITFV_NOME,
+      cofrId: forma.COFR_ID,
+      tpprId: forma.TPPR_ID,
       tef,
       tipoPagamento: tipo,
       valor: +valor.toFixed(2),
@@ -145,12 +159,44 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     };
   }
 
-  const adicionarPagamento = () => {
-    if (formas.length === 0) {
-      toast.error('Nenhuma forma de pagamento disponível.');
+  const adicionarPagamento = async () => {
+    if (!cofrIdPedido) {
+      toast.error('Não foi possível identificar o COFR_ID do vencimento.');
       return;
     }
-    setPagamentos((prev) => [...prev, buildPagamento(formas[0], Math.max(0, saldo))]);
+    setLoadingAdd(true);
+    try {
+      const itens = await getFormasPagamentosItens({ cofr_id: cofrIdPedido });
+      if (!Array.isArray(itens) || itens.length === 0) {
+        toast.error('Nenhuma forma de pagamento encontrada para o cofre informado.');
+        return;
+      }
+      // Mapeia para FormaOpt sintéticos (sem ITFV_ID real, apenas COFR_ID)
+      const novas: FormaOpt[] = itens.map((it, idx) => {
+        const tppr = String(it.TPPR_ID || `${idx}`);
+        const nome = String(it.TPPR_NOME || it.TPPR_TIPO_PAGAMENTO || `Forma ${idx + 1}`);
+        return {
+          ITFV_ID: `new-${tppr}`,
+          ITFV_NOME: nome,
+          ITFV_TEF: 'Nao',
+          TPPR_TIPO_PAGAMENTO: it.TPPR_TIPO_PAGAMENTO || nome,
+          COFR_ID: it.COFR_ID || cofrIdPedido,
+          TPPR_ID: tppr,
+          IS_NEW: true,
+        } as FormaOpt;
+      });
+      // Mescla na lista (evita duplicar pelo ITFV_ID sintético)
+      setFormas((prev) => {
+        const map = new Map(prev.map((f) => [f.ITFV_ID, f]));
+        for (const n of novas) if (!map.has(n.ITFV_ID)) map.set(n.ITFV_ID, n);
+        return Array.from(map.values());
+      });
+      setPagamentos((prev) => [...prev, buildPagamento(novas[0], Math.max(0, saldo))]);
+    } catch (e: any) {
+      toast.error('Erro ao carregar formas: ' + (e?.message || ''));
+    } finally {
+      setLoadingAdd(false);
+    }
   };
 
   const removerPagamento = (uid: string) => {
@@ -307,8 +353,8 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           <CardContent className="p-3 space-y-2">
             <div className="flex items-center justify-between">
               <div className="font-semibold text-sm">Pagamentos</div>
-              <Button size="sm" variant="outline" onClick={adicionarPagamento} disabled={loadingFormas}>
-                <Plus className="h-3 w-3 mr-1" /> Adicionar
+              <Button size="sm" variant="outline" onClick={adicionarPagamento} disabled={loadingFormas || loadingAdd}>
+                {loadingAdd ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />} Adicionar
               </Button>
             </div>
 
@@ -330,7 +376,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                 >
                   <div className="col-span-12 md:col-span-4">
                     <Label className="text-[10px]">Forma</Label>
-                    <Select value={p.itfvId} onValueChange={(v) => trocarForma(p.uid, v)}>
+                    <Select value={p.itfvId ?? `new-${p.tpprId ?? p.uid}`} onValueChange={(v) => trocarForma(p.uid, v)}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
