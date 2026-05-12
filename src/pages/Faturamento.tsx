@@ -365,6 +365,14 @@ export default function Faturamento() {
         </CardContent>
       </Card>
 
+      <RecebimentoModal
+        open={modalOpen}
+        pedido={pedidoAtual}
+        fila={{ atual: filaIdx + 1, total: filaTotal }}
+        onClose={handleClose}
+        onFaturado={handleFaturado}
+        onPular={handlePular}
+      />
     </div>
   );
 }
