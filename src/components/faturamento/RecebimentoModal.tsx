@@ -153,6 +153,24 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     [parcelas]
   );
 
+  // ===== Recebido / Troco / Valor a Receber =====
+  const isDinheiroTipo = (t: string) => /DINHEIRO|ESPECIE/i.test(t || "");
+  const totalDinheiro = useMemo(
+    () =>
+      parcelas
+        .filter((p) => isDinheiroTipo(p.tipo_pagamento))
+        .reduce((s, p) => s + (Number(p.valor) || 0), 0),
+    [parcelas]
+  );
+  const hasDinheiro = totalDinheiro > 0;
+  const troco = hasDinheiro ? Math.max(0, round2(valorRecebido - totalDinheiro)) : 0;
+  const valorAReceber = Math.max(0, round2(total - totalSomado));
+
+  // Auto-preenche o recebido com o total em dinheiro quando muda
+  useEffect(() => {
+    setValorRecebido(round2(totalDinheiro));
+  }, [totalDinheiro]);
+
   // Reset + load base data
   useEffect(() => {
     if (!open || !pedido) return;
