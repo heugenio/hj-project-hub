@@ -51,14 +51,41 @@ const fmtBRL = (v: number) =>
 const isDinheiro = (tipo: string) => /DINHEIRO|ESPECIE/i.test(tipo);
 const isCartao = (tipo: string) => /CART|CREDITO|DEBITO|CRÉDITO|DÉBITO/i.test(tipo);
 
-const TEF_PROVIDERS: { value: TefProvider; label: string }[] = [
-  { value: 'simulado', label: 'Simulado (testes)' },
-  { value: 'paygo', label: 'PayGo' },
-  { value: 'tef-id', label: 'TEF ID' },
-  { value: 'cappta', label: 'Cappta' },
-  { value: 'clisitef', label: 'CliSiTef' },
-  { value: 'sw-express', label: 'Software Express' },
+// Mapeamento completo do parâmetro TefTipoGP (índice → identificador/label)
+const TEF_GP_LIST: { idx: number; value: string; label: string }[] = [
+  { idx: 0, value: 'gpNenhum', label: 'Sem gerenciador padrão' },
+  { idx: 1, value: 'gpTEF_Dial', label: 'TEF Discado antigo' },
+  { idx: 2, value: 'gpTEF_Disc', label: 'TEF Dedicado' },
+  { idx: 3, value: 'gpCliSiTef', label: 'Software Express / CliSiTef' },
+  { idx: 4, value: 'gpPayGo', label: 'Pay&Go' },
+  { idx: 5, value: 'gpAPI', label: 'Integração TEF via API' },
+  { idx: 6, value: 'gpTEF_Dial_Hipercard', label: 'TEF Dial Hipercard' },
+  { idx: 7, value: 'gpTEF_Disc_Hipercard', label: 'TEF Dedicado Hipercard' },
+  { idx: 8, value: 'gpCardScope', label: 'CardScope' },
+  { idx: 9, value: 'gpAuttar', label: 'Auttar' },
+  { idx: 10, value: 'gpVeSPague', label: 'VeSPague' },
+  { idx: 11, value: 'gpCappta', label: 'Cappta' },
+  { idx: 12, value: 'gpNTK', label: 'NTK Solutions' },
+  { idx: 13, value: 'gpGetNetLio', label: 'GetNet Lio' },
+  { idx: 14, value: 'gpPagSeguro', label: 'PagSeguro' },
+  { idx: 15, value: 'gpStone', label: 'Stone' },
+  { idx: 16, value: 'gpSafraPay', label: 'SafraPay' },
+  { idx: 17, value: 'gpBin', label: 'Bin' },
+  { idx: 18, value: 'gpCieloLio', label: 'Cielo Lio' },
+  { idx: 19, value: 'gpMercadoPago', label: 'Mercado Pago' },
+  { idx: 20, value: 'gpFiserv', label: 'Fiserv' },
+  { idx: 21, value: 'gpTefId', label: 'TEF ID' },
 ];
+
+// Mapeia o gp* legado para o provider implementado em src/lib/tef.ts
+const GP_TO_PROVIDER: Record<string, TefProvider> = {
+  gpPayGo: 'paygo',
+  gpTefId: 'tef-id',
+  gpCappta: 'cappta',
+  gpCliSiTef: 'clisitef',
+  gpAPI: 'sw-express',
+};
+const gpToProvider = (gp: string): TefProvider => GP_TO_PROVIDER[gp] || 'simulado';
 
 export default function RecebimentoModal({ open, pedido, fila, onClose, onFaturado, onPular }: Props) {
   const [loadingFormas, setLoadingFormas] = useState(false);
