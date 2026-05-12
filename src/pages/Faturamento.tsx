@@ -265,7 +265,7 @@ export default function Faturamento() {
                   p.USRS_NOME_LOGIN ||
                   '-';
                 return (
-                  <>
+                  <Fragment key={p.PDDS_ID}>
                     <TableRow key={p.PDDS_ID} data-state={selected.has(p.PDDS_ID) ? "selected" : undefined}>
                       <TableCell className="p-1">
                         <Button
