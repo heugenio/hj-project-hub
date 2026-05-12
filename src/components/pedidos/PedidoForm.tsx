@@ -6,9 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   ShoppingCart, Save, XCircle, Loader2, FileText, Users, MessageSquare, ArrowLeft,
+  Printer, Send,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ClienteSection } from '@/components/ordem-servico/ClienteSection';
@@ -25,6 +29,8 @@ import {
   type OperacaoComercial,
 } from '@/lib/api-os';
 import type { Pedido as PedidoListItem } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
+import { getApiBaseUrl } from '@/lib/base-url';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
