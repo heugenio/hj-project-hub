@@ -391,7 +391,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     const dataStr = (dataPedido || '').split('-').reverse().join('/');
     y = drawCellsRow(y, [
       { label: 'DATA', value: dataStr, w: contentW * 0.25 },
-      { label: 'VENDEDOR', value: vendedor?.VDDR_NOME || '', w: contentW * 0.5 },
+      { label: 'VENDEDOR', value: vendedor?.VDDR_NOME || vendedorText || '', w: contentW * 0.5 },
       { label: 'STATUS', value: statusPedido || '', w: contentW * 0.25 },
     ]);
 
