@@ -261,6 +261,25 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             };
           }).sort((a, b) => a.parcela - b.parcela);
           setParcelas(parsed);
+
+          // Carrega flag ITFV_TEF para cada parcela (cache por itfv_id)
+          const cache = new Map<string, string>();
+          await Promise.all(
+            parsed.map(async (p) => {
+              const id = String(p.itfv_id || "");
+              if (!id || cache.has(id)) return;
+              try {
+                const its = await getItensFormaVencimento(id);
+                const tef = String((its[0] as any)?.ITFV_TEF || "").trim();
+                cache.set(id, tef);
+              } catch {
+                cache.set(id, "");
+              }
+            })
+          );
+          setParcelas((prev) =>
+            prev.map((p) => ({ ...p, itfv_tef: cache.get(String(p.itfv_id || "")) || "" }))
+          );
         }
       } catch (e: any) {
         toast.error("Erro ao carregar dados: " + (e?.message || ""));
