@@ -284,23 +284,26 @@ export const getOrdemServicos = (
   return apiGet<OrdemServico[]>(`/getOrdemServicos?${params.toString()}`);
 };
 
-// Pedidos (mesma estrutura de OS no backend legado)
+// Pedidos (retorno do endpoint /getPedidos no backend legado)
 export interface Pedido {
-  vEIC_MARCA?: string;
-  oRSV_DATA?: string;
-  vEIC_PLACA?: string;
-  oRSV_OBSERVACOES?: string;
-  oRSV_HODOMETRO?: string;
-  vEND_NOME?: string;
-  oRSV_DATA_CANC?: string;
-  oRSV_CPFCNPJ?: string;
-  oRSV_ID: string;
-  oRSV_NUMERO: string;
-  oRSV_STATUS?: string;
-  vEIC_MODELO?: string;
-  oRSV_VLR_TOTAL?: number;
-  oRSV_MOTIVO_CANC?: string;
-  oRSV_NOME?: string;
+  PDDS_ID: string;
+  PDDS_NUMERO: string;
+  PDDS_DATA?: string;
+  PDDS_STATUS?: string;
+  PDDS_OBSERVACOES?: string;
+  PDDS_VLR_TOTAL?: number;
+  PDDS_MOTIVO_CANC?: string;
+  PDDS_DATA_CANC?: string;
+  PDDS_CPFCNPJ?: string;
+  PESS_NOME?: string;
+  PESS_RAZAO_SOCIAL?: string;
+  PESS_CPFCNPJ?: string;
+  VEIC_MARCA?: string;
+  VEIC_MODELO?: string;
+  VEIC_PLACA?: string;
+  USRS_NOME_LOGIN?: string;
+  ORSV_ID?: string;
+  ORVD_ID?: string;
 }
 
 export const getPedidos = (
