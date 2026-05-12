@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Trash2, CreditCard, CheckCircle2, Banknote, Send } from "lucide-react";
 import { toast } from "sonner";
 import { setFaturarPedido, type Pedido } from "@/lib/api";
-import { getNegociacoesPedidos, getFormasPagamentosItens, type ItemFormaVencimento, type FormaPagamentoItem } from "@/lib/api-os";
+import { getNegociacoesPedidos, getFormasPagamentosItens, getParametros, type ItemFormaVencimento, type FormaPagamentoItem } from "@/lib/api-os";
 import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider, type TefResultado } from "@/lib/tef";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
@@ -50,14 +51,41 @@ const fmtBRL = (v: number) =>
 const isDinheiro = (tipo: string) => /DINHEIRO|ESPECIE/i.test(tipo);
 const isCartao = (tipo: string) => /CART|CREDITO|DEBITO|CRÉDITO|DÉBITO/i.test(tipo);
 
-const TEF_PROVIDERS: { value: TefProvider; label: string }[] = [
-  { value: 'simulado', label: 'Simulado (testes)' },
-  { value: 'paygo', label: 'PayGo' },
-  { value: 'tef-id', label: 'TEF ID' },
-  { value: 'cappta', label: 'Cappta' },
-  { value: 'clisitef', label: 'CliSiTef' },
-  { value: 'sw-express', label: 'Software Express' },
+// Mapeamento completo do parâmetro TefTipoGP (índice → identificador/label)
+const TEF_GP_LIST: { idx: number; value: string; label: string }[] = [
+  { idx: 0, value: 'gpNenhum', label: 'Sem gerenciador padrão' },
+  { idx: 1, value: 'gpTEF_Dial', label: 'TEF Discado antigo' },
+  { idx: 2, value: 'gpTEF_Disc', label: 'TEF Dedicado' },
+  { idx: 3, value: 'gpCliSiTef', label: 'Software Express / CliSiTef' },
+  { idx: 4, value: 'gpPayGo', label: 'Pay&Go' },
+  { idx: 5, value: 'gpAPI', label: 'Integração TEF via API' },
+  { idx: 6, value: 'gpTEF_Dial_Hipercard', label: 'TEF Dial Hipercard' },
+  { idx: 7, value: 'gpTEF_Disc_Hipercard', label: 'TEF Dedicado Hipercard' },
+  { idx: 8, value: 'gpCardScope', label: 'CardScope' },
+  { idx: 9, value: 'gpAuttar', label: 'Auttar' },
+  { idx: 10, value: 'gpVeSPague', label: 'VeSPague' },
+  { idx: 11, value: 'gpCappta', label: 'Cappta' },
+  { idx: 12, value: 'gpNTK', label: 'NTK Solutions' },
+  { idx: 13, value: 'gpGetNetLio', label: 'GetNet Lio' },
+  { idx: 14, value: 'gpPagSeguro', label: 'PagSeguro' },
+  { idx: 15, value: 'gpStone', label: 'Stone' },
+  { idx: 16, value: 'gpSafraPay', label: 'SafraPay' },
+  { idx: 17, value: 'gpBin', label: 'Bin' },
+  { idx: 18, value: 'gpCieloLio', label: 'Cielo Lio' },
+  { idx: 19, value: 'gpMercadoPago', label: 'Mercado Pago' },
+  { idx: 20, value: 'gpFiserv', label: 'Fiserv' },
+  { idx: 21, value: 'gpTefId', label: 'TEF ID' },
 ];
+
+// Mapeia o gp* legado para o provider implementado em src/lib/tef.ts
+const GP_TO_PROVIDER: Record<string, TefProvider> = {
+  gpPayGo: 'paygo',
+  gpTefId: 'tef-id',
+  gpCappta: 'cappta',
+  gpCliSiTef: 'clisitef',
+  gpAPI: 'sw-express',
+};
+const gpToProvider = (gp: string): TefProvider => GP_TO_PROVIDER[gp] || 'simulado';
 
 export default function RecebimentoModal({ open, pedido, fila, onClose, onFaturado, onPular }: Props) {
   const [loadingFormas, setLoadingFormas] = useState(false);
@@ -65,8 +93,12 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [confirmando, setConfirmando] = useState(false);
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
+  const [tefGpIdx, setTefGpIdx] = useState<number>(0);
+  const [tefGpLabel, setTefGpLabel] = useState<string>('Sem gerenciador padrão');
   const [cofrIdPedido, setCofrIdPedido] = useState<string | undefined>(undefined);
   const [loadingAdd, setLoadingAdd] = useState(false);
+  const { auth } = useAuth();
+  const unemId = String((auth?.unidade as any)?.unem_Id || (auth?.unidade as any)?.unem_id || '');
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
@@ -137,6 +169,34 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
       }
     })();
   }, [open, pedido?.PDDS_ID]);
+
+  // Carrega o provedor TEF padrão da unidade via getParametros?nome=TefTipoGP
+  useEffect(() => {
+    if (!open || !unemId) return;
+    (async () => {
+      try {
+        const res = await getParametros({ unem_id: unemId, nome: 'TefTipoGP' });
+        const arr = Array.isArray(res) ? res : [];
+        const valRaw = (arr[0] as any)?.PARM_VALOR ?? (arr[0] as any)?.parm_valor ?? '0';
+        // PARM_VALOR pode vir como número (índice) ou como o próprio identificador gp*
+        let item = TEF_GP_LIST[0];
+        const num = Number(String(valRaw).trim());
+        if (!Number.isNaN(num) && TEF_GP_LIST[num]) {
+          item = TEF_GP_LIST[num];
+        } else {
+          const s = String(valRaw).trim();
+          item = TEF_GP_LIST.find((x) => x.value.toLowerCase() === s.toLowerCase()) || TEF_GP_LIST[0];
+        }
+        setTefGpIdx(item.idx);
+        setTefGpLabel(item.label);
+        const prov = gpToProvider(item.value);
+        setTefProvider(prov);
+        setTefProviderState(prov);
+      } catch (e: any) {
+        console.warn('[Recebimento] getParametros TefTipoGP falhou:', e?.message || e);
+      }
+    })();
+  }, [open, unemId]);
 
 
   function buildPagamento(forma: FormaOpt, valor: number): Pagamento {
@@ -325,27 +385,33 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           </Card>
         </div>
 
-        {/* TEF Provider */}
-        <div className="flex items-center gap-2 text-xs">
+        {/* TEF Provider (carregado de getParametros?nome=TefTipoGP) */}
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           <span className="text-muted-foreground">Provedor TEF:</span>
           <Select
-            value={tefProvider}
+            value={String(tefGpIdx)}
             onValueChange={(v) => {
-              setTefProvider(v as TefProvider);
-              setTefProviderState(v as TefProvider);
+              const idx = Number(v);
+              const item = TEF_GP_LIST.find((x) => x.idx === idx) || TEF_GP_LIST[0];
+              setTefGpIdx(idx);
+              setTefGpLabel(item.label);
+              const prov = gpToProvider(item.value);
+              setTefProvider(prov);
+              setTefProviderState(prov);
             }}
           >
-            <SelectTrigger className="h-7 w-[180px] text-xs">
+            <SelectTrigger className="h-7 w-[260px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TEF_PROVIDERS.map((p) => (
-                <SelectItem key={p.value} value={p.value} className="text-xs">
-                  {p.label}
+              {TEF_GP_LIST.map((p) => (
+                <SelectItem key={p.idx} value={String(p.idx)} className="text-xs">
+                  {p.idx} • {p.value} — {p.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <Badge variant="outline" className="text-[10px]">driver: {tefProvider}</Badge>
         </div>
 
         {/* Pagamentos */}
@@ -396,9 +462,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                     <Input
                       type="number"
                       step="0.01"
-                      className="h-8 text-right"
-                      value={p.valor}
+                      inputMode="decimal"
+                      className="h-8 text-right tabular-nums"
+                      value={(p.valor ?? 0).toFixed(2)}
                       onChange={(e) => atualizar(p.uid, { valor: Number(e.target.value) || 0 })}
+                      onBlur={(e) =>
+                        atualizar(p.uid, { valor: +(Number(e.target.value) || 0).toFixed(2) })
+                      }
                     />
                   </div>
 
@@ -408,9 +478,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                       <Input
                         type="number"
                         step="0.01"
-                        className="h-8 text-right"
-                        value={p.recebido ?? 0}
+                        inputMode="decimal"
+                        className="h-8 text-right tabular-nums"
+                        value={(p.recebido ?? 0).toFixed(2)}
                         onChange={(e) => atualizar(p.uid, { recebido: Number(e.target.value) || 0 })}
+                        onBlur={(e) =>
+                          atualizar(p.uid, { recebido: +(Number(e.target.value) || 0).toFixed(2) })
+                        }
                       />
                     </div>
                   )}
