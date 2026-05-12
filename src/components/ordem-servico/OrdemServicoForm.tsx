@@ -78,6 +78,7 @@ interface OrdemServicoFormProps {
 
 export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }: OrdemServicoFormProps) {
   const { auth } = useAuth();
+  const { logo: logoEmpresa, unidade: unidadeHeader } = useEmpresaHeader();
 
   const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
   const [tipoOS, setTipoOS] = useState('');
