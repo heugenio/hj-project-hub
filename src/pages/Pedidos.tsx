@@ -61,6 +61,8 @@ export default function Pedidos() {
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "";
+    // já vem em dd/MM/yyyy do legado; se vier ISO, converte
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(dateStr)) return dateStr.slice(0, 10);
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("pt-BR");
   };
