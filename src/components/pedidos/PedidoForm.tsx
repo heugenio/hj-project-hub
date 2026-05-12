@@ -76,6 +76,13 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
 
   const [saving, setSaving] = useState(false);
 
+  // Imprimir / WhatsApp
+  const [whatsDialogOpen, setWhatsDialogOpen] = useState(false);
+  const [whatsTelefone, setWhatsTelefone] = useState('');
+  const [whatsMensagem, setWhatsMensagem] = useState('');
+  const [whatsEnviando, setWhatsEnviando] = useState(false);
+  const pedidoPersistido = !!orsvId;
+
   useEffect(() => {
     setLoadingMidias(true);
     getMidias({})
