@@ -184,7 +184,7 @@ export default function Pedidos() {
                     <TableCell className="font-mono text-[10px] font-medium whitespace-nowrap">{p.PDDS_NUMERO}</TableCell>
                     <TableCell className="text-[10px] whitespace-nowrap">{formatDate(p.PDDS_DATA)}</TableCell>
                     <TableCell className="text-[10px] max-w-[180px] truncate" title={cliente}>{cliente}</TableCell>
-                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.PESS_CPFCNPJ || p.PDDS_CPFCNPJ}</TableCell>
+                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{formatCpfCnpj(p.PESS_CPFCNPJ || p.PDDS_CPFCNPJ)}</TableCell>
                     <TableCell className="text-[10px] max-w-[120px] truncate" title={`${p.VEIC_MARCA ?? ""} ${p.VEIC_MODELO ?? ""}`}>{p.VEIC_MARCA} {p.VEIC_MODELO}</TableCell>
                     <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.VEIC_PLACA}</TableCell>
                     <TableCell className="text-[10px] text-right whitespace-nowrap">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
