@@ -462,9 +462,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                     <Input
                       type="number"
                       step="0.01"
-                      className="h-8 text-right"
-                      value={p.valor}
+                      inputMode="decimal"
+                      className="h-8 text-right tabular-nums"
+                      value={(p.valor ?? 0).toFixed(2)}
                       onChange={(e) => atualizar(p.uid, { valor: Number(e.target.value) || 0 })}
+                      onBlur={(e) =>
+                        atualizar(p.uid, { valor: +(Number(e.target.value) || 0).toFixed(2) })
+                      }
                     />
                   </div>
 
@@ -474,9 +478,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                       <Input
                         type="number"
                         step="0.01"
-                        className="h-8 text-right"
-                        value={p.recebido ?? 0}
+                        inputMode="decimal"
+                        className="h-8 text-right tabular-nums"
+                        value={(p.recebido ?? 0).toFixed(2)}
                         onChange={(e) => atualizar(p.uid, { recebido: Number(e.target.value) || 0 })}
+                        onBlur={(e) =>
+                          atualizar(p.uid, { recebido: +(Number(e.target.value) || 0).toFixed(2) })
+                        }
                       />
                     </div>
                   )}
