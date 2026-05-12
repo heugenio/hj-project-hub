@@ -111,6 +111,24 @@ export default function FormaVencimentoCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unemId]);
 
+  // Normaliza formaSelecionada quando as formas carregam: se o valor recebido
+  // não bate com nenhuma option mas o FVEN_ID (prefixo) bate, troca pelo value completo
+  // para que o Select consiga renderizar o nome da forma carregada da API.
+  useEffect(() => {
+    if (!formaSelecionada || formasOptions.length === 0) return;
+    const matchExact = formasOptions.find((o) => o.value === formaSelecionada);
+    if (matchExact) return;
+    const fvenIdAlvo = String(formaSelecionada).split('|')[0];
+    if (!fvenIdAlvo) return;
+    const candidato = formasOptions.find(
+      (o) => String(o.forma.FVEN_ID || o.forma.FPAG_ID || '') === fvenIdAlvo
+    );
+    if (candidato && candidato.value !== formaSelecionada) {
+      onFormaChange(candidato.value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formasOptions, formaSelecionada]);
+
   // Gerar vencimentos quando muda forma/cofre/valor
   useEffect(() => {
     if (!formaAtual?.forma) {
@@ -123,6 +141,18 @@ export default function FormaVencimentoCard({
       onParcelasChange([]);
       return;
     }
+
+    // Se é a primeira vez que estamos vendo essa forma E já existem parcelas no estado
+    // (foram carregadas da API ao abrir um pedido existente), preserva as parcelas.
+    if (lastGenForma.current === null && parcelas.length > 0) {
+      lastGenForma.current = formaSelecionada;
+      return;
+    }
+    // Se a forma não mudou desde a última geração, não regera.
+    if (lastGenForma.current === formaSelecionada) {
+      return;
+    }
+
     (async () => {
       setLoading(true);
       try {
@@ -131,6 +161,7 @@ export default function FormaVencimentoCard({
         const vencs = await getGerarVencimentos({ fven_id: fvenId, cofr_id: cofrId, valor: valorTotal, dataref });
         if (!vencs || vencs.length === 0) {
           onParcelasChange([]);
+          lastGenForma.current = formaSelecionada;
           return;
         }
         const base: ParcelaUI[] = vencs
@@ -151,6 +182,7 @@ export default function FormaVencimentoCard({
           })
           .sort((a, b) => a.parcela - b.parcela);
         onParcelasChange(base);
+        lastGenForma.current = formaSelecionada;
       } catch (e: any) {
         toast.error('Erro ao gerar vencimentos: ' + e.message);
         onParcelasChange([]);
