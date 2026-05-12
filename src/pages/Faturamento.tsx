@@ -10,6 +10,7 @@ import { Loader2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } fro
 import { useAuth } from "@/contexts/AuthContext";
 import { getPedidos, setFaturarPedido, type Pedido } from "@/lib/api";
 import { getNegociacoesPedidos } from "@/lib/api-os";
+import { getApiBaseUrl } from "@/lib/base-url";
 import { toast } from "sonner";
 
 interface Vencimento {
