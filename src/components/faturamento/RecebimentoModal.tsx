@@ -22,8 +22,11 @@ interface Props {
 }
 
 interface FormaOpt extends ItemFormaVencimento {
-  ITFV_ID: string;
+  ITFV_ID: string;        // pode ser sintético para itens novos (ex: "new-<TPPR_ID>")
   ITFV_NOME: string;
+  COFR_ID?: string;
+  TPPR_ID?: string;
+  IS_NEW?: boolean;
 }
 
 interface Pagamento {
