@@ -475,6 +475,14 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     }
   };
 
+  const isPix = (t: string) => /\bPIX\b/i.test(t || "");
+  const precisaTef = (p: ParcelaUI) => {
+    const tef = String(p.itfv_tef || "").trim().toLowerCase();
+    if (tef !== "sim") return false;
+    const t = (p.tipo_pagamento || formaAtualLabel || "").toUpperCase();
+    return /CART[ÃA]O|CARTAO/.test(t) || isPix(t);
+  };
+
   const confirmarFaturamento = async () => {
     if (!pedido) return;
     if (!formaAtual) {
@@ -504,15 +512,79 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
     setConfirmando(true);
     try {
-      console.log("[Recebimento] Faturando pedido", {
-        pddsId: pedido.PDDS_ID,
-        numero: pedido.PDDS_NUMERO,
-        total,
-        forma: formaAtualLabel,
-        cofrId,
-        parcelas,
-      });
-      const res = await setFaturarPedido(pedido.PDDS_ID);
+      // 1) Executa TEF nas parcelas que exigirem (Cartão Crédito/Débito ou PIX com ITFV_TEF=Sim)
+      const parcelasFinal: ParcelaUI[] = [...parcelas];
+      for (let i = 0; i < parcelasFinal.length; i++) {
+        const p = parcelasFinal[i];
+        if (!precisaTef(p)) continue;
+        const tipoCartao: "credito" | "debito" =
+          /DEBITO|DÉBITO/i.test(p.tipo_pagamento) ? "debito" : "credito";
+        toast.info(`TEF ${tefProvider}: parcela ${p.parcela} (${isPix(p.tipo_pagamento) ? "PIX" : tipoCartao.toUpperCase()})...`);
+        updateParcela(i, { tefStatus: "pendente" });
+        const res = await iniciarTransacaoTef({
+          provider: tefProvider,
+          tipo: tipoCartao,
+          valor: p.valor,
+          parcelas: Number(p.qtd_parcelas_cartao) || 1,
+        });
+        if (!res.ok) {
+          updateParcela(i, { tefStatus: "cancelado" });
+          toast.error(`TEF parcela ${p.parcela}: ${res.mensagem || "não aprovada"}`);
+          setConfirmando(false);
+          return;
+        }
+        const upd: Partial<ParcelaUI> = {
+          tefStatus: "aprovado",
+          nr_auto: res.autorizacao || p.nr_auto,
+          bandeira: res.bandeira || p.bandeira,
+          nsu: res.nsu,
+        };
+        parcelasFinal[i] = { ...p, ...upd };
+        updateParcela(i, upd);
+        toast.success(`TEF parcela ${p.parcela} aprovada • NSU ${res.nsu}`);
+      }
+
+      // 2) Monta JSON do faturamento
+      const empresa: any = (auth as any)?.empresa || {};
+      const usuario: any = (auth as any)?.usuario || {};
+      const unidade: any = (auth as any)?.unidade || {};
+      const payload = {
+        PDDS_ID: pedido.PDDS_ID,
+        PDDS_NUMERO: pedido.PDDS_NUMERO,
+        UNEM_ID: unemId,
+        EMPR_ID: String(empresa?.empr_Id || empresa?.empr_id || ""),
+        USRS_ID: String(usuario?.usrs_Id || usuario?.usrs_id || ""),
+        UNEM_CNPJ: String(unidade?.unem_CNPJ || unidade?.unem_cnpj || ""),
+        FVEN_ID: String(formaAtual.forma?.FVEN_ID || formaAtual.forma?.FPAG_ID || ""),
+        FVEN_NOME: formaAtualLabel,
+        COFR_ID: cofrId,
+        VALOR_TOTAL: total,
+        VALOR_RECEBIDO: round2(valorRecebido),
+        TROCO: round2(troco),
+        TEF_PROVIDER: tefProvider,
+        PARCELAS: parcelasFinal.map((p) => ({
+          NGPD_PARCELA: p.parcela,
+          NGPD_DIAS: p.dias,
+          NGPD_DATA_VENCIMENTO: p.vencimento,
+          NGPD_PERC: p.perc,
+          NGPD_VLR_PARCELA: round2(p.valor),
+          NGPD_TIPO_PAGAMENTO: p.tipo_pagamento,
+          ITFV_ID: p.itfv_id || "",
+          ITFV_TEF: p.itfv_tef || "",
+          COFR_ID: p.cofr_id,
+          NGPD_TIPO_CARTAO: p.tipo_cartao || "",
+          NGPD_QTD_PCLS: Number(p.qtd_parcelas_cartao) || 0,
+          NGPD_NR_AUTO: p.nr_auto || "",
+          NGPD_NSU: p.nsu || "",
+          NGPD_BANDEIRA: p.bandeira || "",
+          TEF_STATUS: p.tefStatus || "",
+        })),
+      };
+
+      console.log("[Recebimento] JSON setFaturarPedido (POST):", JSON.stringify(payload, null, 2));
+      console.log("[Recebimento] Faturando pedido", payload);
+
+      const res = await setFaturarPedido(pedido.PDDS_ID, payload);
       console.log("[Recebimento] Resposta faturamento", res);
       if (!res.ok) {
         toast.error("Falha ao faturar pedido " + pedido.PDDS_NUMERO);
