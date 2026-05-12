@@ -535,7 +535,7 @@ export const getItensPedidos = async (pddsId: string) => {
 };
 
 export const getNegociacoesPedidos = async (pddsId: string) => {
-  const raw = await proxyGet<any>(`/getNegociacoesPedidos?ID=${encodeURIComponent(pddsId)}`);
+  const raw = await proxyGet<any>(`/getNegociacoesPedidos?Pdds_id=${encodeURIComponent(pddsId)}`);
   if (!raw) return [] as any[];
   const arr = Array.isArray(raw) ? raw : (raw.rawHtml || raw.message === '200 OK' ? [] : [raw]);
   return arr.map((c: any) => normalizeApiKeys<any>(c));
