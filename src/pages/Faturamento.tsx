@@ -29,7 +29,7 @@ export default function Faturamento() {
   const [searched, setSearched] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [faturando, setFaturando] = useState(false);
-  const [payloads, setPayloads] = useState<{ id: string; numero?: string; ok: boolean; raw: string; error?: string }[]>([]);
+  
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [vencimentos, setVencimentos] = useState<Record<string, Vencimento[]>>({});
   const [loadingVenc, setLoadingVenc] = useState<Set<string>>(new Set());
