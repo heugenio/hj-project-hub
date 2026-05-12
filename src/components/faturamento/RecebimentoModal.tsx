@@ -46,6 +46,8 @@ interface ParcelaUI {
   qtd_parcelas_cartao?: string;
   nr_auto?: string;
   bandeira?: string;
+  nsu?: string;
+  itfv_tef?: string; // 'Sim' | 'Nao'
   tefStatus?: "pendente" | "aprovado" | "cancelado";
 }
 
