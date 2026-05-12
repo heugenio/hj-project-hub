@@ -319,8 +319,15 @@ export const getPedidos = (
   return apiGet<Pedido[]>(`/getPedidos?${params.toString()}`);
 };
 
-export async function setFaturarPedido(pddsId: string): Promise<{ ok: boolean; raw: string }> {
-  const text = await proxyFetch(`/setFaturarPedidos?id=${encodeURIComponent(pddsId)}`, 'POST');
+export async function setFaturarPedido(
+  pddsId: string,
+  payload?: unknown
+): Promise<{ ok: boolean; raw: string }> {
+  const text = await proxyFetch(
+    `/setFaturarPedidos?id=${encodeURIComponent(pddsId)}`,
+    'POST',
+    payload
+  );
   const lower = (text || '').toLowerCase();
   const ok = !/(erro|error|falha|fail)/.test(lower);
   return { ok, raw: text };
