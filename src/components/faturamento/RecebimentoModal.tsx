@@ -120,6 +120,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [formaSelecionada, setFormaSelecionada] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
   const [confirmando, setConfirmando] = useState(false);
+  const [valorRecebido, setValorRecebido] = useState<number>(0);
 
   // TEF Provider (TefTipoGP)
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
