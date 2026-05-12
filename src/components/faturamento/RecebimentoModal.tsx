@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Trash2, CreditCard, CheckCircle2, Banknote, Send } from "lucide-react";
 import { toast } from "sonner";
 import { setFaturarPedido, type Pedido } from "@/lib/api";
-import { getNegociacoesPedidos, getFormasPagamentosItens, type ItemFormaVencimento, type FormaPagamentoItem } from "@/lib/api-os";
+import { getNegociacoesPedidos, getFormasPagamentosItens, getParametros, type ItemFormaVencimento, type FormaPagamentoItem } from "@/lib/api-os";
 import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider, type TefResultado } from "@/lib/tef";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
