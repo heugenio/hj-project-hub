@@ -93,8 +93,12 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [confirmando, setConfirmando] = useState(false);
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
+  const [tefGpIdx, setTefGpIdx] = useState<number>(0);
+  const [tefGpLabel, setTefGpLabel] = useState<string>('Sem gerenciador padrão');
   const [cofrIdPedido, setCofrIdPedido] = useState<string | undefined>(undefined);
   const [loadingAdd, setLoadingAdd] = useState(false);
+  const { auth } = useAuth();
+  const unemId = String((auth?.unidade as any)?.unem_Id || (auth?.unidade as any)?.unem_id || '');
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
