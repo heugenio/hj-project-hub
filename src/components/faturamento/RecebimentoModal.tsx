@@ -142,10 +142,14 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   function buildPagamento(forma: FormaOpt, valor: number): Pagamento {
     const tipo = String(forma.TPPR_TIPO_PAGAMENTO || forma.ITFV_NOME || '').toUpperCase();
     const tef = String(forma.ITFV_TEF || '').toLowerCase() === 'sim';
+    const isNew = !!forma.IS_NEW;
     return {
       uid: Math.random().toString(36).slice(2),
-      itfvId: forma.ITFV_ID,
+      // Itens novos NÃO carregam ITFV_ID — apenas COFR_ID do vencimento
+      itfvId: isNew ? undefined : forma.ITFV_ID,
       itfvNome: forma.ITFV_NOME,
+      cofrId: forma.COFR_ID,
+      tpprId: forma.TPPR_ID,
       tef,
       tipoPagamento: tipo,
       valor: +valor.toFixed(2),
@@ -155,12 +159,44 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     };
   }
 
-  const adicionarPagamento = () => {
-    if (formas.length === 0) {
-      toast.error('Nenhuma forma de pagamento disponível.');
+  const adicionarPagamento = async () => {
+    if (!cofrIdPedido) {
+      toast.error('Não foi possível identificar o COFR_ID do vencimento.');
       return;
     }
-    setPagamentos((prev) => [...prev, buildPagamento(formas[0], Math.max(0, saldo))]);
+    setLoadingAdd(true);
+    try {
+      const itens = await getFormasPagamentosItens({ cofr_id: cofrIdPedido });
+      if (!Array.isArray(itens) || itens.length === 0) {
+        toast.error('Nenhuma forma de pagamento encontrada para o cofre informado.');
+        return;
+      }
+      // Mapeia para FormaOpt sintéticos (sem ITFV_ID real, apenas COFR_ID)
+      const novas: FormaOpt[] = itens.map((it, idx) => {
+        const tppr = String(it.TPPR_ID || `${idx}`);
+        const nome = String(it.TPPR_NOME || it.TPPR_TIPO_PAGAMENTO || `Forma ${idx + 1}`);
+        return {
+          ITFV_ID: `new-${tppr}`,
+          ITFV_NOME: nome,
+          ITFV_TEF: 'Nao',
+          TPPR_TIPO_PAGAMENTO: it.TPPR_TIPO_PAGAMENTO || nome,
+          COFR_ID: it.COFR_ID || cofrIdPedido,
+          TPPR_ID: tppr,
+          IS_NEW: true,
+        } as FormaOpt;
+      });
+      // Mescla na lista (evita duplicar pelo ITFV_ID sintético)
+      setFormas((prev) => {
+        const map = new Map(prev.map((f) => [f.ITFV_ID, f]));
+        for (const n of novas) if (!map.has(n.ITFV_ID)) map.set(n.ITFV_ID, n);
+        return Array.from(map.values());
+      });
+      setPagamentos((prev) => [...prev, buildPagamento(novas[0], Math.max(0, saldo))]);
+    } catch (e: any) {
+      toast.error('Erro ao carregar formas: ' + (e?.message || ''));
+    } finally {
+      setLoadingAdd(false);
+    }
   };
 
   const removerPagamento = (uid: string) => {
