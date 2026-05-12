@@ -203,8 +203,8 @@ export default function Faturamento() {
             Pedidos em aberto disponíveis para faturamento
           </p>
         </div>
-        <Button onClick={handleFaturar} disabled={faturando || selected.size === 0}>
-          {faturando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+        <Button onClick={iniciarFaturamento} disabled={faturando || selected.size === 0}>
+          <CheckCircle2 className="h-4 w-4 mr-2" />
           Faturar selecionados ({selected.size})
         </Button>
       </div>
