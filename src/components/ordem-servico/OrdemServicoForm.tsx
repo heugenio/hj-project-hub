@@ -33,6 +33,7 @@ import {
 import type { OrdemServico as OrdemServicoListItem } from '@/lib/api';
 import { supabase } from '@/integrations/supabase/client';
 import { getApiBaseUrl } from '@/lib/base-url';
+import { useEmpresaHeader } from '@/hooks/useEmpresaHeader';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -77,6 +78,7 @@ interface OrdemServicoFormProps {
 
 export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }: OrdemServicoFormProps) {
   const { auth } = useAuth();
+  const { logo: logoEmpresa, unidade: unidadeHeader } = useEmpresaHeader();
 
   const [tiposOS, setTiposOS] = useState<TipoOS[]>([]);
   const [tipoOS, setTipoOS] = useState('');
@@ -586,14 +588,14 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
     const marginX = 10;
     const contentW = pageW - marginX * 2;
 
-    const unidade: any = auth?.unidade || {};
-    const empresaNome = unidade.unem_Fantasia || unidade.unem_Nome || unidade.unem_RazaoSocial || '';
-    const empresaEnd = unidade.unem_Endereco || '';
+    const unidade: any = unidadeHeader || auth?.unidade || {};
+    const empresaNome = unidade.unem_Fantasia || unidade.unem_Nome || unidade.unem_Razao_Social || unidade.unem_RazaoSocial || '';
+    const empresaEnd = unidade.unem_Endereco || unidade.UNEN_ENDERECO || '';
     const empresaBairro = unidade.unem_Bairro || '';
     const empresaCidade = unidade.unem_Cidade || unidade.unem_Municipio || '';
-    const empresaUF = unidade.unem_UF || unidade.unem_Uf || '';
+    const empresaUF = unidade.unem_UF || unidade.unem_Uf || unidade.UNEN_UF_ESTADO || '';
     const empresaCEP = unidade.unem_CEP || unidade.unem_Cep || '';
-    const empresaEmail = unidade.unem_Email || '';
+    const empresaEmail = unidade.unem_Email || unidade.unem_Mail || '';
     const empresaFone = unidade.unem_Fone || unidade.unem_Telefone || '';
     const empresaCNPJ = unidade.unem_CNPJ || unidade.unem_Cnpj || '';
     const empresaIE = unidade.unem_IE || unidade.unem_Ie || '';
@@ -632,10 +634,18 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
     doc.setDrawColor(160, 160, 160);
     const logoW = 50;
     doc.rect(marginX, 8, logoW, headH);
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
-    doc.setTextColor(120, 120, 120);
-    doc.text('[ LOGO EMPRESA ]', marginX + logoW / 2, 8 + headH / 2 + 1, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
+    if (logoEmpresa) {
+      try {
+        const fmt = logoEmpresa.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(logoEmpresa, fmt as any, marginX + 2, 10, logoW - 4, headH - 4, undefined, 'FAST');
+      } catch { /* ignore */ }
+    } else {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text('[ LOGO EMPRESA ]', marginX + logoW / 2, 8 + headH / 2 + 1, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+    }
+
 
     const numW = 42;
     const dadosX = marginX + logoW;
@@ -841,10 +851,11 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
 
     // ===== Rodapé: Assinaturas =====
     y += 10;
-    const sigW = contentW / 3;
+    const sigW = contentW / 4;
     const dataStr = `${dataOS.split('-').reverse().join('/')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
     [
       { titulo: 'DATA', valor: dataStr },
+      { titulo: 'VENDEDOR', valor: vendedor?.VDDR_NOME || vendedorText || '' },
       { titulo: 'TÉCNICO', valor: tecnico?.TCNC_NOME || '' },
       { titulo: 'CLIENTE', valor: cliente?.PESS_NOME || '' },
     ].forEach((s, idx) => {
@@ -858,7 +869,7 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
     });
 
     return doc;
-  }, [auth, numeroOS, orsvId, dataOS, cliente, veiculo, hodometro, tecnico, itens, descontoItens, descontoOS, descontoServico, totalFinal, observacoes, checklist]);
+  }, [auth, unidadeHeader, logoEmpresa, numeroOS, orsvId, dataOS, cliente, veiculo, hodometro, tecnico, vendedor, vendedorText, itens, descontoItens, descontoOS, descontoServico, totalFinal, observacoes, checklist]);
 
   const handlePrint = useCallback(() => {
     if (!osPersistida) return;

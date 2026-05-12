@@ -31,6 +31,7 @@ import {
 import type { Pedido as PedidoListItem } from '@/lib/api';
 import { supabase } from '@/integrations/supabase/client';
 import { getApiBaseUrl } from '@/lib/base-url';
+import { useEmpresaHeader } from '@/hooks/useEmpresaHeader';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -43,6 +44,7 @@ interface PedidoFormProps {
 
 export default function PedidoForm({ onBack, editingPedido, viewMode = false }: PedidoFormProps) {
   const { auth } = useAuth();
+  const { logo: logoEmpresa, unidade: unidadeHeader } = useEmpresaHeader();
 
   const [operacoes, setOperacoes] = useState<OperacaoComercial[]>([]);
   const [opcmId, setOpcmId] = useState('');
@@ -262,17 +264,18 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     const marginX = 10;
     const contentW = pageW - marginX * 2;
 
-    const unidade: any = auth?.unidade || {};
-    const empresaNome = unidade.unem_Fantasia || unidade.unem_Nome || unidade.unem_RazaoSocial || '';
-    const empresaEnd = unidade.unem_Endereco || '';
+    const unidade: any = unidadeHeader || auth?.unidade || {};
+    const empresaNome = unidade.unem_Fantasia || unidade.unem_Nome || unidade.unem_Razao_Social || unidade.unem_RazaoSocial || '';
+    const empresaEnd = unidade.unem_Endereco || unidade.UNEN_ENDERECO || '';
     const empresaBairro = unidade.unem_Bairro || '';
     const empresaCidade = unidade.unem_Cidade || unidade.unem_Municipio || '';
-    const empresaUF = unidade.unem_UF || unidade.unem_Uf || '';
+    const empresaUF = unidade.unem_UF || unidade.unem_Uf || unidade.UNEN_UF_ESTADO || '';
     const empresaCEP = unidade.unem_CEP || unidade.unem_Cep || '';
-    const empresaEmail = unidade.unem_Email || '';
+    const empresaEmail = unidade.unem_Email || unidade.unem_Mail || '';
     const empresaFone = unidade.unem_Fone || unidade.unem_Telefone || '';
     const empresaCNPJ = unidade.unem_CNPJ || unidade.unem_Cnpj || '';
     const empresaIE = unidade.unem_IE || unidade.unem_Ie || '';
+
 
     const drawSectionTitle = (yy: number, title: string): number => {
       doc.setFillColor(190, 190, 190);
@@ -308,10 +311,18 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     doc.setDrawColor(160, 160, 160);
     const logoW = 50;
     doc.rect(marginX, 8, logoW, headH);
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
-    doc.setTextColor(120, 120, 120);
-    doc.text('[ LOGO EMPRESA ]', marginX + logoW / 2, 8 + headH / 2 + 1, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
+    if (logoEmpresa) {
+      try {
+        const fmt = logoEmpresa.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(logoEmpresa, fmt as any, marginX + 2, 10, logoW - 4, headH - 4, undefined, 'FAST');
+      } catch { /* ignore */ }
+    } else {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text('[ LOGO EMPRESA ]', marginX + logoW / 2, 8 + headH / 2 + 1, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+    }
+
 
     const numW = 42;
     const dadosX = marginX + logoW;
@@ -380,7 +391,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     const dataStr = (dataPedido || '').split('-').reverse().join('/');
     y = drawCellsRow(y, [
       { label: 'DATA', value: dataStr, w: contentW * 0.25 },
-      { label: 'VENDEDOR', value: vendedor?.VDDR_NOME || '', w: contentW * 0.5 },
+      { label: 'VENDEDOR', value: vendedor?.VDDR_NOME || vendedorText || '', w: contentW * 0.5 },
       { label: 'STATUS', value: statusPedido || '', w: contentW * 0.25 },
     ]);
 
@@ -485,7 +496,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     y += 10;
     const sigW = contentW / 2;
     [
-      { titulo: 'VENDEDOR', valor: vendedor?.VDDR_NOME || '' },
+      { titulo: 'VENDEDOR', valor: vendedor?.VDDR_NOME || vendedorText || '' },
       { titulo: 'CLIENTE', valor: cliente?.PESS_NOME || '' },
     ].forEach((s, idx) => {
       const x = marginX + sigW * idx;
@@ -498,7 +509,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     });
 
     return doc;
-  }, [auth, numeroPedido, orsvId, dataPedido, cliente, vendedor, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, subtotal, totalFinal, observacoes]);
+  }, [auth, unidadeHeader, logoEmpresa, numeroPedido, orsvId, dataPedido, cliente, vendedor, vendedorText, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, subtotal, totalFinal, observacoes]);
 
   const handlePrint = useCallback(() => {
     if (!pedidoPersistido) return;
