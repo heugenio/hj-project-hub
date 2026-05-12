@@ -95,6 +95,105 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     }
   }, [auth?.user?.pess_ID, editingPedido]);
 
+  // Carrega dados completos do pedido quando em modo visualização/edição
+  useEffect(() => {
+    const pddsId = editingPedido?.PDDS_ID;
+    if (!pddsId) return;
+    (async () => {
+      try {
+        const [detalhe, itensRaw, negocRaw] = await Promise.all([
+          getPedidoById(pddsId).catch(() => null),
+          getItensPedidos(pddsId).catch(() => [] as any[]),
+          getNegociacoesPedidos(pddsId).catch(() => [] as any[]),
+        ]);
+
+        const d: any = detalhe || editingPedido;
+        setOrsvId(String(d.PDDS_ID || pddsId));
+        if (d.PDDS_NUMERO) setNumeroPedido(String(d.PDDS_NUMERO));
+        if (d.PDDS_STATUS) setStatusPedido(String(d.PDDS_STATUS));
+        if (d.PDDS_DATA) {
+          const s = String(d.PDDS_DATA);
+          // dd/MM/yyyy -> yyyy-MM-dd
+          if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) {
+            const [dd, mm, yyyy] = s.slice(0, 10).split('/');
+            setDataPedido(`${yyyy}-${mm}-${dd}`);
+          } else if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            setDataPedido(s.slice(0, 10));
+          }
+        }
+        if (d.PDDS_OBSERVACOES) setObservacoes(String(d.PDDS_OBSERVACOES).toUpperCase());
+        if (d.OPCM_ID) setOpcmId(String(d.OPCM_ID));
+        if (d.MDIA_ID) setMidiaId(String(d.MDIA_ID));
+        if (d.VDDR_ID) {
+          setVendedor({ VDDR_ID: String(d.VDDR_ID), VDDR_NOME: String(d.VDDR_NOME || d.PESS_NOME_VENDEDOR || '') });
+          setVendedorText(String(d.VDDR_NOME || d.PESS_NOME_VENDEDOR || ''));
+        }
+
+        // Cliente
+        const pessId = d.PESS_ID;
+        if (pessId) {
+          try {
+            const list = await getClientes({ id: String(pessId) });
+            if (list && list.length > 0) setClienteState(list[0] as Cliente);
+          } catch {}
+        }
+
+        // Itens
+        const itensMapped: ItemOS[] = (itensRaw || []).map((i: any) => ({
+          ITOS_ID: i.ITPD_ITOS_ID || i.ITOS_ID || '',
+          ITRQ_ID: i.ITPD_ID || '',
+          ORSV_ID: i.PDDS_ID || pddsId,
+          ITOS_TIPO: (i.ITPD_TIPO || i.ITOS_TIPO || 'P') as 'P' | 'S',
+          ITOS_DESCRICAO: String(i.ITPD_DESCRICAO || i.PROD_DESCRICAO || ''),
+          ITOS_QTDE: Number(i.ITPD_QTDE || 0),
+          ITOS_VLR_UNITARIO: Number(i.ITPD_VLR_UNITARIO || 0),
+          ITOS_DESCONTO: Number(i.ITPD_DESCONTO || 0),
+          ITOS_VLR_TOTAL: Number(i.ITPD_VLR_TOTAL || 0),
+          ITOS_UNIDADE_MEDIDA: i.ITPD_UNIDADE_MEDIDA || 'UN',
+          ITRQ_PRECO_TABELA: Number(i.ITPD_PRECO_TABELA || i.ITPD_VLR_UNITARIO || 0),
+          ITRQ_VLR_DESCONTO_SOBRE_TOTAL: Number(i.ITPD_VLR_DESCONTO_SOBRE_TOTAL || 0),
+          PROD_ID: i.PROD_ID || '',
+          PROD_CODIGO: i.PROD_CODIGO || '',
+        }));
+        setItens(itensMapped);
+
+        if (d.PDDS_VLR_DESCONTO) setDescontoOS(Number(d.PDDS_VLR_DESCONTO));
+        if (d.PDDS_VLR_DESCONTO_SERVICO) setDescontoServico(Number(d.PDDS_VLR_DESCONTO_SERVICO));
+
+        // Forma de pagamento + Parcelas
+        if (d.FVEN_ID || d.FPAG_ID) {
+          setFormaPagamento(`${String(d.FVEN_ID || '')}|${String(d.FPAG_ID || '')}`);
+        }
+        if (d.COFR_ID) setCofrId(String(d.COFR_ID));
+
+        const parcelasMapped: ParcelaUI[] = (negocRaw || []).map((p: any, idx: number) => {
+          const dataRaw = String(p.ITPV_DATA || '');
+          let venc = '';
+          if (/^\d{2}\/\d{2}\/\d{4}/.test(dataRaw)) {
+            const [dd, mm, yyyy] = dataRaw.slice(0, 10).split('/');
+            venc = `${yyyy}-${mm}-${dd}`;
+          } else if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(dataRaw)) {
+            venc = dataRaw.slice(0, 10).replace(/\//g, '-');
+          }
+          return {
+            parcela: Number(p.ITPV_PARCELA || idx + 1),
+            dias: Number(p.ITPV_DIAS || 0),
+            vencimento: venc,
+            perc: Number(p.ITPV_PERC || 0),
+            valor: Number(p.ITPV_VLR || 0),
+            tipo_pagamento: String(p.ITPV_TIPO_PAGAMENTO || p.TPPR_TIPO_PAGAMENTO || ''),
+            cofr_id: String(p.COFR_ID || ''),
+            itfv_id: String(p.ITPV_ITFV_ID || ''),
+          };
+        });
+        if (parcelasMapped.length > 0) setParcelas(parcelasMapped);
+      } catch (e: any) {
+        toast.error('Erro ao carregar pedido: ' + (e?.message || ''));
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingPedido?.PDDS_ID]);
+
   // Carrega operações comerciais conforme cliente/vendedor/loja
   useEffect(() => {
     const unem_id = auth?.unidade?.unem_Id;
