@@ -18,6 +18,7 @@ import MovementSummary from "@/pages/MovementSummary";
 import Configuracoes from "@/pages/Configuracoes";
 import Marketing from "@/pages/Marketing";
 import ConsultaPix from "@/pages/ConsultaPix";
+import Faturamento from "@/pages/Faturamento";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
                 <Route path="/relatorios/movimentacao" element={<MovementSummary />} />
                 <Route path="/marketing/campanhas" element={<Marketing />} />
                 <Route path="/financeiro/pix" element={<ConsultaPix />} />
+                <Route path="/faturamento" element={<Faturamento />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />

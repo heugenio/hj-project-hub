@@ -13,6 +13,7 @@ import {
   Warehouse,
   Megaphone,
   CreditCard,
+  Receipt,
 } from "lucide-react";
 import verttriceLogo from "@/assets/verttice-logo.png";
 import { NavLink } from "@/components/NavLink";
@@ -38,6 +39,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
+  { title: "Faturamento", url: "/faturamento", icon: Receipt },
   { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
 ];
 
