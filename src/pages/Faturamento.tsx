@@ -6,10 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Search, Receipt, CheckCircle2 } from "lucide-react";
+import { Loader2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPedidos, setFaturarPedido, type Pedido } from "@/lib/api";
+import { getNegociacoesPedidos } from "@/lib/api-os";
 import { toast } from "sonner";
+
+interface Vencimento {
+  parcela: number;
+  vencimento: string;
+  dias: number;
+  perc: number;
+  valor: number;
+  tipo_pagamento: string;
+}
 
 export default function Faturamento() {
   const { auth } = useAuth();
