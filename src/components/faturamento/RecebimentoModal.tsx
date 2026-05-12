@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Trash2, CreditCard, CheckCircle2, Banknote, Send } from "lucide-react";
 import { toast } from "sonner";
 import { setFaturarPedido, type Pedido } from "@/lib/api";
-import { getNegociacoesPedidos, getItensFormaVencimento, type ItemFormaVencimento } from "@/lib/api-os";
+import { getNegociacoesPedidos, type ItemFormaVencimento } from "@/lib/api-os";
 import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider, type TefResultado } from "@/lib/tef";
 
 interface Props {
