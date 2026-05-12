@@ -61,6 +61,8 @@ export default function Pedidos() {
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "";
+    // já vem em dd/MM/yyyy do legado; se vier ISO, converte
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(dateStr)) return dateStr.slice(0, 10);
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("pt-BR");
   };
@@ -164,21 +166,20 @@ export default function Pedidos() {
                 </TableRow>
               )}
               {data.map((p, idx) => {
-                const rowStatus = String(
-                  p.oRSV_STATUS ?? (p as any).ORSV_STATUS ?? (p as any).orsv_status ?? ""
-                );
+                const rowStatus = String(p.PDDS_STATUS ?? "");
+                const cliente = p.PESS_NOME || p.PESS_RAZAO_SOCIAL || "";
                 return (
                   <TableRow
-                    key={p.oRSV_ID + idx}
+                    key={p.PDDS_ID + idx}
                     className={`[&>td]:px-2 [&>td]:py-1 ${idx % 2 === 0 ? "" : "bg-muted/40"}`}
                   >
-                    <TableCell className="font-mono text-[10px] font-medium whitespace-nowrap">{p.oRSV_NUMERO}</TableCell>
-                    <TableCell className="text-[10px] whitespace-nowrap">{formatDate(p.oRSV_DATA)}</TableCell>
-                    <TableCell className="text-[10px] max-w-[180px] truncate" title={p.oRSV_NOME}>{p.oRSV_NOME}</TableCell>
-                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.oRSV_CPFCNPJ}</TableCell>
-                    <TableCell className="text-[10px] max-w-[120px] truncate" title={`${p.vEIC_MARCA ?? ""} ${p.vEIC_MODELO ?? ""}`}>{p.vEIC_MARCA} {p.vEIC_MODELO}</TableCell>
-                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.vEIC_PLACA}</TableCell>
-                    <TableCell className="text-[10px] text-right whitespace-nowrap">{formatCurrency(p.oRSV_VLR_TOTAL)}</TableCell>
+                    <TableCell className="font-mono text-[10px] font-medium whitespace-nowrap">{p.PDDS_NUMERO}</TableCell>
+                    <TableCell className="text-[10px] whitespace-nowrap">{formatDate(p.PDDS_DATA)}</TableCell>
+                    <TableCell className="text-[10px] max-w-[180px] truncate" title={cliente}>{cliente}</TableCell>
+                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.PESS_CPFCNPJ || p.PDDS_CPFCNPJ}</TableCell>
+                    <TableCell className="text-[10px] max-w-[120px] truncate" title={`${p.VEIC_MARCA ?? ""} ${p.VEIC_MODELO ?? ""}`}>{p.VEIC_MARCA} {p.VEIC_MODELO}</TableCell>
+                    <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.VEIC_PLACA}</TableCell>
+                    <TableCell className="text-[10px] text-right whitespace-nowrap">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
                     <TableCell>
                       <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-[9px] px-1.5 py-0 whitespace-nowrap"}>
                         {rowStatus}
@@ -190,7 +191,7 @@ export default function Pedidos() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0"
-                          onClick={() => toast.info(`Visualizar pedido #${p.oRSV_NUMERO}`)}
+                          onClick={() => toast.info(`Visualizar pedido #${p.PDDS_NUMERO}`)}
                           title="Visualizar Pedido"
                           aria-label="Visualizar Pedido"
                         >
