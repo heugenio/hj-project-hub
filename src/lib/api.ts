@@ -5,12 +5,11 @@ function getBaseUrl(): string {
   return getApiBaseUrl();
 }
 
-async function proxyFetch(endpoint: string): Promise<string> {
+async function proxyFetch(endpoint: string, method: 'GET' | 'POST' = 'GET'): Promise<string> {
   const { data, error } = await supabase.functions.invoke('api-proxy', {
-    body: { baseUrl: getBaseUrl(), endpoint, method: 'GET' },
+    body: { baseUrl: getBaseUrl(), endpoint, method },
   });
   if (error) throw new Error(`API proxy error: ${error.message}`);
-  // data may come as parsed object or string
   if (typeof data === 'object' && data !== null) return JSON.stringify(data);
   return data as string;
 }
@@ -321,7 +320,7 @@ export const getPedidos = (
 };
 
 export async function setFaturarPedido(pddsId: string): Promise<{ ok: boolean; raw: string }> {
-  const text = await proxyFetch(`/setFaturarPedidos?id=${encodeURIComponent(pddsId)}`);
+  const text = await proxyFetch(`/setFaturarPedidos?id=${encodeURIComponent(pddsId)}`, 'POST');
   const lower = (text || '').toLowerCase();
   const ok = !/(erro|error|falha|fail)/.test(lower);
   return { ok, raw: text };
