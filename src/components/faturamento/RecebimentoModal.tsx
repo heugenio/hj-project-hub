@@ -204,6 +204,16 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             : "");
         if (cofrDefault) setCofrId(cofrDefault);
 
+        // Auto-seleciona Forma de Pagamento das negociações
+        const fvenFromNegs = String((list[0] as any)?.FVEN_ID || "");
+        if (fvenFromNegs) {
+          const idx = fp.findIndex((f) => String(f.FVEN_ID || f.FPAG_ID || "") === fvenFromNegs);
+          if (idx >= 0) {
+            const f = fp[idx];
+            setFormaSelecionada(`${String(f.FVEN_ID || f.FPAG_ID || "")}|${String(f.FPAG_ID || "")}|${idx}`);
+          }
+        }
+
         // Carrega grid diretamente das negociações do pedido
         if (list.length > 0) {
           const parsed: ParcelaUI[] = list.map((n: any, i: number) => {
