@@ -92,6 +92,50 @@ export default function Faturamento() {
     else setSelected(new Set(data.map((p) => p.PDDS_ID)));
   };
 
+  const toggleExpand = async (id: string) => {
+    const isOpen = expanded.has(id);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (isOpen) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    if (!isOpen && !vencimentos[id]) {
+      setLoadingVenc((prev) => new Set(prev).add(id));
+      try {
+        const raw = await getNegociacoesPedidos(id);
+        const list: Vencimento[] = (Array.isArray(raw) ? raw : []).map((p: any, idx: number) => {
+          const dataRaw = String(p.NGPD_DATA_VENCIMENTO || p.DATA_VENCIMENTO || '');
+          let venc = '';
+          if (/^\d{2}\/\d{2}\/\d{4}/.test(dataRaw)) {
+            venc = dataRaw.slice(0, 10);
+          } else if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(dataRaw)) {
+            const s = dataRaw.slice(0, 10).replace(/\//g, '-');
+            const [yyyy, mm, dd] = s.split('-');
+            venc = `${dd}/${mm}/${yyyy}`;
+          }
+          return {
+            parcela: idx + 1,
+            vencimento: venc,
+            dias: Number(p.NGPD_DIAS_VENCIMENTO || 0),
+            perc: Number(String(p.NGPD_PERC_VENCIMENTO || '0').replace(',', '.')),
+            valor: Number(String(p.NGPD_VLR_PARCELA || '0').replace(',', '.')),
+            tipo_pagamento: String(p.NGPD_TIPO_PAGAMENTO || ''),
+          };
+        });
+        setVencimentos((prev) => ({ ...prev, [id]: list }));
+      } catch (e: any) {
+        toast.error('Erro ao carregar vencimentos: ' + (e?.message || ''));
+      } finally {
+        setLoadingVenc((prev) => {
+          const n = new Set(prev);
+          n.delete(id);
+          return n;
+        });
+      }
+    }
+  };
+
   const totalSelecionado = data
     .filter((p) => selected.has(p.PDDS_ID))
     .reduce((s, p) => s + (Number(p.PDDS_VLR_TOTAL) || 0), 0);
