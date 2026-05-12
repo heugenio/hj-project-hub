@@ -44,6 +44,7 @@ interface PedidoFormProps {
 
 export default function PedidoForm({ onBack, editingPedido, viewMode = false }: PedidoFormProps) {
   const { auth } = useAuth();
+  const { logo: logoEmpresa, unidade: unidadeHeader } = useEmpresaHeader();
 
   const [operacoes, setOperacoes] = useState<OperacaoComercial[]>([]);
   const [opcmId, setOpcmId] = useState('');
