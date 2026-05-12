@@ -83,7 +83,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
       return p.valor > 0;
     });
 
-  // Carrega negociações + itens forma vencimento ao abrir
+  // Carrega pagamentos diretamente das negociações do pedido (somente conferir)
   useEffect(() => {
     if (!open || !pedido) return;
     setPagamentos([]);
@@ -92,45 +92,42 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
       setLoadingFormas(true);
       try {
         const negs = await getNegociacoesPedidos(pedido.PDDS_ID);
-        const itfvIds = Array.from(
-          new Set(
-            (Array.isArray(negs) ? negs : [])
-              .map((n: any) => String(n.ITFV_ID || n.itfv_id || ''))
-              .filter(Boolean)
-          )
+        const list = Array.isArray(negs) ? negs : [];
+        const pags: Pagamento[] = list.map((n: any, idx: number) => {
+          const itfvId = String(n.ITFV_ID || n.itfv_id || `neg-${idx}`);
+          const nome = String(
+            n.ITFV_NOME || n.itfv_nome || n.NGPD_TIPO_PAGAMENTO || n.TPPR_NOME || itfvId
+          );
+          const tipo = String(n.NGPD_TIPO_PAGAMENTO || n.ITFV_NOME || nome).toUpperCase();
+          const tef = String(n.ITFV_TEF || n.itfv_tef || '').toLowerCase() === 'sim';
+          const valor = +Number(String(n.NGPD_VLR_PARCELA || '0').replace(',', '.')).toFixed(2);
+          const parcelas = Number(n.NGPD_QTD_PCLS || 1);
+          return {
+            uid: Math.random().toString(36).slice(2),
+            itfvId,
+            itfvNome: nome,
+            tef,
+            tipoPagamento: tipo,
+            valor,
+            recebido: isDinheiro(tipo) ? valor : undefined,
+            parcelas: tef || isCartao(tipo) ? parcelas : undefined,
+            tefStatus: tef ? 'pendente' : undefined,
+          };
+        });
+        setPagamentos(pags);
+        // Mantém uma lista de formas (apenas para o select usar como fallback)
+        const dedup = Array.from(
+          new Map(pags.map((p) => [p.itfvId, { ITFV_ID: p.itfvId, ITFV_NOME: p.itfvNome, ITFV_TEF: p.tef ? 'Sim' : 'Nao', TPPR_TIPO_PAGAMENTO: p.tipoPagamento } as FormaOpt])).values()
         );
-        const opts: FormaOpt[] = [];
-        for (const id of itfvIds) {
-          try {
-            const items = await getItensFormaVencimento(id);
-            for (const it of items) {
-              const itfvId = String(it.ITFV_ID || id);
-              opts.push({
-                ...it,
-                ITFV_ID: itfvId,
-                ITFV_NOME: String(it.ITFV_NOME || it.TPPR_NOME || itfvId),
-              });
-            }
-          } catch (e) {
-            console.error('[Recebimento] erro getItensFormaVencimento', id, e);
-          }
-        }
-        // dedup por ITFV_ID
-        const dedup = Array.from(new Map(opts.map((o) => [o.ITFV_ID, o])).values());
         setFormas(dedup);
-
-        // pré-popula uma linha de pagamento com a primeira forma cobrindo o total
-        if (dedup.length > 0) {
-          const first = dedup[0];
-          setPagamentos([buildPagamento(first, total)]);
-        }
       } catch (e: any) {
-        toast.error('Erro ao carregar formas de pagamento: ' + (e?.message || ''));
+        toast.error('Erro ao carregar pagamentos do pedido: ' + (e?.message || ''));
       } finally {
         setLoadingFormas(false);
       }
     })();
   }, [open, pedido?.PDDS_ID]);
+
 
   function buildPagamento(forma: FormaOpt, valor: number): Pagamento {
     const tipo = String(forma.TPPR_TIPO_PAGAMENTO || forma.ITFV_NOME || '').toUpperCase();
