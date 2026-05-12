@@ -31,6 +31,7 @@ import {
 import type { Pedido as PedidoListItem } from '@/lib/api';
 import { supabase } from '@/integrations/supabase/client';
 import { getApiBaseUrl } from '@/lib/base-url';
+import { useEmpresaHeader } from '@/hooks/useEmpresaHeader';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
