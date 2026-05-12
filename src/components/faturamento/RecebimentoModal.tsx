@@ -28,16 +28,15 @@ interface FormaOpt extends ItemFormaVencimento {
 
 interface Pagamento {
   uid: string;
-  itfvId: string;
+  itfvId?: string;       // pode ser vazio quando adicionado manualmente
   itfvNome: string;
+  cofrId?: string;       // COFR_ID do vencimento de origem
+  tpprId?: string;       // quando adicionado via getFormasPagamentosItens
   tef: boolean;
-  tipoPagamento: string; // ex: "DINHEIRO", "CARTAO CREDITO"...
+  tipoPagamento: string;
   valor: number;
-  // dinheiro
   recebido?: number;
-  // cartão
   parcelas?: number;
-  // tef
   tefStatus?: 'pendente' | 'aprovado' | 'cancelado';
   tefResult?: TefResultado;
 }
