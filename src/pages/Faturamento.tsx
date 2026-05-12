@@ -347,29 +347,20 @@ export default function Faturamento() {
         </CardContent>
       </Card>
 
-      {payloads.length > 0 && (
+      {selectedPedidos.length > 0 && (
         <Card>
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Payload de retorno (setFaturarPedidos)</h2>
-              <Button variant="ghost" size="sm" onClick={() => setPayloads([])}>Limpar</Button>
+              <h2 className="text-sm font-semibold">Payload de envio (setFaturarPedidos)</h2>
+              <span className="text-xs text-muted-foreground">
+                {selectedPedidos.length} requisição(ões) GET — uma por pedido
+              </span>
             </div>
-            <div className="space-y-2">
-              {payloads.map((p, i) => (
-                <div key={i} className="border rounded p-2 text-xs">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge className={p.ok ? "bg-accent text-accent-foreground" : "bg-destructive text-destructive-foreground"}>
-                      {p.ok ? "OK" : "ERRO"}
-                    </Badge>
-                    <span className="font-mono">Nº {p.numero || "-"}</span>
-                    <span className="text-muted-foreground">PDDS_ID: {p.id}</span>
-                  </div>
-                  <pre className="bg-muted/40 p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap break-all">
-{p.error ? `ERROR: ${p.error}` : (p.raw || "(vazio)")}
-                  </pre>
-                </div>
-              ))}
-            </div>
+            <pre className="bg-muted/40 p-2 rounded overflow-auto max-h-60 text-xs whitespace-pre-wrap break-all">
+{selectedPedidos
+  .map((p) => `GET ${baseUrl}/setFaturarPedidos?id=${encodeURIComponent(p.PDDS_ID)}    # Nº ${p.PDDS_NUMERO}`)
+  .join('\n')}
+            </pre>
           </CardContent>
         </Card>
       )}
