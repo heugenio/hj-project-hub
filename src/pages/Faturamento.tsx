@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPedidos, setFaturarPedido, type Pedido } from "@/lib/api";
+import { getPedidos, type Pedido } from "@/lib/api";
 import { getNegociacoesPedidos } from "@/lib/api-os";
-import { getApiBaseUrl } from "@/lib/base-url";
 import { toast } from "sonner";
+import RecebimentoModal from "@/components/faturamento/RecebimentoModal";
 
 interface Vencimento {
   parcela: number;
@@ -141,38 +141,53 @@ export default function Faturamento() {
     .filter((p) => selected.has(p.PDDS_ID))
     .reduce((s, p) => s + (Number(p.PDDS_VLR_TOTAL) || 0), 0);
 
-  const handleFaturar = async () => {
+  const [filaIds, setFilaIds] = useState<string[]>([]);
+  const [filaIdx, setFilaIdx] = useState(0);
+  const [filaTotal, setFilaTotal] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const pedidoAtual = filaIds[filaIdx]
+    ? data.find((p) => p.PDDS_ID === filaIds[filaIdx]) || null
+    : null;
+
+  const iniciarFaturamento = () => {
     if (selected.size === 0) {
       toast.error("Selecione ao menos um pedido para faturar.");
       return;
     }
-    if (!confirm(`Confirma o faturamento de ${selected.size} pedido(s)?`)) return;
+    const ids = Array.from(selected);
+    setFilaIds(ids);
+    setFilaIdx(0);
+    setFilaTotal(ids.length);
+    setModalOpen(true);
+  };
 
-    setFaturando(true);
-    let okCount = 0;
-    let failCount = 0;
-    const failedIds: string[] = [];
-
-    const baseUrlLog = getApiBaseUrl();
-    for (const id of Array.from(selected)) {
-      const url = `${baseUrlLog}/setFaturarPedidos?id=${encodeURIComponent(id)}`;
-      console.log('[Faturamento] POST', url);
-      try {
-        const res = await setFaturarPedido(id);
-        console.log('[Faturamento] Resposta', { id, ok: res.ok, raw: (res as any).raw ?? res });
-        if (res.ok) okCount++;
-        else { failCount++; failedIds.push(id); }
-      } catch (err) {
-        console.error('[Faturamento] Erro', { id, err });
-        failCount++;
-        failedIds.push(id);
-      }
+  const avancarFila = () => {
+    const next = filaIdx + 1;
+    if (next >= filaIds.length) {
+      setModalOpen(false);
+      setFilaIds([]);
+      setFilaIdx(0);
+      setSelected(new Set());
+      handleSearch();
+      toast.success("Fila de faturamento concluída.");
+    } else {
+      setFilaIdx(next);
     }
+  };
 
-    setFaturando(false);
-    if (okCount > 0) toast.success(`${okCount} pedido(s) faturado(s) com sucesso.`);
-    if (failCount > 0) toast.error(`${failCount} pedido(s) com falha: ${failedIds.join(", ")}`);
-    setSelected(new Set());
+  const handleFaturado = (_pddsId: string) => {
+    avancarFila();
+  };
+
+  const handlePular = (_pddsId: string) => {
+    avancarFila();
+  };
+
+  const handleClose = () => {
+    setModalOpen(false);
+    setFilaIds([]);
+    setFilaIdx(0);
     handleSearch();
   };
 
@@ -188,8 +203,8 @@ export default function Faturamento() {
             Pedidos em aberto disponíveis para faturamento
           </p>
         </div>
-        <Button onClick={handleFaturar} disabled={faturando || selected.size === 0}>
-          {faturando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+        <Button onClick={iniciarFaturamento} disabled={faturando || selected.size === 0}>
+          <CheckCircle2 className="h-4 w-4 mr-2" />
           Faturar selecionados ({selected.size})
         </Button>
       </div>
@@ -350,6 +365,14 @@ export default function Faturamento() {
         </CardContent>
       </Card>
 
+      <RecebimentoModal
+        open={modalOpen}
+        pedido={pedidoAtual}
+        fila={{ atual: filaIdx + 1, total: filaTotal }}
+        onClose={handleClose}
+        onFaturado={handleFaturado}
+        onPular={handlePular}
+      />
     </div>
   );
 }

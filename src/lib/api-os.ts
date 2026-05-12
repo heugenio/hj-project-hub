@@ -540,3 +540,22 @@ export const getNegociacoesPedidos = async (pddsId: string) => {
   const arr = Array.isArray(raw) ? raw : (raw.rawHtml || raw.message === '200 OK' ? [] : [raw]);
   return arr.map((c: any) => normalizeApiKeys<any>(c));
 };
+
+// Itens de Forma de Vencimento — retorna ITFV_NOME, ITFV_TEF, etc.
+export interface ItemFormaVencimento {
+  ITFV_ID?: string;
+  ITFV_NOME?: string;
+  ITFV_TEF?: string; // 'Sim' | 'Nao'
+  TPPR_TIPO_PAGAMENTO?: string;
+  TPPR_NOME?: string;
+  NGPD_QTD_PCLS?: number;
+  [key: string]: any;
+}
+
+export const getItensFormaVencimento = async (itfvId: string): Promise<ItemFormaVencimento[]> => {
+  const raw = await proxyGet<any>(`/getItensFormaVencimento?ITFV_ID=${encodeURIComponent(itfvId)}`);
+  if (!raw) return [];
+  if (!Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c: any) => normalizeApiKeys<ItemFormaVencimento>(c));
+};
