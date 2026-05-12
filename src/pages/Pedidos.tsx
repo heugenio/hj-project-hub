@@ -199,9 +199,14 @@ export default function Pedidos() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0"
-                          onClick={() => { setEditingPedido(p); setViewMode(true); setShowForm(true); }}
-                          title="Visualizar Pedido"
-                          aria-label="Visualizar Pedido"
+                          onClick={() => {
+                            const isAberto = rowStatus.trim().toLowerCase() === 'aberto';
+                            setEditingPedido(p);
+                            setViewMode(!isAberto);
+                            setShowForm(true);
+                          }}
+                          title={rowStatus.trim().toLowerCase() === 'aberto' ? 'Editar Pedido' : 'Visualizar Pedido'}
+                          aria-label={rowStatus.trim().toLowerCase() === 'aberto' ? 'Editar Pedido' : 'Visualizar Pedido'}
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
