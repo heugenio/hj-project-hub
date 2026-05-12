@@ -833,6 +833,24 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
           <Button variant="outline" size="sm" onClick={onBack} disabled={saving}>
             <XCircle className="h-4 w-4 mr-1" /> Cancelar
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={saving || !pedidoPersistido}
+            onClick={handlePrint}
+            title={!pedidoPersistido ? 'Salve o pedido para imprimir' : 'Imprimir Pedido'}
+          >
+            <Printer className="h-4 w-4 mr-1" /> Imprimir
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={saving || !pedidoPersistido}
+            onClick={handleWhatsApp}
+            title={!pedidoPersistido ? 'Salve o pedido para enviar' : 'Enviar via WhatsApp'}
+          >
+            <Send className="h-4 w-4 mr-1" /> WhatsApp
+          </Button>
           {!viewMode && (
             <Button size="sm" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
@@ -841,6 +859,61 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
           )}
         </div>
       </div>
+
+      {/* WhatsApp Send Dialog */}
+      <Dialog open={whatsDialogOpen} onOpenChange={(open) => !whatsEnviando && setWhatsDialogOpen(open)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" /> Enviar Pedido por WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Cliente: <span className="font-mono font-semibold text-foreground">{cliente?.PESS_NOME}</span>
+            </div>
+            <div>
+              <Label className="text-xs">Telefone do destinatário (com DDD)</Label>
+              <Input
+                value={whatsTelefone}
+                onChange={(e) => setWhatsTelefone(e.target.value.replace(/\D/g, '').slice(0, 13))}
+                placeholder="11999998888"
+                className="text-xs mt-1 font-mono"
+                disabled={whatsEnviando}
+                inputMode="numeric"
+              />
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Apenas números. O código do país (55) será adicionado automaticamente.
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Mensagem (será enviada junto com o PDF)</Label>
+              <Textarea
+                value={whatsMensagem}
+                onChange={(e) => setWhatsMensagem(e.target.value.toUpperCase())}
+                rows={7}
+                className="text-xs mt-1"
+                disabled={whatsEnviando}
+              />
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              📎 O PDF do pedido será anexado automaticamente como <span className="font-mono">PEDIDO-{numeroPedido || orsvId}.pdf</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setWhatsDialogOpen(false)} disabled={whatsEnviando}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleEnviarWhatsApp} disabled={whatsEnviando || !whatsMensagem.trim()}>
+              {whatsEnviando ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Enviando...</>
+              ) : (
+                <><Send className="h-4 w-4 mr-1" /> Enviar</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
