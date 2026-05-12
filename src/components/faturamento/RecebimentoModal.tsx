@@ -357,27 +357,33 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           </Card>
         </div>
 
-        {/* TEF Provider */}
-        <div className="flex items-center gap-2 text-xs">
+        {/* TEF Provider (carregado de getParametros?nome=TefTipoGP) */}
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           <span className="text-muted-foreground">Provedor TEF:</span>
           <Select
-            value={tefProvider}
+            value={String(tefGpIdx)}
             onValueChange={(v) => {
-              setTefProvider(v as TefProvider);
-              setTefProviderState(v as TefProvider);
+              const idx = Number(v);
+              const item = TEF_GP_LIST.find((x) => x.idx === idx) || TEF_GP_LIST[0];
+              setTefGpIdx(idx);
+              setTefGpLabel(item.label);
+              const prov = gpToProvider(item.value);
+              setTefProvider(prov);
+              setTefProviderState(prov);
             }}
           >
-            <SelectTrigger className="h-7 w-[180px] text-xs">
+            <SelectTrigger className="h-7 w-[260px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TEF_PROVIDERS.map((p) => (
-                <SelectItem key={p.value} value={p.value} className="text-xs">
-                  {p.label}
+              {TEF_GP_LIST.map((p) => (
+                <SelectItem key={p.idx} value={String(p.idx)} className="text-xs">
+                  {p.idx} • {p.value} — {p.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <Badge variant="outline" className="text-[10px]">driver: {tefProvider}</Badge>
         </div>
 
         {/* Pagamentos */}
