@@ -156,7 +156,7 @@ export default function Faturamento() {
     const baseUrlLog = getApiBaseUrl();
     for (const id of Array.from(selected)) {
       const url = `${baseUrlLog}/setFaturarPedidos?id=${encodeURIComponent(id)}`;
-      console.log('[Faturamento] GET', url);
+      console.log('[Faturamento] POST', url);
       try {
         const res = await setFaturarPedido(id);
         console.log('[Faturamento] Resposta', { id, ok: res.ok, raw: (res as any).raw ?? res });
