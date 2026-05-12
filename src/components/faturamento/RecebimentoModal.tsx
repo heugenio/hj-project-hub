@@ -353,8 +353,8 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           <CardContent className="p-3 space-y-2">
             <div className="flex items-center justify-between">
               <div className="font-semibold text-sm">Pagamentos</div>
-              <Button size="sm" variant="outline" onClick={adicionarPagamento} disabled={loadingFormas}>
-                <Plus className="h-3 w-3 mr-1" /> Adicionar
+              <Button size="sm" variant="outline" onClick={adicionarPagamento} disabled={loadingFormas || loadingAdd}>
+                {loadingAdd ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />} Adicionar
               </Button>
             </div>
 
