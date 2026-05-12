@@ -496,7 +496,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     y += 10;
     const sigW = contentW / 2;
     [
-      { titulo: 'VENDEDOR', valor: vendedor?.VDDR_NOME || '' },
+      { titulo: 'VENDEDOR', valor: vendedor?.VDDR_NOME || vendedorText || '' },
       { titulo: 'CLIENTE', valor: cliente?.PESS_NOME || '' },
     ].forEach((s, idx) => {
       const x = marginX + sigW * idx;
@@ -509,7 +509,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     });
 
     return doc;
-  }, [auth, numeroPedido, orsvId, dataPedido, cliente, vendedor, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, subtotal, totalFinal, observacoes]);
+  }, [auth, unidadeHeader, logoEmpresa, numeroPedido, orsvId, dataPedido, cliente, vendedor, vendedorText, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, subtotal, totalFinal, observacoes]);
 
   const handlePrint = useCallback(() => {
     if (!pedidoPersistido) return;
