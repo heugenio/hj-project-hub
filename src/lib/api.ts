@@ -302,6 +302,8 @@ export interface Pedido {
   VEIC_MODELO?: string;
   VEIC_PLACA?: string;
   USRS_NOME_LOGIN?: string;
+  VDDR_NOME?: string;
+  PESS_NOME_VENDEDOR?: string;
   ORSV_ID?: string;
   ORVD_ID?: string;
 }

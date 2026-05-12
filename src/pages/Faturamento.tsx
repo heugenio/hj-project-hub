@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -6,10 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Search, Receipt, CheckCircle2 } from "lucide-react";
+import { Loader2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPedidos, setFaturarPedido, type Pedido } from "@/lib/api";
+import { getNegociacoesPedidos } from "@/lib/api-os";
 import { toast } from "sonner";
+
+interface Vencimento {
+  parcela: number;
+  vencimento: string;
+  dias: number;
+  perc: number;
+  valor: number;
+  tipo_pagamento: string;
+}
 
 export default function Faturamento() {
   const { auth } = useAuth();
@@ -19,6 +29,9 @@ export default function Faturamento() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [faturando, setFaturando] = useState(false);
   const [payloads, setPayloads] = useState<{ id: string; numero?: string; ok: boolean; raw: string; error?: string }[]>([]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [vencimentos, setVencimentos] = useState<Record<string, Vencimento[]>>({});
+  const [loadingVenc, setLoadingVenc] = useState<Set<string>>(new Set());
 
   const today = new Date();
   const sevenDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
@@ -77,6 +90,50 @@ export default function Faturamento() {
   const toggleAll = () => {
     if (selected.size === data.length) setSelected(new Set());
     else setSelected(new Set(data.map((p) => p.PDDS_ID)));
+  };
+
+  const toggleExpand = async (id: string) => {
+    const isOpen = expanded.has(id);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (isOpen) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    if (!isOpen && !vencimentos[id]) {
+      setLoadingVenc((prev) => new Set(prev).add(id));
+      try {
+        const raw = await getNegociacoesPedidos(id);
+        const list: Vencimento[] = (Array.isArray(raw) ? raw : []).map((p: any, idx: number) => {
+          const dataRaw = String(p.NGPD_DATA_VENCIMENTO || p.DATA_VENCIMENTO || '');
+          let venc = '';
+          if (/^\d{2}\/\d{2}\/\d{4}/.test(dataRaw)) {
+            venc = dataRaw.slice(0, 10);
+          } else if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(dataRaw)) {
+            const s = dataRaw.slice(0, 10).replace(/\//g, '-');
+            const [yyyy, mm, dd] = s.split('-');
+            venc = `${dd}/${mm}/${yyyy}`;
+          }
+          return {
+            parcela: idx + 1,
+            vencimento: venc,
+            dias: Number(p.NGPD_DIAS_VENCIMENTO || 0),
+            perc: Number(String(p.NGPD_PERC_VENCIMENTO || '0').replace(',', '.')),
+            valor: Number(String(p.NGPD_VLR_PARCELA || '0').replace(',', '.')),
+            tipo_pagamento: String(p.NGPD_TIPO_PAGAMENTO || ''),
+          };
+        });
+        setVencimentos((prev) => ({ ...prev, [id]: list }));
+      } catch (e: any) {
+        toast.error('Erro ao carregar vencimentos: ' + (e?.message || ''));
+      } finally {
+        setLoadingVenc((prev) => {
+          const n = new Set(prev);
+          n.delete(id);
+          return n;
+        });
+      }
+    }
   };
 
   const totalSelecionado = data
@@ -164,6 +221,7 @@ export default function Faturamento() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-8"></TableHead>
                 <TableHead className="w-10">
                   <Checkbox
                     checked={data.length > 0 && selected.size === data.length}
@@ -182,41 +240,105 @@ export default function Faturamento() {
             <TableBody>
               {!searched && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Use os filtros acima para buscar pedidos.
                   </TableCell>
                 </TableRow>
               )}
               {searched && data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     <Receipt className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     Nenhum pedido em aberto.
                   </TableCell>
                 </TableRow>
               )}
-              {data.map((p) => (
-                <TableRow key={p.PDDS_ID} data-state={selected.has(p.PDDS_ID) ? "selected" : undefined}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selected.has(p.PDDS_ID)}
-                      onCheckedChange={() => toggle(p.PDDS_ID)}
-                      aria-label={`Selecionar pedido ${p.PDDS_NUMERO}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-mono">{p.PDDS_NUMERO}</TableCell>
-                  <TableCell>{formatDate(p.PDDS_DATA)}</TableCell>
-                  <TableCell>{p.PESS_NOME || p.PESS_RAZAO_SOCIAL || "-"}</TableCell>
-                  <TableCell>{p.USRS_NOME_LOGIN || "-"}</TableCell>
-                  <TableCell>
-                    <Badge className="bg-primary text-primary-foreground">{p.PDDS_STATUS || "Aberto"}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
-                </TableRow>
-              ))}
+              {data.map((p) => {
+                const isOpen = expanded.has(p.PDDS_ID);
+                const vencs = vencimentos[p.PDDS_ID] || [];
+                const isLoading = loadingVenc.has(p.PDDS_ID);
+                const vendedorNome =
+                  (p as any).VDDR_NOME ||
+                  (p as any).PESS_NOME_VENDEDOR ||
+                  (p as any).vDDR_NOME ||
+                  (p as any).pESS_NOME_VENDEDOR ||
+                  p.USRS_NOME_LOGIN ||
+                  '-';
+                return (
+                  <Fragment key={p.PDDS_ID}>
+                    <TableRow key={p.PDDS_ID} data-state={selected.has(p.PDDS_ID) ? "selected" : undefined}>
+                      <TableCell className="p-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => toggleExpand(p.PDDS_ID)}
+                          aria-label="Expandir"
+                        >
+                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={selected.has(p.PDDS_ID)}
+                          onCheckedChange={() => toggle(p.PDDS_ID)}
+                          aria-label={`Selecionar pedido ${p.PDDS_NUMERO}`}
+                        />
+                      </TableCell>
+                      <TableCell className="font-mono">{p.PDDS_NUMERO}</TableCell>
+                      <TableCell>{formatDate(p.PDDS_DATA)}</TableCell>
+                      <TableCell>{p.PESS_NOME || p.PESS_RAZAO_SOCIAL || "-"}</TableCell>
+                      <TableCell>{vendedorNome}</TableCell>
+                      <TableCell>
+                        <Badge className="bg-primary text-primary-foreground">{p.PDDS_STATUS || "Aberto"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
+                    </TableRow>
+                    {isOpen && (
+                      <TableRow key={p.PDDS_ID + '-venc'} className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={8} className="p-3">
+                          <div className="text-xs font-semibold mb-2">Vencimentos / Forma de Pagamento</div>
+                          {isLoading ? (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 mr-2 animate-spin" /> Carregando...
+                            </div>
+                          ) : vencs.length === 0 ? (
+                            <div className="text-xs text-muted-foreground">Nenhum vencimento cadastrado.</div>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="border-b text-left">
+                                  <th className="py-1 px-2">Parc.</th>
+                                  <th className="py-1 px-2">Vencimento</th>
+                                  <th className="py-1 px-2">Dias</th>
+                                  <th className="py-1 px-2 text-right">%</th>
+                                  <th className="py-1 px-2">Tipo Pagamento</th>
+                                  <th className="py-1 px-2 text-right">Valor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {vencs.map((v) => (
+                                  <tr key={v.parcela} className="border-b last:border-0">
+                                    <td className="py-1 px-2">{v.parcela}</td>
+                                    <td className="py-1 px-2">{v.vencimento}</td>
+                                    <td className="py-1 px-2">{v.dias}</td>
+                                    <td className="py-1 px-2 text-right">{v.perc}%</td>
+                                    <td className="py-1 px-2">{v.tipo_pagamento}</td>
+                                    <td className="py-1 px-2 text-right font-medium">{formatCurrency(v.valor)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })}
               {data.length > 0 && (
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={6} className="text-right font-semibold">
+                  <TableCell colSpan={7} className="text-right font-semibold">
                     Total selecionado:
                   </TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(totalSelecionado)}</TableCell>
