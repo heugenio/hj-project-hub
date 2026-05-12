@@ -199,7 +199,7 @@ export default function Pedidos() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0"
-                          onClick={() => toast.info(`Visualizar pedido #${p.PDDS_NUMERO}`)}
+                          onClick={() => { setEditingPedido(p); setViewMode(true); setShowForm(true); }}
                           title="Visualizar Pedido"
                           aria-label="Visualizar Pedido"
                         >

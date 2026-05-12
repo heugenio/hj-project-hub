@@ -516,3 +516,27 @@ export const setFinalizarOS = async (payload: FinalizarOSPayload) => {
   console.log('[setFinalizarOS] Resposta:', response);
   return response;
 };
+
+// ===== Pedidos: detalhe / itens / negociações =====
+
+export const getPedidoById = async (pddsId: string) => {
+  const raw = await proxyGet<any>(`/getPedidos?ID=${encodeURIComponent(pddsId)}`);
+  if (!raw) return null;
+  const arr = Array.isArray(raw) ? raw : (raw.rawHtml || raw.message === '200 OK' ? [] : [raw]);
+  if (arr.length === 0) return null;
+  return normalizeApiKeys<any>(arr[0]);
+};
+
+export const getItensPedidos = async (pddsId: string) => {
+  const raw = await proxyGet<any>(`/getItensPedidos?ID=${encodeURIComponent(pddsId)}`);
+  if (!raw) return [] as any[];
+  const arr = Array.isArray(raw) ? raw : (raw.rawHtml || raw.message === '200 OK' ? [] : [raw]);
+  return arr.map((c: any) => normalizeApiKeys<any>(c));
+};
+
+export const getNegociacoesPedidos = async (pddsId: string) => {
+  const raw = await proxyGet<any>(`/getNegociacoesPedidos?ID=${encodeURIComponent(pddsId)}`);
+  if (!raw) return [] as any[];
+  const arr = Array.isArray(raw) ? raw : (raw.rawHtml || raw.message === '200 OK' ? [] : [raw]);
+  return arr.map((c: any) => normalizeApiKeys<any>(c));
+};
