@@ -170,18 +170,65 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         setFormas(fp);
         setCofres(cf);
 
+        const list = Array.isArray(negs) ? negs : [];
+        console.log("[Recebimento] getNegociacoesPedidos:", list);
+
         // Cofre default: do pedido (negociações), senão "carteira", senão primeiro
-        const cofrFromNegs = Array.isArray(negs)
-          ? (negs.find((n: any) => n?.NGPD_COFR_ID || n?.COFR_ID) as any)
-          : null;
+        const cofrFromNegs = list.find((n: any) => n?.NGPD_COFR_ID || n?.COFR_ID) as any;
         const cofrPedido = cofrFromNegs
           ? String(cofrFromNegs.NGPD_COFR_ID || cofrFromNegs.COFR_ID || "")
           : "";
-        if (cofrPedido) {
-          setCofrId(cofrPedido);
-        } else if (cf.length > 0) {
-          const carteira = cf.find((c) => /carteira/i.test(c.COFR_NOME || ""));
-          setCofrId((carteira || cf[0]).COFR_ID);
+        const cofrDefault =
+          cofrPedido ||
+          (cf.length > 0
+            ? (cf.find((c) => /carteira/i.test(c.COFR_NOME || "")) || cf[0]).COFR_ID
+            : "");
+        if (cofrDefault) setCofrId(cofrDefault);
+
+        // Carrega grid diretamente das negociações do pedido
+        if (list.length > 0) {
+          const parsed: ParcelaUI[] = list.map((n: any, i: number) => {
+            const tipo = String(
+              n.NGPD_TIPO_PAGAMENTO || n.TPPR_TIPO_PAGAMENTO || n.ITFV_NOME || ""
+            ).toUpperCase();
+            const info = detectarCartao(tipo);
+            const vencRaw = String(
+              n.NGPD_DT_VENC || n.NGPD_DATA_VENCIMENTO || n.NGPD_VENCIMENTO || n.VENCIMENTO || ""
+            )
+              .replace(/\//g, "-")
+              .slice(0, 10);
+            const dias = Number(n.NGPD_DIAS ?? n.NGPD_QTD_DIAS ?? n.DIAS ?? 0);
+            const perc = Number(String(n.NGPD_PERC ?? n.PERC ?? 0).toString().replace(",", "."));
+            const valor = +Number(
+              String(n.NGPD_VLR_PARCELA ?? n.NGPD_VALOR ?? n.VALOR ?? 0)
+                .toString()
+                .replace(",", ".")
+            ).toFixed(2);
+            const parcela = Number(n.NGPD_PARCELA ?? n.PARCELA ?? i + 1);
+            const tpCart = String(n.NGPD_TIPO_CARTAO || "").toUpperCase();
+            return {
+              parcela,
+              dias,
+              vencimento: vencRaw,
+              perc,
+              valor,
+              tipo_pagamento: tipo,
+              cofr_id: String(n.NGPD_COFR_ID || n.COFR_ID || cofrDefault || ""),
+              itfv_id: String(n.ITFV_ID || ""),
+              tipoOptions: [],
+              loadingTipos: false,
+              tipo_cartao:
+                tpCart === "DEBITO" || tpCart === "CREDITO"
+                  ? (tpCart as "DEBITO" | "CREDITO")
+                  : info.tipo,
+              qtd_parcelas_cartao: info.isCartao
+                ? String(n.NGPD_QTD_PCLS ?? n.NGPD_QTD_PARCELAS ?? "")
+                : "",
+              nr_auto: String(n.NGPD_NR_AUTO || n.NGPD_NSU || ""),
+              bandeira: String(n.NGPD_BANDEIRA || "").toUpperCase(),
+            };
+          }).sort((a, b) => a.parcela - b.parcela);
+          setParcelas(parsed);
         }
       } catch (e: any) {
         toast.error("Erro ao carregar dados: " + (e?.message || ""));
