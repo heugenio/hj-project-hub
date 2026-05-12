@@ -221,6 +221,7 @@ export default function Faturamento() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-8"></TableHead>
                 <TableHead className="w-10">
                   <Checkbox
                     checked={data.length > 0 && selected.size === data.length}
@@ -239,41 +240,105 @@ export default function Faturamento() {
             <TableBody>
               {!searched && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Use os filtros acima para buscar pedidos.
                   </TableCell>
                 </TableRow>
               )}
               {searched && data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     <Receipt className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     Nenhum pedido em aberto.
                   </TableCell>
                 </TableRow>
               )}
-              {data.map((p) => (
-                <TableRow key={p.PDDS_ID} data-state={selected.has(p.PDDS_ID) ? "selected" : undefined}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selected.has(p.PDDS_ID)}
-                      onCheckedChange={() => toggle(p.PDDS_ID)}
-                      aria-label={`Selecionar pedido ${p.PDDS_NUMERO}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-mono">{p.PDDS_NUMERO}</TableCell>
-                  <TableCell>{formatDate(p.PDDS_DATA)}</TableCell>
-                  <TableCell>{p.PESS_NOME || p.PESS_RAZAO_SOCIAL || "-"}</TableCell>
-                  <TableCell>{p.USRS_NOME_LOGIN || "-"}</TableCell>
-                  <TableCell>
-                    <Badge className="bg-primary text-primary-foreground">{p.PDDS_STATUS || "Aberto"}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
-                </TableRow>
-              ))}
+              {data.map((p) => {
+                const isOpen = expanded.has(p.PDDS_ID);
+                const vencs = vencimentos[p.PDDS_ID] || [];
+                const isLoading = loadingVenc.has(p.PDDS_ID);
+                const vendedorNome =
+                  (p as any).VDDR_NOME ||
+                  (p as any).PESS_NOME_VENDEDOR ||
+                  (p as any).vDDR_NOME ||
+                  (p as any).pESS_NOME_VENDEDOR ||
+                  p.USRS_NOME_LOGIN ||
+                  '-';
+                return (
+                  <>
+                    <TableRow key={p.PDDS_ID} data-state={selected.has(p.PDDS_ID) ? "selected" : undefined}>
+                      <TableCell className="p-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => toggleExpand(p.PDDS_ID)}
+                          aria-label="Expandir"
+                        >
+                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={selected.has(p.PDDS_ID)}
+                          onCheckedChange={() => toggle(p.PDDS_ID)}
+                          aria-label={`Selecionar pedido ${p.PDDS_NUMERO}`}
+                        />
+                      </TableCell>
+                      <TableCell className="font-mono">{p.PDDS_NUMERO}</TableCell>
+                      <TableCell>{formatDate(p.PDDS_DATA)}</TableCell>
+                      <TableCell>{p.PESS_NOME || p.PESS_RAZAO_SOCIAL || "-"}</TableCell>
+                      <TableCell>{vendedorNome}</TableCell>
+                      <TableCell>
+                        <Badge className="bg-primary text-primary-foreground">{p.PDDS_STATUS || "Aberto"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
+                    </TableRow>
+                    {isOpen && (
+                      <TableRow key={p.PDDS_ID + '-venc'} className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={8} className="p-3">
+                          <div className="text-xs font-semibold mb-2">Vencimentos / Forma de Pagamento</div>
+                          {isLoading ? (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 mr-2 animate-spin" /> Carregando...
+                            </div>
+                          ) : vencs.length === 0 ? (
+                            <div className="text-xs text-muted-foreground">Nenhum vencimento cadastrado.</div>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="border-b text-left">
+                                  <th className="py-1 px-2">Parc.</th>
+                                  <th className="py-1 px-2">Vencimento</th>
+                                  <th className="py-1 px-2">Dias</th>
+                                  <th className="py-1 px-2 text-right">%</th>
+                                  <th className="py-1 px-2">Tipo Pagamento</th>
+                                  <th className="py-1 px-2 text-right">Valor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {vencs.map((v) => (
+                                  <tr key={v.parcela} className="border-b last:border-0">
+                                    <td className="py-1 px-2">{v.parcela}</td>
+                                    <td className="py-1 px-2">{v.vencimento}</td>
+                                    <td className="py-1 px-2">{v.dias}</td>
+                                    <td className="py-1 px-2 text-right">{v.perc}%</td>
+                                    <td className="py-1 px-2">{v.tipo_pagamento}</td>
+                                    <td className="py-1 px-2 text-right font-medium">{formatCurrency(v.valor)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
               {data.length > 0 && (
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={6} className="text-right font-semibold">
+                  <TableCell colSpan={7} className="text-right font-semibold">
                     Total selecionado:
                   </TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(totalSelecionado)}</TableCell>
