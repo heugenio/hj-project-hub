@@ -66,6 +66,10 @@ export default function FormaVencimentoCard({
   const [loading, setLoading] = useState(false);
   const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cofres, setCofres] = useState<Cofre[]>([]);
+  // Controla se o efeito de geração já rodou ao menos uma vez para a forma atual.
+  // Quando os dados vêm carregados da API (edição/visualização), preservamos as parcelas
+  // existentes na primeira execução em vez de regerar.
+  const lastGenForma = useRef<string | null>(null);
 
   const formasOptions = useMemo(
     () =>
