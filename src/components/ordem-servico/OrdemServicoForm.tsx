@@ -634,10 +634,18 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
     doc.setDrawColor(160, 160, 160);
     const logoW = 50;
     doc.rect(marginX, 8, logoW, headH);
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
-    doc.setTextColor(120, 120, 120);
-    doc.text('[ LOGO EMPRESA ]', marginX + logoW / 2, 8 + headH / 2 + 1, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
+    if (logoEmpresa) {
+      try {
+        const fmt = logoEmpresa.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(logoEmpresa, fmt as any, marginX + 2, 10, logoW - 4, headH - 4, undefined, 'FAST');
+      } catch { /* ignore */ }
+    } else {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text('[ LOGO EMPRESA ]', marginX + logoW / 2, 8 + headH / 2 + 1, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+    }
+
 
     const numW = 42;
     const dadosX = marginX + logoW;
