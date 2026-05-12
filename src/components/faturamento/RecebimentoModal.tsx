@@ -120,6 +120,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [formaSelecionada, setFormaSelecionada] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
   const [confirmando, setConfirmando] = useState(false);
+  const [valorRecebido, setValorRecebido] = useState<number>(0);
 
   // TEF Provider (TefTipoGP)
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
@@ -151,6 +152,24 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     () => parcelas.reduce((s, p) => s + (Number(p.perc) || 0), 0),
     [parcelas]
   );
+
+  // ===== Recebido / Troco / Valor a Receber =====
+  const isDinheiroTipo = (t: string) => /DINHEIRO|ESPECIE/i.test(t || "");
+  const totalDinheiro = useMemo(
+    () =>
+      parcelas
+        .filter((p) => isDinheiroTipo(p.tipo_pagamento))
+        .reduce((s, p) => s + (Number(p.valor) || 0), 0),
+    [parcelas]
+  );
+  const hasDinheiro = totalDinheiro > 0;
+  const troco = hasDinheiro ? Math.max(0, round2(valorRecebido - totalDinheiro)) : 0;
+  const valorAReceber = Math.max(0, round2(total - totalSomado));
+
+  // Auto-preenche o recebido com o total em dinheiro quando muda
+  useEffect(() => {
+    setValorRecebido(round2(totalDinheiro));
+  }, [totalDinheiro]);
 
   // Reset + load base data
   useEffect(() => {
@@ -831,7 +850,77 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           })()}
         </div>
 
-        {/* Ações */}
+        {/* Resumo de Recebimento */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+          <Card>
+            <CardContent className="p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Total Pedido</div>
+              <div className="font-bold tabular-nums">{fmtBRL(total)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Total Parcelas</div>
+              <div className="font-bold tabular-nums">{fmtBRL(totalSomado)}</div>
+            </CardContent>
+          </Card>
+          <Card className={hasDinheiro ? "" : "opacity-60"}>
+            <CardContent className="p-2">
+              <Label className="text-[10px] uppercase text-muted-foreground">
+                Recebido (Dinheiro)
+              </Label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                disabled={!hasDinheiro}
+                value={valorRecebido.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                  const num = Number(raw);
+                  setValorRecebido(Number.isFinite(num) ? num : 0);
+                }}
+                onBlur={(e) => {
+                  const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                  setValorRecebido(round2(Number(raw) || 0));
+                }}
+                className="h-7 text-right font-bold tabular-nums px-1"
+              />
+              <div className="text-[9px] text-muted-foreground mt-0.5">
+                Dinheiro: {fmtBRL(totalDinheiro)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={troco > 0 ? "border-emerald-500/50" : ""}>
+            <CardContent className="p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Troco</div>
+              <div
+                className={`font-bold tabular-nums ${
+                  troco > 0 ? "text-emerald-600 dark:text-emerald-400" : ""
+                }`}
+              >
+                {fmtBRL(troco)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={valorAReceber > 0 ? "border-destructive/50" : "border-emerald-500/50"}>
+            <CardContent className="p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Valor a Receber</div>
+              <div
+                className={`font-bold tabular-nums ${
+                  valorAReceber > 0
+                    ? "text-destructive"
+                    : "text-emerald-600 dark:text-emerald-400"
+                }`}
+              >
+                {fmtBRL(valorAReceber)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="flex flex-wrap gap-2 justify-end pt-2">
           <Button variant="outline" onClick={() => onPular(pedido.PDDS_ID)} disabled={confirmando}>
             Pular
