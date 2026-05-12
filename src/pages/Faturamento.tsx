@@ -333,7 +333,7 @@ export default function Faturamento() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
               {data.length > 0 && (
