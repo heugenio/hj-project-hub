@@ -92,11 +92,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     if (!open || !pedido) return;
     setPagamentos([]);
     setFormas([]);
+    setCofrIdPedido(undefined);
     (async () => {
       setLoadingFormas(true);
       try {
         const negs = await getNegociacoesPedidos(pedido.PDDS_ID);
         const list = Array.isArray(negs) ? negs : [];
+        let cofrFromNegs: string | undefined;
         const pags: Pagamento[] = list.map((n: any, idx: number) => {
           const itfvId = String(n.ITFV_ID || n.itfv_id || `neg-${idx}`);
           const nome = String(
@@ -106,10 +108,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           const tef = String(n.ITFV_TEF || n.itfv_tef || '').toLowerCase() === 'sim';
           const valor = +Number(String(n.NGPD_VLR_PARCELA || '0').replace(',', '.')).toFixed(2);
           const parcelas = Number(n.NGPD_QTD_PCLS || 1);
+          const cofrId = n.NGPD_COFR_ID || n.COFR_ID || n.cofr_id || undefined;
+          if (!cofrFromNegs && cofrId) cofrFromNegs = String(cofrId);
           return {
             uid: Math.random().toString(36).slice(2),
             itfvId,
             itfvNome: nome,
+            cofrId: cofrId ? String(cofrId) : undefined,
             tef,
             tipoPagamento: tipo,
             valor,
@@ -119,9 +124,10 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           };
         });
         setPagamentos(pags);
-        // Mantém uma lista de formas (apenas para o select usar como fallback)
+        setCofrIdPedido(cofrFromNegs);
+        // Lista para o select (originados das negociações)
         const dedup = Array.from(
-          new Map(pags.map((p) => [p.itfvId, { ITFV_ID: p.itfvId, ITFV_NOME: p.itfvNome, ITFV_TEF: p.tef ? 'Sim' : 'Nao', TPPR_TIPO_PAGAMENTO: p.tipoPagamento } as FormaOpt])).values()
+          new Map(pags.map((p) => [p.itfvId!, { ITFV_ID: p.itfvId!, ITFV_NOME: p.itfvNome, ITFV_TEF: p.tef ? 'Sim' : 'Nao', TPPR_TIPO_PAGAMENTO: p.tipoPagamento, COFR_ID: p.cofrId } as FormaOpt])).values()
         );
         setFormas(dedup);
       } catch (e: any) {
