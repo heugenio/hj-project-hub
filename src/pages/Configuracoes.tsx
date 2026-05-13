@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getLogo } from "@/lib/api";
 import { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from "@/lib/base-url";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const N8N_DEFAULT = "https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto";
 
@@ -17,9 +18,24 @@ export default function Configuracoes() {
   const [darkMode, setDarkMode] = useState(false);
   const [testing, setTesting] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setApiBaseUrl(urlBase);
-    localStorage.setItem("n8n_webhook_url", n8nUrl.trim());
+    const trimmed = n8nUrl.trim();
+    localStorage.setItem("n8n_webhook_url", trimmed);
+
+    // Propaga URL do n8n para todas as campanhas agendadas
+    if (trimmed) {
+      const { error, count } = await supabase
+        .from("campanhas_agendadas")
+        .update({ n8n_webhook_url: trimmed }, { count: "exact" })
+        .not("id", "is", null);
+      if (error) {
+        toast.error(`Configurações salvas, mas falhou ao atualizar campanhas: ${error.message}`);
+        return;
+      }
+      toast.success(`Configurações salvas. ${count ?? 0} campanha(s) atualizada(s).`);
+      return;
+    }
     toast.success("Configurações salvas com sucesso!");
   };
 
