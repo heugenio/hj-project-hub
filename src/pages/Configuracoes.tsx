@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getLogo } from "@/lib/api";
 import { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from "@/lib/base-url";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const N8N_DEFAULT = "https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto";
 
