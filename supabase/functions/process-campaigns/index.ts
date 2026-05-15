@@ -357,8 +357,8 @@ async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros
   await sb.from('campanhas_agendadas').update({
     ultima_execucao: now.toISOString(),
     proxima_execucao: next.toISOString(),
-    total_enviados: (campaign.total_enviados || 0) + enviados,
-    total_erros: (campaign.total_erros || 0) + erros,
+    total_enviados: enviados,
+    total_erros: erros,
     updated_at: now.toISOString(),
   }).eq('id', campaign.id);
 }
