@@ -664,6 +664,16 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             </SelectContent>
           </Select>
           <Badge variant="outline" className="text-[10px]">driver: {tefProvider}</Badge>
+          <span className="text-muted-foreground ml-3">Faturamento Fora do Estabelecimento:</span>
+          <Select value={faturamentoFrEstb} onValueChange={(v) => setFaturamentoFrEstb(v as "S" | "N")}>
+            <SelectTrigger className="h-7 w-[90px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="N" className="text-xs">NÃO</SelectItem>
+              <SelectItem value="S" className="text-xs">SIM</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Forma + Cofre */}
