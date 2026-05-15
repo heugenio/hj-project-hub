@@ -463,6 +463,18 @@ export default function CampanhasAgendadas({ unidades }: Props) {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-6 w-6 text-primary hover:text-primary"
+                          onClick={() => executarAgora(c)}
+                          disabled={executingId === c.id}
+                          title="Executar campanha agora"
+                        >
+                          {executingId === c.id
+                            ? <RefreshCw className="h-3 w-3 animate-spin" />
+                            : <Zap className="h-3 w-3" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-6 w-6"
                           onClick={() => toggleAtivo(c.id, c.ativo)}
                           title={c.ativo ? "Pausar" : "Ativar"}
