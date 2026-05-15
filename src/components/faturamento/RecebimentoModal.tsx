@@ -547,14 +547,14 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
       // 2) Monta JSON do faturamento
       const empresa: any = (auth as any)?.empresa || {};
-      const usuario: any = (auth as any)?.usuario || {};
+      const usuario: any = (auth as any)?.user || (auth as any)?.usuario || {};
       const unidade: any = (auth as any)?.unidade || {};
       const payload = {
         PDDS_ID: pedido.PDDS_ID,
         PDDS_NUMERO: pedido.PDDS_NUMERO,
         UNEM_ID: unemId,
         EMPR_ID: String(empresa?.empr_Id || empresa?.empr_id || ""),
-        USRS_ID: String(usuario?.usrs_Id || usuario?.usrs_id || ""),
+        USRS_ID: String(usuario?.usrs_ID || usuario?.usrs_Id || usuario?.usrs_id || ""),
         UNEM_CNPJ: String(unidade?.unem_CNPJ || unidade?.unem_cnpj || ""),
         FVEN_ID: String(formaAtual.forma?.FVEN_ID || formaAtual.forma?.FPAG_ID || ""),
         FVEN_NOME: formaAtualLabel,
