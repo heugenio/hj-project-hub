@@ -563,6 +563,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         VALOR_RECEBIDO: round2(valorRecebido),
         TROCO: round2(troco),
         TEF_PROVIDER: tefProvider,
+        FaturamentoFrEstb: faturamentoFrEstb,
         PARCELAS: parcelasFinal.map((p) => ({
           NGPD_PARCELA: p.parcela,
           NGPD_DIAS: p.dias,
