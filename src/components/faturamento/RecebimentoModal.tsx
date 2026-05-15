@@ -1031,17 +1031,6 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           <Button variant="ghost" onClick={onClose} disabled={confirmando}>
             Fechar tudo
           </Button>
-          <Button
-            variant="secondary"
-            disabled={!podeConfirmar || confirmando}
-            onClick={() => {
-              const cli = pedido.PESS_NOME || pedido.PESS_RAZAO_SOCIAL || "";
-              const msg = `Olá ${cli}, segue confirmação do pedido ${pedido.PDDS_NUMERO} no valor de ${fmtBRL(total)}.`;
-              window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-            }}
-          >
-            <Send className="h-4 w-4 mr-1" /> WhatsApp
-          </Button>
           <Button onClick={confirmarFaturamento} disabled={!podeConfirmar || confirmando} size="lg">
             {confirmando ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
