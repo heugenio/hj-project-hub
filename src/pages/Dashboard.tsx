@@ -252,7 +252,7 @@ export default function Dashboard() {
           ? "Quantidades"
           : `${filtroGrpoTipo} Vendidos`;
         return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <KpiCard icon={DollarSign} title="Faturamento" value={formatBRL(vlrAtual)} subtitle={`Ant: ${formatBRL(vlrAnterior)}`} change={crescimento} />
           <KpiCard icon={Package} title={tipoLabel} value={qtdAtual.toLocaleString("pt-BR")} subtitle={`Ant: ${qtdAnterior.toLocaleString("pt-BR")}`} change={qtdAnterior > 0 ? ((qtdAtual - qtdAnterior) / qtdAnterior) * 100 : undefined} />
           <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} />
