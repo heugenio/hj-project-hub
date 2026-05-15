@@ -128,6 +128,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   // TEF Provider (TefTipoGP)
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
   const [tefGpIdx, setTefGpIdx] = useState<number>(0);
+  const [faturamentoFrEstb, setFaturamentoFrEstb] = useState<"S" | "N">("N");
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
@@ -562,6 +563,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         VALOR_RECEBIDO: round2(valorRecebido),
         TROCO: round2(troco),
         TEF_PROVIDER: tefProvider,
+        FaturamentoFrEstb: faturamentoFrEstb,
         PARCELAS: parcelasFinal.map((p) => ({
           NGPD_PARCELA: p.parcela,
           NGPD_DIAS: p.dias,
@@ -662,6 +664,16 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             </SelectContent>
           </Select>
           <Badge variant="outline" className="text-[10px]">driver: {tefProvider}</Badge>
+          <span className="text-muted-foreground ml-3">Faturamento Fora do Estabelecimento:</span>
+          <Select value={faturamentoFrEstb} onValueChange={(v) => setFaturamentoFrEstb(v as "S" | "N")}>
+            <SelectTrigger className="h-7 w-[90px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="N" className="text-xs">NÃO</SelectItem>
+              <SelectItem value="S" className="text-xs">SIM</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Forma + Cofre */}
