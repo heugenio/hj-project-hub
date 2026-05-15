@@ -258,7 +258,6 @@ export default function Dashboard() {
           <KpiCard icon={Receipt} title="Ticket Médio" value={formatBRL(ticketMedio)} />
           <KpiCard icon={Percent} title="Margem Média" value={`${margemMedia.toFixed(1)}%`} />
           <KpiCard icon={BadgeDollarSign} title="Lucro Líquido" value={formatBRL(totalLucro)} />
-          <KpiCard icon={RefreshCw} title="Recompra" value={`${taxaRecompra.toFixed(1)}%`} />
         </div>
         );
       })()}
