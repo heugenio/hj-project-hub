@@ -315,6 +315,38 @@ export default function CampanhasAgendadas({ unidades }: Props) {
     }
   };
 
+  const [executingId, setExecutingId] = useState<string | null>(null);
+  const executarAgora = async (c: CampanhaAgendada) => {
+    if (!c.ativo) { toast.warning("Ative a campanha antes de executar"); return; }
+    if (!confirm(`Executar a campanha "${c.nome}" agora?`)) return;
+    setExecutingId(c.id);
+    try {
+      // Force due: set proxima_execucao to now
+      const { error: updErr } = await supabase
+        .from('campanhas_agendadas' as any)
+        .update({ proxima_execucao: new Date().toISOString(), updated_at: new Date().toISOString() } as any)
+        .eq('id', c.id);
+      if (updErr) throw updErr;
+
+      toast.info("Disparando campanha... isso pode demorar alguns minutos.");
+      const { data, error } = await supabase.functions.invoke('process-campaigns', { body: {} });
+      if (error) throw error;
+      console.log('[executarAgora] resposta:', data);
+      const result = (data as any)?.results?.find((r: any) => r.id === c.id);
+      if (result) {
+        toast.success(`Campanha executada: ${result.enviados} enviados, ${result.erros} erros`);
+      } else {
+        toast.success("Campanha processada");
+      }
+      fetchCampanhas();
+    } catch (err: any) {
+      console.error('Erro ao executar campanha:', err);
+      toast.error('Erro ao executar: ' + err.message);
+    } finally {
+      setExecutingId(null);
+    }
+  };
+
   const formatDateTime = (dt: string | null) => {
     if (!dt) return "—";
     try {
