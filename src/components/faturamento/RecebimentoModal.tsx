@@ -128,6 +128,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   // TEF Provider (TefTipoGP)
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
   const [tefGpIdx, setTefGpIdx] = useState<number>(0);
+  const [faturamentoFrEstb, setFaturamentoFrEstb] = useState<"S" | "N">("N");
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
