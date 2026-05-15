@@ -317,7 +317,6 @@ export default function CampanhasAgendadas({ unidades }: Props) {
 
   const [executingId, setExecutingId] = useState<string | null>(null);
   const executarAgora = async (c: CampanhaAgendada) => {
-    if (!c.ativo) { toast.warning("Ative a campanha antes de executar"); return; }
     if (!confirm(`Executar a campanha "${c.nome}" agora?`)) return;
     setExecutingId(c.id);
     try {
