@@ -554,7 +554,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         PDDS_NUMERO: pedido.PDDS_NUMERO,
         UNEM_ID: unemId,
         EMPR_ID: String(empresa?.empr_Id || empresa?.empr_id || ""),
-        USRS_ID: String(usuario?.usrs_Id || usuario?.usrs_id || ""),
+        USRS_ID: String(usuario?.usrs_ID || usuario?.usrs_Id || usuario?.usrs_id || ""),
         UNEM_CNPJ: String(unidade?.unem_CNPJ || unidade?.unem_cnpj || ""),
         FVEN_ID: String(formaAtual.forma?.FVEN_ID || formaAtual.forma?.FPAG_ID || ""),
         FVEN_NOME: formaAtualLabel,
