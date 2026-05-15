@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { getApiBaseUrl } from "@/lib/base-url";
 import {
   Plus, Calendar, Clock, RefreshCw, Trash2, Play, Pause,
-  CheckCircle2, AlertCircle, Send, Pencil
+  CheckCircle2, AlertCircle, Send, Pencil, Zap
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
