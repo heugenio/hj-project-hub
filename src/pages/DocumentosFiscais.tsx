@@ -93,10 +93,208 @@ const getSerie = (d: any) => d?.DCFS_SERIE_NOTA ?? d?.DCFS_SERIE ?? "";
 
 function parseXmlFromB64(b64: string): string {
   try {
-    return atob(b64);
+    // pode vir base64 ou já texto xml
+    if (/^\s*</.test(b64)) return b64;
+    return decodeURIComponent(escape(atob(b64)));
   } catch {
-    return b64;
+    try { return atob(b64); } catch { return b64; }
   }
+}
+
+// ---------- DANFE HTML simplificado a partir do XML da NF-e/NFC-e ----------
+function xmlText(node: Element | null | undefined, sel: string): string {
+  if (!node) return "";
+  const el = node.querySelector(sel);
+  return el?.textContent?.trim() || "";
+}
+function fmtMoneyStr(v: any) {
+  const n = parseFloat(String(v ?? "0").replace(",", "."));
+  if (Number.isNaN(n)) return "0,00";
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function buildDanfeHtml(xmlStr: string, modeloLabel: string): string {
+  let chave = "", numero = "", serie = "", emit: any = {}, dest: any = {}, totais: any = {}, itens: any[] = [];
+  let dEmi = "", natOp = "", protocolo = "", tpAmb = "", infAdic = "";
+  try {
+    const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
+    const infNFe = doc.querySelector("infNFe");
+    const id = infNFe?.getAttribute("Id") || "";
+    chave = id.replace(/^NFe/i, "");
+    const ide = infNFe?.querySelector("ide");
+    numero = xmlText(ide as Element, "nNF");
+    serie = xmlText(ide as Element, "serie");
+    dEmi = xmlText(ide as Element, "dhEmi") || xmlText(ide as Element, "dEmi");
+    natOp = xmlText(ide as Element, "natOp");
+    tpAmb = xmlText(ide as Element, "tpAmb");
+    const emitEl = infNFe?.querySelector("emit");
+    emit = {
+      nome: xmlText(emitEl as Element, "xNome"),
+      fant: xmlText(emitEl as Element, "xFant"),
+      cnpj: xmlText(emitEl as Element, "CNPJ") || xmlText(emitEl as Element, "CPF"),
+      ie: xmlText(emitEl as Element, "IE"),
+      end: [
+        xmlText(emitEl as Element, "enderEmit xLgr"),
+        xmlText(emitEl as Element, "enderEmit nro"),
+        xmlText(emitEl as Element, "enderEmit xBairro"),
+        xmlText(emitEl as Element, "enderEmit xMun"),
+        xmlText(emitEl as Element, "enderEmit UF"),
+        xmlText(emitEl as Element, "enderEmit CEP"),
+      ].filter(Boolean).join(", "),
+      fone: xmlText(emitEl as Element, "enderEmit fone"),
+    };
+    const destEl = infNFe?.querySelector("dest");
+    dest = {
+      nome: xmlText(destEl as Element, "xNome"),
+      doc: xmlText(destEl as Element, "CNPJ") || xmlText(destEl as Element, "CPF"),
+      ie: xmlText(destEl as Element, "IE"),
+      end: [
+        xmlText(destEl as Element, "enderDest xLgr"),
+        xmlText(destEl as Element, "enderDest nro"),
+        xmlText(destEl as Element, "enderDest xBairro"),
+        xmlText(destEl as Element, "enderDest xMun"),
+        xmlText(destEl as Element, "enderDest UF"),
+        xmlText(destEl as Element, "enderDest CEP"),
+      ].filter(Boolean).join(", "),
+    };
+    const tot = infNFe?.querySelector("total ICMSTot");
+    totais = {
+      vBC: xmlText(tot as Element, "vBC"),
+      vICMS: xmlText(tot as Element, "vICMS"),
+      vProd: xmlText(tot as Element, "vProd"),
+      vFrete: xmlText(tot as Element, "vFrete"),
+      vSeg: xmlText(tot as Element, "vSeg"),
+      vDesc: xmlText(tot as Element, "vDesc"),
+      vOutro: xmlText(tot as Element, "vOutro"),
+      vIPI: xmlText(tot as Element, "vIPI"),
+      vNF: xmlText(tot as Element, "vNF"),
+    };
+    const dets = Array.from(infNFe?.querySelectorAll("det") || []);
+    itens = dets.map((det) => ({
+      n: det.getAttribute("nItem"),
+      cod: xmlText(det, "prod cProd"),
+      desc: xmlText(det, "prod xProd"),
+      ncm: xmlText(det, "prod NCM"),
+      cfop: xmlText(det, "prod CFOP"),
+      un: xmlText(det, "prod uCom"),
+      qtd: xmlText(det, "prod qCom"),
+      vUn: xmlText(det, "prod vUnCom"),
+      vTot: xmlText(det, "prod vProd"),
+    }));
+    protocolo = xmlText(doc.documentElement, "infProt nProt");
+    infAdic = xmlText(infNFe as Element, "infAdic infCpl");
+  } catch (e) {
+    // ignore – cai pro fallback
+  }
+  const homolog = tpAmb === "2" ? `<div style="border:2px solid #c00;color:#c00;text-align:center;padding:6px;font-weight:bold;margin:6px 0">SEM VALOR FISCAL — AMBIENTE DE HOMOLOGAÇÃO</div>` : "";
+  const itensRows = itens.map(i => `
+    <tr>
+      <td>${i.n || ""}</td>
+      <td>${i.cod || ""}</td>
+      <td>${i.desc || ""}</td>
+      <td>${i.ncm || ""}</td>
+      <td>${i.cfop || ""}</td>
+      <td>${i.un || ""}</td>
+      <td style="text-align:right">${i.qtd || ""}</td>
+      <td style="text-align:right">${fmtMoneyStr(i.vUn)}</td>
+      <td style="text-align:right">${fmtMoneyStr(i.vTot)}</td>
+    </tr>`).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"/><title>DANFE ${numero || ""}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;margin:14px}
+  .box{border:1px solid #333;padding:6px;margin-bottom:4px}
+  .row{display:flex;gap:6px}
+  .row > div{flex:1}
+  .title{font-weight:bold;font-size:9px;text-transform:uppercase;color:#444}
+  h1{font-size:14px;margin:0 0 4px}
+  table{width:100%;border-collapse:collapse;font-size:10px;margin-top:4px}
+  table th,table td{border:1px solid #999;padding:3px 4px;text-align:left}
+  table th{background:#eee;text-transform:uppercase;font-size:9px}
+  tbody tr:nth-child(odd){background:#fafafa}
+  .chave{font-family:monospace;font-size:10px;letter-spacing:1px;word-break:break-all}
+  .tot td{font-weight:bold}
+  @media print{ .noprint{display:none} body{margin:6px} }
+</style></head><body>
+<div class="noprint" style="text-align:right;margin-bottom:6px">
+  <button onclick="window.print()" style="padding:6px 12px">Imprimir</button>
+  <button onclick="window.close()" style="padding:6px 12px">Fechar</button>
+</div>
+<div class="box">
+  <div class="row">
+    <div>
+      <div class="title">Emitente</div>
+      <h1>${emit.fant || emit.nome || ""}</h1>
+      <div>${emit.nome || ""}</div>
+      <div>${emit.end || ""}</div>
+      <div>CNPJ: ${emit.cnpj || ""} &nbsp; IE: ${emit.ie || ""} &nbsp; Fone: ${emit.fone || ""}</div>
+    </div>
+    <div style="max-width:260px;text-align:center">
+      <div class="title">DANFE — ${modeloLabel}</div>
+      <div style="font-size:18px;font-weight:bold">Nº ${numero || "—"}</div>
+      <div>Série ${serie || "—"}</div>
+      <div>Emissão: ${dEmi ? new Date(dEmi).toLocaleString("pt-BR") : "—"}</div>
+      <div>Protocolo: ${protocolo || "—"}</div>
+    </div>
+  </div>
+</div>
+${homolog}
+<div class="box">
+  <div class="title">Chave de Acesso</div>
+  <div class="chave">${chave || "—"}</div>
+  <div style="font-size:9px;color:#555;margin-top:2px">Consulta de autenticidade em portal da SEFAZ</div>
+</div>
+<div class="box">
+  <div class="title">Natureza da Operação</div>
+  <div>${natOp || "—"}</div>
+</div>
+<div class="box">
+  <div class="title">Destinatário / Remetente</div>
+  <div><b>${dest.nome || "—"}</b></div>
+  <div>${dest.end || ""}</div>
+  <div>Doc: ${dest.doc || ""} &nbsp; IE: ${dest.ie || ""}</div>
+</div>
+<div class="box">
+  <div class="title">Produtos / Serviços</div>
+  <table>
+    <thead><tr>
+      <th>#</th><th>Cód.</th><th>Descrição</th><th>NCM</th><th>CFOP</th><th>UN</th>
+      <th style="text-align:right">Qtd</th><th style="text-align:right">Vlr Unit.</th><th style="text-align:right">Vlr Total</th>
+    </tr></thead>
+    <tbody>${itensRows || `<tr><td colspan="9" style="text-align:center;color:#777">— Sem itens —</td></tr>`}</tbody>
+  </table>
+</div>
+<div class="box">
+  <div class="title">Totais (R$)</div>
+  <table class="tot">
+    <tr>
+      <td>Base ICMS</td><td>${fmtMoneyStr(totais.vBC)}</td>
+      <td>Valor ICMS</td><td>${fmtMoneyStr(totais.vICMS)}</td>
+      <td>Valor Produtos</td><td>${fmtMoneyStr(totais.vProd)}</td>
+    </tr>
+    <tr>
+      <td>Frete</td><td>${fmtMoneyStr(totais.vFrete)}</td>
+      <td>Seguro</td><td>${fmtMoneyStr(totais.vSeg)}</td>
+      <td>Desconto</td><td>${fmtMoneyStr(totais.vDesc)}</td>
+    </tr>
+    <tr>
+      <td>Outras Desp.</td><td>${fmtMoneyStr(totais.vOutro)}</td>
+      <td>IPI</td><td>${fmtMoneyStr(totais.vIPI)}</td>
+      <td style="background:#eee">TOTAL NOTA</td><td style="background:#eee">${fmtMoneyStr(totais.vNF)}</td>
+    </tr>
+  </table>
+</div>
+${infAdic ? `<div class="box"><div class="title">Informações Adicionais</div><div>${infAdic}</div></div>` : ""}
+<script>setTimeout(()=>window.print(),350)</script>
+</body></html>`;
+}
+
+function abrirDanfe(xmlStr: string, modeloLabel: string) {
+  const html = buildDanfeHtml(xmlStr, modeloLabel);
+  const w = window.open("", "_blank", "width=900,height=1000");
+  if (!w) return;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
 
 const STORAGE_KEY = "verttice_docfiscal_filters";
@@ -390,67 +588,67 @@ export default function DocumentosFiscais() {
         <KPI label="Erro Autorização" value={String(totals.erros)} tone="amber" />
       </div>
 
-      <Card>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
-            <div>
-              <Label className="text-[10px] uppercase">Data Inicial</Label>
-              <Input type="date" value={filters.dtInicio} className="h-8 text-xs"
+      <Card className="border-border/60">
+        <CardContent className="px-2.5 py-2">
+          <div className="grid grid-cols-2 md:grid-cols-12 gap-1.5 items-end">
+            <div className="md:col-span-2">
+              <Label className="text-[9px] uppercase text-muted-foreground">Data Inicial</Label>
+              <Input type="date" value={filters.dtInicio} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, dtInicio: e.target.value })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">Data Final</Label>
-              <Input type="date" value={filters.dtFinal} className="h-8 text-xs"
+            <div className="md:col-span-2">
+              <Label className="text-[9px] uppercase text-muted-foreground">Data Final</Label>
+              <Input type="date" value={filters.dtFinal} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, dtFinal: e.target.value })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">Nº Nota</Label>
-              <Input value={filters.DCFS_NUMERO_NOTA} className="h-8 text-xs"
+            <div className="md:col-span-1">
+              <Label className="text-[9px] uppercase text-muted-foreground">Nº Nota</Label>
+              <Input value={filters.DCFS_NUMERO_NOTA} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, DCFS_NUMERO_NOTA: e.target.value.toUpperCase() })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">Nome</Label>
-              <Input value={filters.DCFS_NOME} className="h-8 text-xs uppercase"
+            <div className="md:col-span-3">
+              <Label className="text-[9px] uppercase text-muted-foreground">Nome</Label>
+              <Input value={filters.DCFS_NOME} className="h-7 text-[11px] px-1.5 uppercase"
                 onChange={(e) => setFilters({ ...filters, DCFS_NOME: e.target.value.toUpperCase() })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">CPF/CNPJ</Label>
-              <Input value={filters.DCFS_CPFCNPJ} className="h-8 text-xs"
+            <div className="md:col-span-2">
+              <Label className="text-[9px] uppercase text-muted-foreground">CPF/CNPJ</Label>
+              <Input value={filters.DCFS_CPFCNPJ} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, DCFS_CPFCNPJ: e.target.value.replace(/\D/g, "") })} />
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={fetchDocs} disabled={loading}>
-                <Search className="h-4 w-4 mr-1" /> Pesquisar
+            <div className="md:col-span-2 flex gap-1">
+              <Button size="sm" className="h-7 px-2 text-[11px]" onClick={fetchDocs} disabled={loading}>
+                <Search className="h-3.5 w-3.5 mr-1" /> Pesquisar
               </Button>
-              <Button size="sm" variant="outline" onClick={limparFiltros}>
-                <Eraser className="h-4 w-4 mr-1" /> Limpar
+              <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={limparFiltros}>
+                <Eraser className="h-3.5 w-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" onClick={fetchDocs} disabled={loading} title="Atualizar">
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={fetchDocs} disabled={loading} title="Atualizar">
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-border/60 overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="text-xs">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-[10px] uppercase">Modelo</TableHead>
-                  <TableHead className="text-[10px] uppercase">Nº / Série</TableHead>
-                  <TableHead className="text-[10px] uppercase">Emissão</TableHead>
-                  <TableHead className="text-[10px] uppercase">Nome</TableHead>
-                  <TableHead className="text-[10px] uppercase">CPF/CNPJ</TableHead>
-                  <TableHead className="text-[10px] uppercase text-right">Valor Total</TableHead>
-                  <TableHead className="text-[10px] uppercase">Situação</TableHead>
-                  <TableHead className="text-[10px] uppercase">Chave</TableHead>
-                  <TableHead className="text-[10px] uppercase text-right">Ações</TableHead>
+                <TableRow className="bg-muted/60 hover:bg-muted/60 border-b border-border">
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Modelo</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Nº / Série</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Emissão</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Nome</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">CPF/CNPJ</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground text-right">Valor Total</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Situação</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Chave</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="[&_tr:nth-child(even)]:bg-muted/30 [&_tr:hover]:bg-primary/5 [&_td]:py-1.5 [&_td]:px-2 [&_tr]:border-b [&_tr]:border-border/40">
                 {loading && (
                   <>
                     {Array.from({ length: 6 }).map((_, i) => (
@@ -509,7 +707,11 @@ export default function DocumentosFiscais() {
                             </DropdownMenuItem>
                             {hasXml && (
                               <>
-                                <DropdownMenuItem onClick={() => visualizarXml(d)}>
+                                <DropdownMenuItem onClick={() => {
+                                  const xml = parseXmlFromB64(d.DCFS_ARQUIVO_NFE || "");
+                                  if (!xml) { toast({ title: "XML indisponível", variant: "destructive" }); return; }
+                                  abrirDanfe(xml, modeloInfo(d.DCFS_MODELO_NOTA).label);
+                                }}>
                                   <FileText className="h-4 w-4 mr-2" /> DANFE / PDF
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => downloadXml(d)}>
