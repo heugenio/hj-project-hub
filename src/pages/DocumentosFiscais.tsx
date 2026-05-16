@@ -473,23 +473,25 @@ export default function DocumentosFiscais() {
                   const mod = modeloInfo(d.DCFS_MODELO_NOTA);
                   const isGerencial = (d.DCFS_MODELO_NOTA || "").toUpperCase() === "XX";
                   const hasXml = !isGerencial && !!d.DCFS_ARQUIVO_NFE;
+                  const chave = getChave(d);
+                  const status = getStatus(d);
                   return (
-                    <TableRow key={`${d.DCFS_ID || idx}-${d.DCFS_CHAVE || idx}`}>
+                    <TableRow key={`${d.DCFS_ID || idx}-${chave || idx}`}>
                       <TableCell>
                         <Badge variant="outline" className={`text-[10px] ${mod.color}`}>
                           {mod.label}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {d.DCFS_NUMERO_NOTA} / {d.DCFS_SERIE || "—"}
+                        {d.DCFS_NUMERO_NOTA} / {getSerie(d) || "—"}
                       </TableCell>
-                      <TableCell className="text-xs">{fmtDate(d.DCFS_DATA_EMISSAO)}</TableCell>
+                      <TableCell className="text-xs">{fmtDate(getData(d))}</TableCell>
                       <TableCell className="text-xs uppercase max-w-[200px] truncate">{d.DCFS_NOME || "—"}</TableCell>
                       <TableCell className="text-xs font-mono">{d.DCFS_CPFCNPJ || "—"}</TableCell>
-                      <TableCell className="text-xs text-right font-medium">{fmtMoney(d.DCFS_VALOR_TOTAL)}</TableCell>
-                      <TableCell>{situacaoBadge(d.DCFS_SITUACAO)}</TableCell>
-                      <TableCell className="text-[10px] font-mono max-w-[180px] truncate" title={d.DCFS_CHAVE}>
-                        {d.DCFS_CHAVE || "—"}
+                      <TableCell className="text-xs text-right font-medium">{fmtMoney(getValor(d))}</TableCell>
+                      <TableCell>{situacaoBadge(status)}</TableCell>
+                      <TableCell className="text-[10px] font-mono max-w-[180px] truncate" title={chave}>
+                        {chave || "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
