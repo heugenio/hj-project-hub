@@ -512,6 +512,17 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           toast.error(`Informe a Qtd. Parcelas do cartão na parcela ${p.parcela}.`);
           return;
         }
+        // Conciliação manual: sem TEF (gpNenhum) e ConciliaCartao=1 => exigir Nr. Auto e Bandeira
+        if (conciliaCartao && tefGpIdx === 0) {
+          if (!String(p.nr_auto || "").trim()) {
+            toast.error(`Informe o Nr. Auto na parcela ${p.parcela}.`);
+            return;
+          }
+          if (!String(p.bandeira || "").trim()) {
+            toast.error(`Informe a Bandeira na parcela ${p.parcela}.`);
+            return;
+          }
+        }
       }
     }
     const somaAtual = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
