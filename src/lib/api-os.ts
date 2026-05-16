@@ -605,7 +605,6 @@ export interface DocumentoFiscal {
   DCFS_MOTIVO_CANCELAMENTO?: string;
   DCFS_MOTIVO_CANC?: string;
   DCFS_FONE?: string;
-  [key: string]: any;
   UNEM_ID?: string;
   [key: string]: any;
 }
