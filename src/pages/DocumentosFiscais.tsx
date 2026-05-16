@@ -707,7 +707,11 @@ export default function DocumentosFiscais() {
                             </DropdownMenuItem>
                             {hasXml && (
                               <>
-                                <DropdownMenuItem onClick={() => visualizarXml(d)}>
+                                <DropdownMenuItem onClick={() => {
+                                  const xml = parseXmlFromB64(d.DCFS_ARQUIVO_NFE || "");
+                                  if (!xml) { toast({ title: "XML indisponível", variant: "destructive" }); return; }
+                                  abrirDanfe(xml, modeloInfo(d.DCFS_MODELO_NOTA).label);
+                                }}>
                                   <FileText className="h-4 w-4 mr-2" /> DANFE / PDF
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => downloadXml(d)}>
