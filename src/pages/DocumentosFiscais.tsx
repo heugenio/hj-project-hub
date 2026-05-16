@@ -213,6 +213,8 @@ function parseFullNfeXml(xmlStr: string) {
       const ipi = det.querySelector("IPI");
       const orig = icms?.querySelector("orig")?.textContent?.trim() || "";
       const cst = icms?.querySelector("CST")?.textContent?.trim() || icms?.querySelector("CSOSN")?.textContent?.trim() || "";
+      const vProd = parseFloat(g(det, "prod vProd").replace(",", ".")) || 0;
+      const vDesc = parseFloat(g(det, "prod vDesc").replace(",", ".")) || 0;
       return {
         n: det.getAttribute("nItem") || "",
         cod: g(det, "prod cProd"),
@@ -224,6 +226,8 @@ function parseFullNfeXml(xmlStr: string) {
         qtd: g(det, "prod qCom"),
         vUn: g(det, "prod vUnCom"),
         vTot: g(det, "prod vProd"),
+        vDesc: vDesc ? vDesc.toFixed(2) : "0",
+        vLiq: (vProd - vDesc).toFixed(2),
         vBC: g(icms as Element, "vBC"),
         vICMS: g(icms as Element, "vICMS"),
         vIPI: g(ipi as Element, "vIPI"),
@@ -241,20 +245,28 @@ function parseFullNfeXml(xmlStr: string) {
 
 const danfeBaseStyles = `
   *{box-sizing:border-box}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9px;color:#000;margin:8px}
-  .noprint{display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px}
+  html,body{margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:8px;color:#000;padding:4mm}
+  .noprint{display:flex;gap:6px;justify-content:flex-end;margin-bottom:4px}
   .noprint button{padding:4px 12px;cursor:pointer;border:1px solid #444;background:#f5f5f5;border-radius:3px}
-  table{border-collapse:collapse;width:100%}
-  td,th{border:1px solid #000;padding:1px 3px;vertical-align:top}
-  .lbl{font-size:6.5px;text-transform:uppercase;color:#000;letter-spacing:.2px;line-height:1}
-  .val{font-size:9px;font-weight:bold;line-height:1.1}
+  .sheet{display:flex;flex-direction:column;min-height:calc(297mm - 12mm)}
+  .grow{flex:1 1 auto;display:flex;flex-direction:column}
+  table{border-collapse:collapse;width:100%;table-layout:fixed}
+  td,th{border:1px solid #000;padding:1px 3px;vertical-align:top;overflow:hidden;word-wrap:break-word}
+  .lbl{font-size:6px;text-transform:uppercase;color:#000;letter-spacing:.2px;line-height:1;font-weight:normal}
+  .val{font-size:9px;font-weight:bold;line-height:1.15}
   .center{text-align:center}.right{text-align:right}.bold{font-weight:bold}
-  .nb{border:none!important}
-  .sec-title{font-size:6.5px;text-transform:uppercase;font-weight:bold;color:#000;background:#fff;padding:1px 0;margin-top:3px;letter-spacing:.3px}
-  .chave{font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;text-align:center;font-weight:bold}
-  .barcode{font-family:'Libre Barcode 39',monospace;font-size:32px;text-align:center;letter-spacing:-1px}
+  .nb,.nb td,.nb th{border:none!important;padding:0!important}
+  .sec-title{font-size:7px;text-transform:uppercase;font-weight:bold;color:#000;background:#fff;padding:2px 0 1px;margin-top:3px;letter-spacing:.3px}
+  .chave{font-family:'Courier New',monospace;font-size:11px;letter-spacing:1px;text-align:center;font-weight:bold;line-height:1.2}
   .homolog{border:2px solid #c00;color:#c00;text-align:center;padding:6px;font-weight:bold;margin:4px 0;font-size:12px}
-  @media print{ .noprint{display:none} body{margin:4px} @page{ size: A4; margin: 6mm } }
+  .items-table{flex:1 1 auto}
+  .items-table table{height:100%}
+  .items-table tbody td{vertical-align:top}
+  .items-table tr.filler td{border-left:1px solid #000;border-right:1px solid #000;border-top:none;border-bottom:none;height:100%}
+  .items-table thead th{font-size:7px;font-weight:bold;text-align:center;padding:2px}
+  .footer-print{display:flex;justify-content:space-between;font-size:7px;border-top:1px solid #000;padding-top:2px;margin-top:2px}
+  @media print{ .noprint{display:none} body{padding:4mm} @page{ size: A4; margin: 0 } }
 `;
 
 function fmtDateBr(s: string) {
@@ -290,7 +302,8 @@ function buildDanfeOficial55(xmlStr: string): string {
       <td class="center">${i.un || ""}</td>
       <td class="right">${fmtMoneyStr(i.qtd)}</td>
       <td class="right">${fmtMoneyStr(i.vUn)}</td>
-      <td class="right">${fmtMoneyStr(i.vTot)}</td>
+      <td class="right">${fmtMoneyStr(i.vDesc)}</td>
+      <td class="right">${fmtMoneyStr(i.vLiq || i.vTot)}</td>
       <td class="right">${fmtMoneyStr(i.vBC)}</td>
       <td class="right">${fmtMoneyStr(i.vICMS)}</td>
       <td class="right">${fmtMoneyStr(i.vIPI)}</td>
@@ -299,75 +312,81 @@ function buildDanfeOficial55(xmlStr: string): string {
     </tr>`).join("");
 
   const dupRows = p.dup.length
-    ? `<table><tr>${p.dup.map((d: any) => `<td style="width:33%"><span class="lbl">Núm.</span> <span class="bold">${d.nDup}</span> <span class="lbl">Venc.</span> ${fmtDateBr(d.dVenc)} <span class="lbl">Valor</span> ${fmtMoneyStr(d.vDup)}</td>`).join("")}</tr></table>`
-    : `<div style="height:16px"></div>`;
+    ? `<table><tr>${p.dup.map((d: any) => `<td style="width:33%"><span class="lbl">NÚM.</span> <span class="bold">${d.nDup}</span> &nbsp; <span class="lbl">VENC.</span> ${fmtDateBr(d.dVenc)} &nbsp; <span class="lbl">VALOR</span> ${fmtMoneyStr(d.vDup)}</td>`).join("")}</tr></table>`
+    : `<table><tr><td style="height:14px"></td></tr></table>`;
+
+  const tpNFLabel = p.tpNF === "0" ? "0 - ENTRADA" : "1 - SAÍDA";
+  const printedAt = new Date().toLocaleString("pt-BR");
 
   return `<!doctype html><html><head><meta charset="utf-8"/><title>DANFE NF-e ${p.numero}</title>
 <style>${danfeBaseStyles}</style></head><body>
 <div class="noprint"><button onclick="window.print()">Imprimir</button><button onclick="window.close()">Fechar</button></div>
 
+<div class="sheet">
+
 <!-- CANHOTO -->
 <table>
   <tr>
-    <td style="width:60%">
-      <div class="lbl">RECEBEMOS DE <b>${p.emit.nome}</b> OS PRODUTOS / SERVIÇOS CONSTANTES DA NOTA FISCAL ELETRÔNICA INDICADA AO LADO</div>
+    <td style="width:75%">
+      <div style="font-size:8px">Recebemos de <b>${p.emit.fant || p.emit.nome}</b> os produtos e/ou serviços constantes da Nota Fiscal Eletrônica indicada ao lado.</div>
+      <div style="font-size:8px">Emissão: ${fmtDateBr(p.dEmi)} &nbsp; Dest/Reme: ${p.dest.nome} &nbsp; Valor Total: ${fmtMoneyStr(p.totais.vNF)}</div>
       <table style="margin-top:2px">
         <tr>
-          <td style="width:30%"><div class="lbl">DATA DE RECEBIMENTO</div><div style="height:14px"></div></td>
-          <td><div class="lbl">IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR</div><div style="height:14px"></div></td>
+          <td style="width:30%"><div class="lbl">DATA DO RECEBIMENTO</div><div style="height:16px"></div></td>
+          <td><div class="lbl">IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR</div><div style="height:16px"></div></td>
         </tr>
       </table>
     </td>
-    <td class="center" style="width:40%">
-      <div class="bold" style="font-size:11px">NF-e</div>
-      <div><span class="lbl">Nº</span> <span class="bold" style="font-size:11px">${p.numero}</span></div>
-      <div><span class="lbl">Série</span> <span class="bold">${p.serie}</span></div>
+    <td class="center" style="width:25%;border-style:dashed">
+      <div class="bold" style="font-size:13px">NF-e</div>
+      <div style="font-size:9px"><b>Nº ${(p.numero || "").toString().padStart(9,"0").replace(/(\d{3})(\d{3})(\d{3})/, "$1.$2.$3")}</b></div>
+      <div style="font-size:9px"><b>Série ${(p.serie || "").toString().padStart(3,"0")}</b></div>
     </td>
   </tr>
 </table>
 
-<div style="height:4px"></div>
+<div style="height:3px"></div>
 
 <!-- CABEÇALHO -->
 <table>
   <tr>
-    <td rowspan="2" style="width:30%" class="center">
-      <div class="bold" style="font-size:11px">${p.emit.fant || p.emit.nome}</div>
-      <div style="font-size:8px">${p.emit.end}, ${p.emit.nro}</div>
-      <div style="font-size:8px">${p.emit.bairro} - ${p.emit.mun}/${p.emit.uf}</div>
-      <div style="font-size:8px">CEP: ${p.emit.cep} ${p.emit.fone ? " - Fone: " + p.emit.fone : ""}</div>
+    <td rowspan="3" style="width:35%" class="center">
+      <div class="bold" style="font-size:14px;margin:2px 0">${p.emit.fant || p.emit.nome}</div>
+      <div style="font-size:8px">${p.emit.end}${p.emit.nro ? ", " + p.emit.nro : ""}</div>
+      <div style="font-size:8px">${p.emit.bairro ? p.emit.bairro + " - " : ""}${p.emit.mun}${p.emit.uf ? " - " + p.emit.uf : ""}${p.emit.cep ? " - CEP: " + p.emit.cep : ""}</div>
+      ${p.emit.fone ? `<div style="font-size:8px">Fone: ${p.emit.fone}</div>` : ""}
     </td>
-    <td class="center" style="width:30%">
-      <div class="bold" style="font-size:11px">DANFE</div>
-      <div style="font-size:8px">DOCUMENTO AUXILIAR DA NOTA FISCAL ELETRÔNICA</div>
-      <div style="margin-top:3px;font-size:8px">${p.tpNF === "0" ? "<b>0 - ENTRADA</b>" : "0 - ENTRADA"}</div>
-      <div style="font-size:8px">${p.tpNF === "1" ? "<b>1 - SAÍDA</b>" : "1 - SAÍDA"}</div>
-      <div style="margin-top:4px"><span class="lbl">Nº</span> <span class="bold">${p.numero}</span></div>
-      <div><span class="lbl">SÉRIE</span> <span class="bold">${p.serie}</span> &nbsp; <span class="lbl">FL</span> 1/1</div>
+    <td rowspan="3" class="center" style="width:25%">
+      <div class="bold" style="font-size:13px">DANFE</div>
+      <div style="font-size:7px">Documento Auxiliar da<br/>Nota Fiscal Eletrônica</div>
+      <table class="nb" style="margin-top:4px"><tr>
+        <td class="nb" style="text-align:left;font-size:8px;padding-right:6px!important">${p.tpNF === "0" ? "<b>0 - ENTRADA</b>" : "0 - ENTRADA"}<br/>${p.tpNF === "1" ? "<b>1 - SAÍDA</b>" : "1 - SAÍDA"}</td>
+        <td class="nb" style="border:1px solid #000!important;padding:2px 6px!important;font-size:11px;font-weight:bold">${p.tpNF || "1"}</td>
+      </tr></table>
+      <div style="margin-top:4px;font-size:9px"><b>Nº ${(p.numero || "").toString().padStart(9,"0").replace(/(\d{3})(\d{3})(\d{3})/, "$1.$2.$3")}</b></div>
+      <div style="font-size:9px"><b>SÉRIE ${(p.serie || "").toString().padStart(3,"0")}</b></div>
+      <div style="font-size:9px"><b>FOLHA 1/1</b></div>
     </td>
     <td class="center" style="width:40%">
-      <div class="lbl">CHAVE DE ACESSO</div>
+      <div class="lbl" style="text-align:left">CHAVE DE ACESSO</div>
       <div class="chave">${chaveFmt}</div>
-      <div style="font-size:7px;margin-top:2px">Consulta de autenticidade no portal nacional da NF-e<br/>www.nfe.fazenda.gov.br/portal ou site da Sefaz Autorizadora</div>
     </td>
   </tr>
   <tr>
+    <td class="center" style="font-size:8px">Consulta de autenticidade no portal nacional da NF-e<br/>www.nfe.fazenda.gov.br/portal ou no site da Sefaz autorizadora</td>
+  </tr>
+  <tr>
     <td>
-      <div class="lbl">NATUREZA DA OPERAÇÃO</div>
-      <div class="val">${p.natOp || "—"}</div>
-    </td>
-    <td>
-      <div class="lbl">PROTOCOLO DE AUTORIZAÇÃO DE USO</div>
-      <div class="val">${p.protocolo || "—"} &nbsp; ${fmtDateTimeBr(p.dhRecbto)}</div>
+      <table class="nb"><tr>
+        <td class="nb" style="width:50%"><div class="lbl">NATUREZA DA OPERAÇÃO</div><div class="val">${p.natOp || "—"}</div></td>
+        <td class="nb"><div class="lbl">PROTOCOLO DE AUTORIZAÇÃO DE USO</div><div class="val">${p.protocolo || "—"}${p.dhRecbto ? " " + fmtDateTimeBr(p.dhRecbto) : ""}</div></td>
+      </tr></table>
     </td>
   </tr>
-</table>
-
-<table>
   <tr>
-    <td style="width:50%"><div class="lbl">INSCRIÇÃO ESTADUAL</div><div class="val">${p.emit.ie}</div></td>
-    <td style="width:25%"><div class="lbl">INSC.EST. SUBST.TRIBUTÁRIO</div><div class="val">${p.emit.iest || "—"}</div></td>
-    <td style="width:25%"><div class="lbl">CNPJ</div><div class="val">${p.emit.cnpj}</div></td>
+    <td><div class="lbl">INSCRIÇÃO ESTADUAL</div><div class="val">${p.emit.ie || "—"}</div></td>
+    <td><div class="lbl">INSCRIÇÃO ESTADUAL DO SUBSTITUTO TRIBUTÁRIO</div><div class="val">${p.emit.iest || ""}</div></td>
+    <td><div class="lbl">CNPJ</div><div class="val">${p.emit.cnpj || ""}</div></td>
   </tr>
 </table>
 
@@ -376,49 +395,57 @@ ${homolog}
 <div class="sec-title">DESTINATÁRIO / REMETENTE</div>
 <table>
   <tr>
-    <td style="width:55%"><div class="lbl">NOME/RAZÃO SOCIAL</div><div class="val">${p.dest.nome}</div></td>
-    <td style="width:20%"><div class="lbl">CNPJ/CPF</div><div class="val">${p.dest.doc}</div></td>
-    <td style="width:25%"><div class="lbl">DATA EMISSÃO</div><div class="val">${fmtDateBr(p.dEmi)}</div></td>
+    <td style="width:55%"><div class="lbl">NOME / RAZÃO SOCIAL</div><div class="val">${p.dest.nome || ""}</div></td>
+    <td style="width:23%"><div class="lbl">CNPJ / CPF</div><div class="val">${p.dest.doc || ""}</div></td>
+    <td style="width:22%"><div class="lbl">DATA EMISSÃO</div><div class="val">${fmtDateBr(p.dEmi)}</div></td>
   </tr>
   <tr>
-    <td><div class="lbl">ENDEREÇO</div><div class="val">${p.dest.end}${p.dest.nro ? ", " + p.dest.nro : ""}</div></td>
-    <td><div class="lbl">BAIRRO/DISTRITO</div><div class="val">${p.dest.bairro || "—"}</div></td>
-    <td><div class="lbl">DATA ENTRADA/SAÍDA</div><div class="val">${fmtDateBr(p.dSaiEnt) || fmtDateBr(p.dEmi)}</div></td>
+    <td><div class="lbl">ENDEREÇO</div><div class="val">${p.dest.end || ""}${p.dest.nro ? ", " + p.dest.nro : ""}</div></td>
+    <td>
+      <table class="nb"><tr>
+        <td class="nb" style="width:70%"><div class="lbl">BAIRRO / DISTRITO</div><div class="val">${p.dest.bairro || ""}</div></td>
+        <td class="nb"><div class="lbl">CEP</div><div class="val">${p.dest.cep || ""}</div></td>
+      </tr></table>
+    </td>
+    <td><div class="lbl">DATA DA SAÍDA</div><div class="val">${fmtDateBr(p.dSaiEnt) || fmtDateBr(p.dEmi)}</div></td>
   </tr>
   <tr>
     <td>
       <table class="nb"><tr>
-        <td class="nb" style="width:50%"><div class="lbl">MUNICÍPIO</div><div class="val">${p.dest.mun}</div></td>
-        <td class="nb" style="width:15%"><div class="lbl">UF</div><div class="val">${p.dest.uf}</div></td>
-        <td class="nb"><div class="lbl">FONE/FAX</div><div class="val">${p.dest.fone || "—"}</div></td>
+        <td class="nb" style="width:80%"><div class="lbl">MUNICÍPIO</div><div class="val">${p.dest.mun || ""}</div></td>
+        <td class="nb"><div class="lbl">UF</div><div class="val">${p.dest.uf || ""}</div></td>
       </tr></table>
     </td>
-    <td><div class="lbl">CEP</div><div class="val">${p.dest.cep || "—"}</div></td>
-    <td><div class="lbl">INSCRIÇÃO ESTADUAL</div><div class="val">${p.dest.ie || "—"}</div></td>
+    <td>
+      <table class="nb"><tr>
+        <td class="nb" style="width:55%"><div class="lbl">TELEFONE / FAX</div><div class="val">${p.dest.fone || ""}</div></td>
+        <td class="nb"><div class="lbl">INSCRIÇÃO ESTADUAL</div><div class="val">${p.dest.ie || ""}</div></td>
+      </tr></table>
+    </td>
+    <td><div class="lbl">HORA DA SAÍDA</div><div class="val">${p.dSaiEnt ? new Date(p.dSaiEnt).toLocaleTimeString("pt-BR") : ""}</div></td>
   </tr>
 </table>
 
-<div class="sec-title">FATURA / DUPLICATAS</div>
-${dupRows}
+${p.dup.length ? `<div class="sec-title">FATURA / DUPLICATAS</div>${dupRows}` : ""}
 
 <div class="sec-title">CÁLCULO DO IMPOSTO</div>
 <table>
   <tr>
     <td style="width:20%"><div class="lbl">BASE DE CÁLCULO DO ICMS</div><div class="val right">${fmtMoneyStr(p.totais.vBC)}</div></td>
     <td style="width:20%"><div class="lbl">VALOR DO ICMS</div><div class="val right">${fmtMoneyStr(p.totais.vICMS)}</div></td>
-    <td style="width:20%"><div class="lbl">BASE CÁLC ICMS SUBST.</div><div class="val right">${fmtMoneyStr(p.totais.vBCST)}</div></td>
-    <td style="width:20%"><div class="lbl">VALOR ICMS SUBST.</div><div class="val right">${fmtMoneyStr(p.totais.vST)}</div></td>
+    <td style="width:20%"><div class="lbl">BASE DE CÁLCULO DO ICMS SUBST.</div><div class="val right">${fmtMoneyStr(p.totais.vBCST)}</div></td>
+    <td style="width:20%"><div class="lbl">VALOR DO ICMS SUBST.</div><div class="val right">${fmtMoneyStr(p.totais.vST)}</div></td>
     <td style="width:20%"><div class="lbl">VALOR TOTAL DOS PRODUTOS</div><div class="val right">${fmtMoneyStr(p.totais.vProd)}</div></td>
   </tr>
   <tr>
     <td><div class="lbl">VALOR DO FRETE</div><div class="val right">${fmtMoneyStr(p.totais.vFrete)}</div></td>
     <td><div class="lbl">VALOR DO SEGURO</div><div class="val right">${fmtMoneyStr(p.totais.vSeg)}</div></td>
     <td><div class="lbl">DESCONTO</div><div class="val right">${fmtMoneyStr(p.totais.vDesc)}</div></td>
-    <td><div class="lbl">OUTRAS DESPESAS</div><div class="val right">${fmtMoneyStr(p.totais.vOutro)}</div></td>
+    <td><div class="lbl">OUTRAS DESPESAS ACESSÓRIAS</div><div class="val right">${fmtMoneyStr(p.totais.vOutro)}</div></td>
     <td><div class="lbl">VALOR DO IPI</div><div class="val right">${fmtMoneyStr(p.totais.vIPI)}</div></td>
   </tr>
   <tr>
-    <td colspan="4"></td>
+    <td colspan="4" style="border:none"></td>
     <td><div class="lbl">VALOR TOTAL DA NOTA</div><div class="val right" style="font-size:11px">${fmtMoneyStr(p.totais.vNF)}</div></td>
   </tr>
 </table>
@@ -426,41 +453,64 @@ ${dupRows}
 <div class="sec-title">TRANSPORTADOR / VOLUMES TRANSPORTADOS</div>
 <table>
   <tr>
-    <td style="width:32%"><div class="lbl">RAZÃO SOCIAL</div><div class="val">${p.transp.nome || "—"}</div></td>
-    <td style="width:13%"><div class="lbl">FRETE POR CONTA</div><div class="val">${p.transp.modFrete === "0" ? "0-EMITENTE" : p.transp.modFrete === "1" ? "1-DEST" : p.transp.modFrete === "2" ? "2-TERCEIROS" : p.transp.modFrete === "9" ? "9-SEM FRETE" : (p.transp.modFrete || "—")}</div></td>
-    <td style="width:10%"><div class="lbl">CÓD. ANTT</div><div class="val">${p.transp.antt || "—"}</div></td>
-    <td style="width:10%"><div class="lbl">PLACA VEÍC.</div><div class="val">${p.transp.placa || "—"}</div></td>
+    <td style="width:32%"><div class="lbl">NOME / RAZÃO SOCIAL</div><div class="val">${p.transp.nome || "—"}</div></td>
+    <td style="width:13%"><div class="lbl">FRETE POR CONTA</div><div class="val">${p.transp.modFrete === "0" ? "0 - REMETENTE" : p.transp.modFrete === "1" ? "1 - DESTINATÁRIO" : p.transp.modFrete === "2" ? "2 - TERCEIROS" : p.transp.modFrete === "9" ? "9 - SEM FRETE" : "—"}</div></td>
+    <td style="width:10%"><div class="lbl">CÓDIGO ANTT</div><div class="val">${p.transp.antt || "—"}</div></td>
+    <td style="width:13%"><div class="lbl">PLACA DO VEÍCULO</div><div class="val">${p.transp.placa || "—"}</div></td>
     <td style="width:5%"><div class="lbl">UF</div><div class="val">${p.transp.ufPlaca || "—"}</div></td>
-    <td><div class="lbl">CNPJ/CPF</div><div class="val">${p.transp.cnpj || "—"}</div></td>
+    <td><div class="lbl">CNPJ / CPF</div><div class="val">${p.transp.cnpj || "—"}</div></td>
   </tr>
   <tr>
     <td><div class="lbl">ENDEREÇO</div><div class="val">${p.transp.end || "—"}</div></td>
     <td colspan="3"><div class="lbl">MUNICÍPIO</div><div class="val">${p.transp.mun || "—"}</div></td>
     <td><div class="lbl">UF</div><div class="val">${p.transp.uf || "—"}</div></td>
-    <td><div class="lbl">INSC. ESTADUAL</div><div class="val">${p.transp.ie || "—"}</div></td>
+    <td><div class="lbl">INSCRIÇÃO ESTADUAL</div><div class="val">${p.transp.ie || "—"}</div></td>
   </tr>
   <tr>
     <td><div class="lbl">QUANTIDADE</div><div class="val right">${p.transp.qVol || "—"}</div></td>
     <td><div class="lbl">ESPÉCIE</div><div class="val">${p.transp.esp || "—"}</div></td>
     <td><div class="lbl">MARCA</div><div class="val">${p.transp.marca || "—"}</div></td>
-    <td><div class="lbl">NÚMERO</div><div class="val">${p.transp.nVol || "—"}</div></td>
+    <td colspan="2"><div class="lbl">NUMERAÇÃO</div><div class="val">${p.transp.nVol || "—"}</div></td>
     <td><div class="lbl">PESO BRUTO</div><div class="val right">${p.transp.pesoB || "—"}</div></td>
     <td><div class="lbl">PESO LÍQUIDO</div><div class="val right">${p.transp.pesoL || "—"}</div></td>
   </tr>
 </table>
 
 <div class="sec-title">DADOS DOS PRODUTOS / SERVIÇOS</div>
+<div class="items-table grow">
 <table>
+  <colgroup>
+    <col style="width:7%"/><col style="width:24%"/><col style="width:6%"/><col style="width:3%"/><col style="width:4%"/><col style="width:3%"/>
+    <col style="width:5%"/><col style="width:7%"/><col style="width:6%"/><col style="width:7%"/><col style="width:7%"/><col style="width:6%"/><col style="width:5%"/><col style="width:4%"/><col style="width:3%"/><col style="width:3%"/>
+  </colgroup>
   <thead>
     <tr>
-      <th>CÓDIGO</th><th>DESCRIÇÃO</th><th>NCM</th><th>CST</th><th>CFOP</th><th>UN</th>
-      <th class="right">QTD</th><th class="right">VLR UNIT</th><th class="right">VLR TOT</th>
-      <th class="right">BC ICMS</th><th class="right">VLR ICMS</th><th class="right">VLR IPI</th>
-      <th class="right">%ICMS</th><th class="right">%IPI</th>
+      <th rowspan="2">CÓDIGO<br/>PRODUTO</th>
+      <th rowspan="2">DESCRIÇÃO DO PRODUTO / SERVIÇO</th>
+      <th rowspan="2">NCM/SH</th>
+      <th rowspan="2">CST</th>
+      <th rowspan="2">CFOP</th>
+      <th rowspan="2">UNID.</th>
+      <th rowspan="2">QTDE.</th>
+      <th rowspan="2">VALOR<br/>UNITÁRIO</th>
+      <th rowspan="2">VALOR<br/>DESCONTO</th>
+      <th rowspan="2">VALOR<br/>LÍQUIDO</th>
+      <th rowspan="2">BASE DE<br/>CÁLC. ICMS</th>
+      <th rowspan="2">VALOR<br/>ICMS</th>
+      <th rowspan="2">VALOR<br/>IPI</th>
+      <th colspan="2">ALÍQ. %</th>
+    </tr>
+    <tr>
+      <th>ICMS</th>
+      <th>IPI</th>
     </tr>
   </thead>
-  <tbody>${itensRows || `<tr><td colspan="14" class="center" style="padding:6px">— Sem itens —</td></tr>`}</tbody>
+  <tbody>
+    ${itensRows || `<tr><td colspan="15" class="center" style="padding:6px">— Sem itens —</td></tr>`}
+    <tr class="filler"><td colspan="15"></td></tr>
+  </tbody>
 </table>
+</div>
 
 ${p.totais.vServ && parseFloat(p.totais.vServ) > 0 ? `
 <div class="sec-title">CÁLCULO DO ISSQN</div>
@@ -476,10 +526,17 @@ ${p.totais.vServ && parseFloat(p.totais.vServ) > 0 ? `
 <div class="sec-title">DADOS ADICIONAIS</div>
 <table>
   <tr>
-    <td style="width:70%"><div class="lbl">INFORMAÇÕES COMPLEMENTARES</div><div style="min-height:36px;white-space:pre-wrap;font-size:8px">${p.infAdic || ""}</div></td>
-    <td><div class="lbl">RESERVADO AO FISCO</div><div style="min-height:36px;font-size:8px">${p.infFisco || ""}</div></td>
+    <td style="width:70%"><div class="lbl">INFORMAÇÕES COMPLEMENTARES</div><div style="min-height:50px;white-space:pre-wrap;font-size:8px">${p.infAdic || ""}</div></td>
+    <td><div class="lbl">RESERVADO AO FISCO</div><div style="min-height:50px;font-size:8px">${p.infFisco || ""}</div></td>
   </tr>
 </table>
+
+<div class="footer-print">
+  <div>DATA E HORA DA IMPRESSÃO: ${printedAt}</div>
+  <div>www.gestaosolution.com.br</div>
+</div>
+
+</div>
 
 <script>setTimeout(()=>window.print(),400)</script>
 </body></html>`;
