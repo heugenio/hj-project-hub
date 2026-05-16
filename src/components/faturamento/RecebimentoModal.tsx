@@ -611,6 +611,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           NGPD_NR_AUTO: p.nr_auto || "",
           NGPD_NSU: p.nsu || "",
           NGPD_BANDEIRA: p.bandeira || "",
+          NGPD_REDE: p.rede || "",
           TEF_STATUS: p.tefStatus || "",
         })),
       };
