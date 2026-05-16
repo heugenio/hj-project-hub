@@ -949,6 +949,28 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="col-span-2">
+                    <Select
+                      value={p.rede || ""}
+                      onValueChange={(v) => updateParcela(idx, { rede: v })}
+                      disabled={!isCartaoLinha}
+                    >
+                      <SelectTrigger className="h-6 text-[10px] px-1.5">
+                        <SelectValue placeholder={isCartaoLinha ? "SEL." : ""} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {redes.map((r, i) => {
+                          const label = String(r.OPCT_REDE || r.OPCT_NOME || "").toUpperCase();
+                          if (!label) return null;
+                          return (
+                            <SelectItem key={`${r.OPCT_ID || i}-${i}`} value={label} className="text-[10px]">
+                              {label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="col-span-3">
                     <Select value={p.cofr_id} onValueChange={(v) => updateParcela(idx, { cofr_id: v })}>
                       <SelectTrigger className="h-6 text-[11px] px-1.5">
