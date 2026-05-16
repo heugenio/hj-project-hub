@@ -419,7 +419,7 @@ ${dupRows}
   </tr>
   <tr>
     <td colspan="4"></td>
-    <td style="background:#eee"><div class="lbl">VALOR TOTAL DA NOTA</div><div class="val right" style="font-size:11px">${fmtMoneyStr(p.totais.vNF)}</div></td>
+    <td><div class="lbl">VALOR TOTAL DA NOTA</div><div class="val right" style="font-size:11px">${fmtMoneyStr(p.totais.vNF)}</div></td>
   </tr>
 </table>
 
