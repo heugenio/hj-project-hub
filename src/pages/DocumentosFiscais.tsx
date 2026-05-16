@@ -452,7 +452,7 @@ ${dupRows}
 <div class="sec-title">DADOS DOS PRODUTOS / SERVIÇOS</div>
 <table>
   <thead>
-    <tr style="background:#eee">
+    <tr>
       <th>CÓDIGO</th><th>DESCRIÇÃO</th><th>NCM</th><th>CST</th><th>CFOP</th><th>UN</th>
       <th class="right">QTD</th><th class="right">VLR UNIT</th><th class="right">VLR TOT</th>
       <th class="right">BC ICMS</th><th class="right">VLR ICMS</th><th class="right">VLR IPI</th>
