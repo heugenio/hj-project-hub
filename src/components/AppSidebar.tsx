@@ -61,6 +61,7 @@ const marketingItems = [
 
 const financeiroItems = [
   { title: "Consulta PIX", url: "/financeiro/pix", icon: CreditCard },
+  { title: "Documentos Fiscais", url: "/financeiro/documentos-fiscais", icon: FileText },
 ];
 
 export function AppSidebar() {
