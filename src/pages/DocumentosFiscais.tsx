@@ -1079,9 +1079,6 @@ export default function DocumentosFiscais() {
                             <DropdownMenuItem onClick={() => visualizarXml(d)}>
                               <Eye className="h-4 w-4 mr-2" /> Visualizar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={imprimir}>
-                              <Printer className="h-4 w-4 mr-2" /> Imprimir
-                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => imprimirDanfe(d)}>
                               <FileText className="h-4 w-4 mr-2" />
                               {hasXml ? "DANFE / PDF" : "Nota Gerencial"}
