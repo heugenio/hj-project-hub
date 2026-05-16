@@ -606,7 +606,7 @@ export default function DocumentosFiscais() {
           <DialogHeader>
             <DialogTitle>Cancelar Documento Nº {cancelDoc?.DCFS_NUMERO_NOTA}</DialogTitle>
             <DialogDescription>
-              Chave: <span className="font-mono text-[10px]">{cancelDoc?.DCFS_CHAVE}</span>
+              Chave: <span className="font-mono text-[10px]">{getChave(cancelDoc)}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
