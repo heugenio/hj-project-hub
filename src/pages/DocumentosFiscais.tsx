@@ -26,7 +26,9 @@ import {
   setCancelamentoDocumentoFiscal,
   setCartaCorrecaoDocumentoFiscal,
   setInutilizacaoDocumentoFiscal,
+  getItensFaturados,
   type DocumentoFiscal,
+  type ItemFaturado,
 } from "@/lib/api-os";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
