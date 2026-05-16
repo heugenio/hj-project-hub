@@ -282,7 +282,7 @@ export default function DocumentosFiscais() {
   };
 
   const compartilhar = async (doc: DocumentoFiscal) => {
-    const url = `Nota ${doc.DCFS_NUMERO_NOTA} - Chave: ${doc.DCFS_CHAVE || "—"}`;
+    const url = `Nota ${doc.DCFS_NUMERO_NOTA} - Chave: ${getChave(doc) || "—"}`;
     if (navigator.share) {
       try { await navigator.share({ title: "Documento Fiscal", text: url }); return; } catch {}
     }
