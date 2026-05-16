@@ -382,7 +382,7 @@ export default function DocumentosFiscais() {
         </TabsList>
       </Tabs>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
         <KPI label="Quantidade" value={String(totals.total)} />
         <KPI label="Valor Total" value={fmtMoney(totals.valor)} />
         <KPI label="Autorizadas" value={String(totals.autorizadas)} tone="emerald" />
