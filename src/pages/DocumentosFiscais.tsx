@@ -850,11 +850,29 @@ export default function DocumentosFiscais() {
       // 55 (NF-e) é o padrão oficial; demais modelos eletrônicos usam o mesmo layout
       return abrirHtmlImpressao(buildDanfeOficial55(xml));
     }
-    // Sem XML -> gerencial
+    // Sem XML -> gerencial. Busca detalhe completo do documento + itens
     try {
-      toast({ title: "Carregando itens...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
-      const itens = doc.DCFS_ID ? await getItensFaturados(doc.DCFS_ID) : [];
-      abrirHtmlImpressao(buildDanfeGerencial(doc, itens, unemNome));
+      toast({ title: "Carregando dados...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
+      const [detalheArr, itens] = await Promise.all([
+        doc.DCFS_ID
+          ? getDocumentosFiscais({ ID: doc.DCFS_ID, UNEM_ID: unemId }).catch(() => [] as DocumentoFiscal[])
+          : Promise.resolve([] as DocumentoFiscal[]),
+        doc.DCFS_ID ? getItensFaturados(doc.DCFS_ID) : Promise.resolve([] as ItemFaturado[]),
+      ]);
+      const full: any = (detalheArr && detalheArr[0]) || doc;
+      const u = auth?.unidade || ({} as any);
+      const unidade = {
+        nome: full.UNEM_FANTASIA || full.UNEM_NOME || full.UNEM_RAZAO_SOCIAL || u.unem_Fantasia || u.unem_Razao_Social || "LOJA",
+        cnpj: full.UNEM_CNPJ || u.unem_CNPJ,
+        endereco: full.UNEM_ENDERECO || full.ENDE_LOGRADOURO || u.unem_Endereco,
+        numero: full.UNEM_NUMERO || full.ENDE_NUMERO,
+        bairro: full.UNEM_BAIRRO || full.BAIR_NOME,
+        cidade: full.UNEM_CIDADE || full.MUNI_NOME,
+        uf: full.UNEM_UF || full.ESTA_UF || u.unem_Uf,
+        cep: full.UNEM_CEP || full.ENDE_CEP,
+        fone: full.UNEM_FONE || u.unem_Fone,
+      };
+      abrirHtmlImpressao(buildDanfeGerencial({ ...doc, ...full }, itens, unidade));
     } catch (e: any) {
       toast({ title: "Erro ao gerar nota gerencial", description: e?.message || String(e), variant: "destructive" });
     }
