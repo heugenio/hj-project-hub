@@ -314,6 +314,15 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
       } catch (e: any) {
         console.warn("[Recebimento] getParametros TefTipoGP falhou:", e?.message || e);
       }
+      try {
+        const resCC = await getParametros({ unem_id: unemId, nome: "ConciliaCartao" });
+        const arrCC = Array.isArray(resCC) ? resCC : [];
+        const valCC = (arrCC[0] as any)?.PRMT_VALOR ?? (arrCC[0] as any)?.PARM_VALOR ?? (arrCC[0] as any)?.prmt_valor ?? "0";
+        setConciliaCartao(String(valCC).trim() === "1");
+      } catch (e: any) {
+        console.warn("[Recebimento] getParametros ConciliaCartao falhou:", e?.message || e);
+        setConciliaCartao(false);
+      }
     })();
   }, [open, unemId]);
 
