@@ -1231,17 +1231,15 @@ export default function DocumentosFiscais() {
           })()}
           <DialogFooter className="px-5 py-3 border-t bg-muted/30">
             {viewDoc?.DCFS_ARQUIVO_NFE && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => downloadXml(viewDoc)}>
-                  <Download className="h-4 w-4 mr-1" /> Download XML
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => {
-                  const xml = parseXmlFromB64(viewDoc.DCFS_ARQUIVO_NFE || "");
-                  abrirDanfe(xml, modeloInfo(viewDoc.DCFS_MODELO_NOTA).label);
-                }}>
-                  <FileText className="h-4 w-4 mr-1" /> DANFE / PDF
-                </Button>
-              </>
+              <Button variant="outline" size="sm" onClick={() => downloadXml(viewDoc)}>
+                <Download className="h-4 w-4 mr-1" /> Download XML
+              </Button>
+            )}
+            {viewDoc && (
+              <Button variant="outline" size="sm" onClick={() => imprimirDanfe(viewDoc)}>
+                <FileText className="h-4 w-4 mr-1" />
+                {viewDoc.DCFS_ARQUIVO_NFE ? "DANFE / PDF" : "Nota Gerencial"}
+              </Button>
             )}
             <Button size="sm" onClick={() => setViewDoc(null)}>Fechar</Button>
           </DialogFooter>
