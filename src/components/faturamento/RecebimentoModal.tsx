@@ -841,6 +841,9 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                           tipo_pagamento: v,
                           tipo_cartao: info.isCartao ? info.tipo : "",
                         };
+                        if (info.isCartao && !p.rede) {
+                          patch.rede = String(redes?.[0]?.OPCT_REDE || redes?.[0]?.OPCT_NOME || "");
+                        }
                         if (isDeb) {
                           patch.dias = 1;
                           patch.vencimento = toISODate(addDays(new Date(), 1));
