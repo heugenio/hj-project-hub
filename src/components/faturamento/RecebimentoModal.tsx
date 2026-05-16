@@ -128,6 +128,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   // TEF Provider (TefTipoGP)
   const [tefProvider, setTefProviderState] = useState<TefProvider>(getTefProvider());
   const [tefGpIdx, setTefGpIdx] = useState<number>(0);
+  const [conciliaCartao, setConciliaCartao] = useState<boolean>(false);
   const [faturamentoFrEstb, setFaturamentoFrEstb] = useState<"S" | "N">("N");
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
@@ -312,6 +313,15 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         setTefProviderState(prov);
       } catch (e: any) {
         console.warn("[Recebimento] getParametros TefTipoGP falhou:", e?.message || e);
+      }
+      try {
+        const resCC = await getParametros({ unem_id: unemId, nome: "ConciliaCartao" });
+        const arrCC = Array.isArray(resCC) ? resCC : [];
+        const valCC = (arrCC[0] as any)?.PRMT_VALOR ?? (arrCC[0] as any)?.PARM_VALOR ?? (arrCC[0] as any)?.prmt_valor ?? "0";
+        setConciliaCartao(String(valCC).trim() === "1");
+      } catch (e: any) {
+        console.warn("[Recebimento] getParametros ConciliaCartao falhou:", e?.message || e);
+        setConciliaCartao(false);
       }
     })();
   }, [open, unemId]);
@@ -501,6 +511,17 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         if (!qtd || qtd < 1) {
           toast.error(`Informe a Qtd. Parcelas do cartão na parcela ${p.parcela}.`);
           return;
+        }
+        // Conciliação manual: sem TEF (gpNenhum) e ConciliaCartao=1 => exigir Nr. Auto e Bandeira
+        if (conciliaCartao && tefGpIdx === 0) {
+          if (!String(p.nr_auto || "").trim()) {
+            toast.error(`Informe o Nr. Auto na parcela ${p.parcela}.`);
+            return;
+          }
+          if (!String(p.bandeira || "").trim()) {
+            toast.error(`Informe a Bandeira na parcela ${p.parcela}.`);
+            return;
+          }
         }
       }
     }
