@@ -226,7 +226,7 @@ export default function DocumentosFiscais() {
     try {
       await setCancelamentoDocumentoFiscal({
         DCFS_ID: cancelDoc.DCFS_ID || "",
-        CHAVE: cancelDoc.DCFS_CHAVE || "",
+        CHAVE: getChave(cancelDoc),
         MOTIVO: cancelMotivo.toUpperCase(),
       });
       toast({ title: "Cancelamento enviado", description: "Documento processado pela SEFAZ" });
