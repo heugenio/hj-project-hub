@@ -267,6 +267,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                 : "",
               nr_auto: String(n.NGPD_NR_AUTO || n.NGPD_NSU || ""),
               bandeira: String(n.NGPD_BANDEIRA || "").toUpperCase(),
+              rede: String(n.NGPD_REDE || n.OPCT_REDE || (info.isCartao ? primeiraRede : "")),
             };
           }).sort((a, b) => a.parcela - b.parcela);
           setParcelas(parsed);
