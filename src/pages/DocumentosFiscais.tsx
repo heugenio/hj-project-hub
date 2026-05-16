@@ -569,9 +569,13 @@ function buildDanfeGerencial(
 
 <table>
   <tr>
-    <td style="width:60%" class="center">
-      <div class="bold" style="font-size:13px">${unemNome}</div>
-      <div style="font-size:8px;margin-top:2px">DOCUMENTO SEM VALOR FISCAL</div>
+    <td style="width:60%">
+      <div class="bold" style="font-size:13px">${unidade.nome}</div>
+      ${unidade.cnpj ? `<div style="font-size:8px">CNPJ: ${unidade.cnpj}</div>` : ""}
+      ${unidade.endereco ? `<div style="font-size:8px">${unidade.endereco}${unidade.numero ? ", " + unidade.numero : ""}</div>` : ""}
+      ${(unidade.bairro || unidade.cidade) ? `<div style="font-size:8px">${unidade.bairro || ""}${unidade.bairro && unidade.cidade ? " - " : ""}${unidade.cidade || ""}${unidade.uf ? "/" + unidade.uf : ""}</div>` : ""}
+      ${(unidade.cep || unidade.fone) ? `<div style="font-size:8px">${unidade.cep ? "CEP: " + unidade.cep : ""}${unidade.cep && unidade.fone ? " - " : ""}${unidade.fone ? "Fone: " + unidade.fone : ""}</div>` : ""}
+      <div style="font-size:8px;margin-top:2px;font-weight:bold">DOCUMENTO SEM VALOR FISCAL</div>
     </td>
     <td class="center" style="width:40%">
       <div class="bold" style="font-size:13px">NOTA GERENCIAL</div>
