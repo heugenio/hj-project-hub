@@ -631,24 +631,24 @@ export default function DocumentosFiscais() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-border/60 overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="text-xs">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-[10px] uppercase">Modelo</TableHead>
-                  <TableHead className="text-[10px] uppercase">Nº / Série</TableHead>
-                  <TableHead className="text-[10px] uppercase">Emissão</TableHead>
-                  <TableHead className="text-[10px] uppercase">Nome</TableHead>
-                  <TableHead className="text-[10px] uppercase">CPF/CNPJ</TableHead>
-                  <TableHead className="text-[10px] uppercase text-right">Valor Total</TableHead>
-                  <TableHead className="text-[10px] uppercase">Situação</TableHead>
-                  <TableHead className="text-[10px] uppercase">Chave</TableHead>
-                  <TableHead className="text-[10px] uppercase text-right">Ações</TableHead>
+                <TableRow className="bg-muted/60 hover:bg-muted/60 border-b border-border">
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Modelo</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Nº / Série</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Emissão</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Nome</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">CPF/CNPJ</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground text-right">Valor Total</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Situação</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">Chave</TableHead>
+                  <TableHead className="h-8 px-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="[&_tr:nth-child(even)]:bg-muted/30 [&_tr:hover]:bg-primary/5 [&_td]:py-1.5 [&_td]:px-2 [&_tr]:border-b [&_tr]:border-border/40">
                 {loading && (
                   <>
                     {Array.from({ length: 6 }).map((_, i) => (
