@@ -319,7 +319,7 @@ export default function DocumentosFiscais() {
         if (!modelos.includes(modelo)) continue;
         const xml = d.DCFS_ARQUIVO_NFE ? parseXmlFromB64(d.DCFS_ARQUIVO_NFE) : "";
         if (!xml) continue;
-        const nome = `${d.DCFS_CHAVE || `${d.DCFS_NUMERO_NOTA}_${d.DCFS_SERIE}`}.xml`;
+        const nome = `${getChave(d) || `${d.DCFS_NUMERO_NOTA}_${getSerie(d)}`}.xml`;
         zip.file(nome, xml);
         count++;
       }
