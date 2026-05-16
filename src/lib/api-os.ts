@@ -559,3 +559,19 @@ export const getItensFormaVencimento = async (itfvId: string): Promise<ItemForma
   const arr = Array.isArray(raw) ? raw : [raw];
   return arr.map((c: any) => normalizeApiKeys<ItemFormaVencimento>(c));
 };
+
+// Operadoras de Cartão (Rede) — ex.: Cielo, Rede, Stone...
+export interface OperadoraCartao {
+  OPCT_ID?: string;
+  OPCT_REDE?: string;
+  OPCT_NOME?: string;
+  [key: string]: any;
+}
+
+export const getOperadora_Cartoes = async (): Promise<OperadoraCartao[]> => {
+  const raw = await proxyGet<any>(`/getOperadora_Cartoes`);
+  if (!raw) return [];
+  if (!Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c: any) => normalizeApiKeys<OperadoraCartao>(c));
+};

@@ -16,8 +16,10 @@ import {
   getGerarVencimentos,
   getParametros,
   getItensFormaVencimento,
+  getOperadora_Cartoes,
   type FormaPagamento,
   type FormaPagamentoItem,
+  type OperadoraCartao,
 } from "@/lib/api-os";
 import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider } from "@/lib/tef";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +48,7 @@ interface ParcelaUI {
   qtd_parcelas_cartao?: string;
   nr_auto?: string;
   bandeira?: string;
+  rede?: string;
   nsu?: string;
   itfv_tef?: string; // 'Sim' | 'Nao'
   tefStatus?: "pendente" | "aprovado" | "cancelado";
@@ -119,6 +122,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [loading, setLoading] = useState(false);
   const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cofres, setCofres] = useState<Cofre[]>([]);
+  const [redes, setRedes] = useState<OperadoraCartao[]>([]);
   const [cofrId, setCofrId] = useState<string>("");
   const [formaSelecionada, setFormaSelecionada] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
@@ -186,13 +190,16 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     (async () => {
       setLoading(true);
       try {
-        const [fp, cf, negs] = await Promise.all([
+        const [fp, cf, negs, ops] = await Promise.all([
           getFormasPagamentos(unemId).catch(() => [] as FormaPagamento[]),
           getCofres().catch(() => [] as Cofre[]),
           getNegociacoesPedidos(pedido.PDDS_ID).catch(() => [] as any[]),
+          getOperadora_Cartoes().catch(() => [] as OperadoraCartao[]),
         ]);
         setFormas(fp);
         setCofres(cf);
+        setRedes(ops);
+        const primeiraRede = String(ops?.[0]?.OPCT_REDE || ops?.[0]?.OPCT_NOME || "");
 
         const list = Array.isArray(negs) ? negs : [];
         console.log("[Recebimento] getNegociacoesPedidos:", list);
@@ -260,6 +267,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                 : "",
               nr_auto: String(n.NGPD_NR_AUTO || n.NGPD_NSU || ""),
               bandeira: String(n.NGPD_BANDEIRA || "").toUpperCase(),
+              rede: String(n.NGPD_REDE || n.OPCT_REDE || (info.isCartao ? primeiraRede : "")),
             };
           }).sort((a, b) => a.parcela - b.parcela);
           setParcelas(parsed);
@@ -361,6 +369,8 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             const valor = Number(v.ITFV_VLR ?? v.VALOR ?? 0);
             const tipo = String(v.TPPR_TIPO_PAGAMENTO || v.TIPO_PAGAMENTO || forma?.FPAG_TIPO || "");
             const parcela = Number(v.PARCELA) || i + 1;
+            const info = detectarCartao(tipo);
+            const primeiraRede = String(redes?.[0]?.OPCT_REDE || redes?.[0]?.OPCT_NOME || "");
             return {
               parcela,
               dias,
@@ -372,6 +382,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
               itfv_id: String(v.ITFV_ID || ""),
               tipoOptions: [],
               loadingTipos: false,
+              rede: info.isCartao ? primeiraRede : "",
             };
           })
           .sort((a, b) => a.parcela - b.parcela);
@@ -600,6 +611,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           NGPD_NR_AUTO: p.nr_auto || "",
           NGPD_NSU: p.nsu || "",
           NGPD_BANDEIRA: p.bandeira || "",
+          NGPD_REDE: p.rede || "",
           TEF_STATUS: p.tefStatus || "",
         })),
       };
@@ -738,7 +750,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
         {/* Grid de Parcelas (mesmo padrão da Finalizar OS) */}
         <div className="rounded-lg border border-border/60 overflow-hidden bg-card shadow-sm">
-          <div className="grid grid-cols-24 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
+          <div className="grid grid-cols-26 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
             <div className="col-span-1">Parc.</div>
             <div className="col-span-1">Dias</div>
             <div className="col-span-3">Vencimento</div>
@@ -749,6 +761,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             <div className="col-span-2">Qtd. Parc. <span className="text-destructive">*</span></div>
             <div className="col-span-2">Nr. Auto</div>
             <div className="col-span-2">Bandeira</div>
+            <div className="col-span-2">Rede</div>
             <div className="col-span-3">Cofre Portador</div>
           </div>
           <div className="max-h-[300px] overflow-auto divide-y divide-border/40">
@@ -764,7 +777,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
               return (
                 <div
                   key={idx}
-                  className={`grid grid-cols-24 gap-1 px-2 py-0.5 items-center text-[11px] transition-colors hover:bg-accent/30 ${
+                  className={`grid grid-cols-26 gap-1 px-2 py-0.5 items-center text-[11px] transition-colors hover:bg-accent/30 ${
                     idx % 2 === 0 ? "" : "bg-muted/20"
                   }`}
                 >
@@ -830,6 +843,9 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                           tipo_pagamento: v,
                           tipo_cartao: info.isCartao ? info.tipo : "",
                         };
+                        if (info.isCartao && !p.rede) {
+                          patch.rede = String(redes?.[0]?.OPCT_REDE || redes?.[0]?.OPCT_NOME || "");
+                        }
                         if (isDeb) {
                           patch.dias = 1;
                           patch.vencimento = toISODate(addDays(new Date(), 1));
@@ -931,6 +947,28 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
                             {b}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2">
+                    <Select
+                      value={p.rede || ""}
+                      onValueChange={(v) => updateParcela(idx, { rede: v })}
+                      disabled={!isCartaoLinha}
+                    >
+                      <SelectTrigger className="h-6 text-[10px] px-1.5">
+                        <SelectValue placeholder={isCartaoLinha ? "SEL." : ""} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {redes.map((r, i) => {
+                          const label = String(r.OPCT_REDE || r.OPCT_NOME || "").toUpperCase();
+                          if (!label) return null;
+                          return (
+                            <SelectItem key={`${r.OPCT_ID || i}-${i}`} value={label} className="text-[10px]">
+                              {label}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
