@@ -657,3 +657,29 @@ export const setInutilizacaoDocumentoFiscal = async (payload: {
 }) => {
   return proxyPost<unknown>('/setInutilizacaoDocumentoFiscal', payload);
 };
+
+// Itens faturados — usado para DANFE Gerencial (sem XML)
+export interface ItemFaturado {
+  ITFT_ID?: string;
+  PROD_ID?: string;
+  PROD_CODIGO?: string;
+  PROD_DESCRICAO?: string;
+  ITFT_DESCRICAO?: string;
+  ITFT_QTDE?: string | number;
+  ITFT_VLR_UNITARIO?: string | number;
+  ITFT_VLR_TOTAL?: string | number;
+  ITFT_DESCONTO?: string | number;
+  ITFT_UNIDADE?: string;
+  UNID_NOME?: string;
+  PROD_NCM?: string;
+  ITFT_CFOP?: string;
+  [key: string]: any;
+}
+
+export const getItensFaturados = async (dcfsId: string): Promise<ItemFaturado[]> => {
+  const raw = await proxyGet<any>(`/getItensFaturados?id=${encodeURIComponent(dcfsId)}`);
+  if (!raw) return [];
+  if (!Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c: any) => normalizeApiKeys<ItemFaturado>(c));
+};
