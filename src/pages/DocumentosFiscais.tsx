@@ -833,6 +833,25 @@ export default function DocumentosFiscais() {
 
   const imprimir = () => window.print();
 
+  // Roteia DANFE: XML disponível -> DANFE oficial conforme modelo; sem XML/Gerencial -> busca itens faturados
+  const imprimirDanfe = async (doc: DocumentoFiscal) => {
+    const modelo = (doc.DCFS_MODELO_NOTA || "").toUpperCase();
+    const xml = doc.DCFS_ARQUIVO_NFE ? parseXmlFromB64(doc.DCFS_ARQUIVO_NFE) : "";
+    if (xml) {
+      if (modelo === "65") return abrirHtmlImpressao(buildDanfeNfce65(xml));
+      // 55 (NF-e) é o padrão oficial; demais modelos eletrônicos usam o mesmo layout
+      return abrirHtmlImpressao(buildDanfeOficial55(xml));
+    }
+    // Sem XML -> gerencial
+    try {
+      toast({ title: "Carregando itens...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
+      const itens = doc.DCFS_ID ? await getItensFaturados(doc.DCFS_ID) : [];
+      abrirHtmlImpressao(buildDanfeGerencial(doc, itens, unemNome));
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar nota gerencial", description: e?.message || String(e), variant: "destructive" });
+    }
+  };
+
   const exportarXmls = async () => {
     const modelos = Object.entries(exportSel).filter(([, v]) => v).map(([k]) => k);
     if (modelos.length === 0) {
