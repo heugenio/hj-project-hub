@@ -19,6 +19,7 @@ import Configuracoes from "@/pages/Configuracoes";
 import Marketing from "@/pages/Marketing";
 import ConsultaPix from "@/pages/ConsultaPix";
 import Faturamento from "@/pages/Faturamento";
+import DocumentosFiscais from "@/pages/DocumentosFiscais";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/marketing/campanhas" element={<Marketing />} />
                 <Route path="/financeiro/pix" element={<ConsultaPix />} />
                 <Route path="/faturamento" element={<Faturamento />} />
+                <Route path="/financeiro/documentos-fiscais" element={<DocumentosFiscais />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
