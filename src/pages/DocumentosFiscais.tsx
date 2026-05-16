@@ -296,7 +296,7 @@ export default function DocumentosFiscais() {
 
   const enviarWhatsApp = (doc: DocumentoFiscal) => {
     const fone = (doc as any).DCFS_FONE || "";
-    const txt = `Olá! Segue sua nota fiscal Nº ${doc.DCFS_NUMERO_NOTA}. Chave: ${doc.DCFS_CHAVE || ""}`;
+    const txt = `Olá! Segue sua nota fiscal Nº ${doc.DCFS_NUMERO_NOTA}. Chave: ${getChave(doc)}`;
     const url = `https://wa.me/${fone}?text=${encodeURIComponent(txt)}`;
     window.open(url, "_blank", "noopener");
   };
