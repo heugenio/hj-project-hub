@@ -213,6 +213,8 @@ function parseFullNfeXml(xmlStr: string) {
       const ipi = det.querySelector("IPI");
       const orig = icms?.querySelector("orig")?.textContent?.trim() || "";
       const cst = icms?.querySelector("CST")?.textContent?.trim() || icms?.querySelector("CSOSN")?.textContent?.trim() || "";
+      const vProd = parseFloat(g(det, "prod vProd").replace(",", ".")) || 0;
+      const vDesc = parseFloat(g(det, "prod vDesc").replace(",", ".")) || 0;
       return {
         n: det.getAttribute("nItem") || "",
         cod: g(det, "prod cProd"),
@@ -224,6 +226,8 @@ function parseFullNfeXml(xmlStr: string) {
         qtd: g(det, "prod qCom"),
         vUn: g(det, "prod vUnCom"),
         vTot: g(det, "prod vProd"),
+        vDesc: vDesc ? vDesc.toFixed(2) : "0",
+        vLiq: (vProd - vDesc).toFixed(2),
         vBC: g(icms as Element, "vBC"),
         vICMS: g(icms as Element, "vICMS"),
         vIPI: g(ipi as Element, "vIPI"),
