@@ -245,20 +245,28 @@ function parseFullNfeXml(xmlStr: string) {
 
 const danfeBaseStyles = `
   *{box-sizing:border-box}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9px;color:#000;margin:8px}
-  .noprint{display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px}
+  html,body{margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:8px;color:#000;padding:4mm}
+  .noprint{display:flex;gap:6px;justify-content:flex-end;margin-bottom:4px}
   .noprint button{padding:4px 12px;cursor:pointer;border:1px solid #444;background:#f5f5f5;border-radius:3px}
-  table{border-collapse:collapse;width:100%}
-  td,th{border:1px solid #000;padding:1px 3px;vertical-align:top}
-  .lbl{font-size:6.5px;text-transform:uppercase;color:#000;letter-spacing:.2px;line-height:1}
-  .val{font-size:9px;font-weight:bold;line-height:1.1}
+  .sheet{display:flex;flex-direction:column;min-height:calc(297mm - 12mm)}
+  .grow{flex:1 1 auto;display:flex;flex-direction:column}
+  table{border-collapse:collapse;width:100%;table-layout:fixed}
+  td,th{border:1px solid #000;padding:1px 3px;vertical-align:top;overflow:hidden;word-wrap:break-word}
+  .lbl{font-size:6px;text-transform:uppercase;color:#000;letter-spacing:.2px;line-height:1;font-weight:normal}
+  .val{font-size:9px;font-weight:bold;line-height:1.15}
   .center{text-align:center}.right{text-align:right}.bold{font-weight:bold}
-  .nb{border:none!important}
-  .sec-title{font-size:6.5px;text-transform:uppercase;font-weight:bold;color:#000;background:#fff;padding:1px 0;margin-top:3px;letter-spacing:.3px}
-  .chave{font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;text-align:center;font-weight:bold}
-  .barcode{font-family:'Libre Barcode 39',monospace;font-size:32px;text-align:center;letter-spacing:-1px}
+  .nb,.nb td,.nb th{border:none!important;padding:0!important}
+  .sec-title{font-size:7px;text-transform:uppercase;font-weight:bold;color:#000;background:#fff;padding:2px 0 1px;margin-top:3px;letter-spacing:.3px}
+  .chave{font-family:'Courier New',monospace;font-size:11px;letter-spacing:1px;text-align:center;font-weight:bold;line-height:1.2}
   .homolog{border:2px solid #c00;color:#c00;text-align:center;padding:6px;font-weight:bold;margin:4px 0;font-size:12px}
-  @media print{ .noprint{display:none} body{margin:4px} @page{ size: A4; margin: 6mm } }
+  .items-table{flex:1 1 auto}
+  .items-table table{height:100%}
+  .items-table tbody td{vertical-align:top}
+  .items-table tr.filler td{border-left:1px solid #000;border-right:1px solid #000;border-top:none;border-bottom:none;height:100%}
+  .items-table thead th{font-size:7px;font-weight:bold;text-align:center;padding:2px}
+  .footer-print{display:flex;justify-content:space-between;font-size:7px;border-top:1px solid #000;padding-top:2px;margin-top:2px}
+  @media print{ .noprint{display:none} body{padding:4mm} @page{ size: A4; margin: 0 } }
 `;
 
 function fmtDateBr(s: string) {
