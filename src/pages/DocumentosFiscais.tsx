@@ -536,7 +536,11 @@ ${homolog}
 }
 
 // ============ DANFE Gerencial — quando não tem XML (usa getItensFaturados) ============
-function buildDanfeGerencial(doc: DocumentoFiscal, itens: ItemFaturado[], unemNome: string): string {
+function buildDanfeGerencial(
+  doc: DocumentoFiscal,
+  itens: ItemFaturado[],
+  unidade: { nome: string; cnpj?: string; endereco?: string; numero?: string; bairro?: string; cidade?: string; uf?: string; cep?: string; fone?: string },
+): string {
   const valor = parseFloat(String(doc.DCFS_VLR_TOTAL ?? doc.DCFS_VALOR_TOTAL ?? "0").replace(",", "."));
   const rows = itens.map((it, idx) => {
     const desc = it.PROD_DESCRICAO || it.ITFT_DESCRICAO || "—";
