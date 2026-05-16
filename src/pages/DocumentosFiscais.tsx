@@ -1047,3 +1047,94 @@ function Info({ label, value, mono }: { label: string; value?: string | null; mo
     </div>
   );
 }
+
+// ============== DANFE Visualização (estilo formulário NF-e) ==============
+function parseNfeXml(xmlStr: string) {
+  const empty = {
+    chave: "", numero: "", serie: "", modelo: "", versao: "", dEmi: "", natOp: "", tpNF: "",
+    protocolo: "",
+    emit: { cnpj: "", ie: "", nome: "", mun: "", uf: "" },
+    dest: { doc: "", ie: "", nome: "", mun: "", uf: "", pais: "" },
+    totais: { vNF: "", vProd: "" },
+    itens: [] as Array<{ n: string; desc: string; qtd: string; un: string; vUn: string; vTot: string }>,
+  };
+  if (!xmlStr) return empty;
+  try {
+    const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
+    const infNFe = doc.querySelector("infNFe");
+    if (!infNFe) return empty;
+    const id = infNFe.getAttribute("Id") || "";
+    const versao = infNFe.getAttribute("versao") || "";
+    const ide = infNFe.querySelector("ide");
+    const emitEl = infNFe.querySelector("emit");
+    const destEl = infNFe.querySelector("dest");
+    const tot = infNFe.querySelector("total ICMSTot");
+    const get = (n: Element | null, s: string) => n?.querySelector(s)?.textContent?.trim() || "";
+    const itens = Array.from(infNFe.querySelectorAll("det")).map((det) => ({
+      n: det.getAttribute("nItem") || "",
+      desc: get(det, "prod xProd"),
+      qtd: get(det, "prod qCom"),
+      un: get(det, "prod uCom"),
+      vUn: get(det, "prod vUnCom"),
+      vTot: get(det, "prod vProd"),
+    }));
+    return {
+      chave: id.replace(/^NFe/i, ""),
+      numero: get(ide, "nNF"),
+      serie: get(ide, "serie"),
+      modelo: get(ide, "mod"),
+      versao,
+      dEmi: get(ide, "dhEmi") || get(ide, "dEmi"),
+      natOp: get(ide, "natOp"),
+      tpNF: get(ide, "tpNF"),
+      protocolo: get(doc.documentElement, "infProt nProt"),
+      emit: {
+        cnpj: get(emitEl, "CNPJ") || get(emitEl, "CPF"),
+        ie: get(emitEl, "IE"),
+        nome: get(emitEl, "xNome"),
+        mun: get(emitEl, "enderEmit xMun"),
+        uf: get(emitEl, "enderEmit UF"),
+      },
+      dest: {
+        doc: get(destEl, "CNPJ") || get(destEl, "CPF"),
+        ie: get(destEl, "IE"),
+        nome: get(destEl, "xNome"),
+        mun: get(destEl, "enderDest xMun"),
+        uf: get(destEl, "enderDest UF"),
+        pais: get(destEl, "enderDest xPais") || "BRASIL",
+      },
+      totais: { vNF: get(tot, "vNF"), vProd: get(tot, "vProd") },
+      itens,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+function DanfeSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <h3 className="text-[13px] font-semibold text-[hsl(25_60%_35%)] tracking-wide">{title}</h3>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+}
+
+function DanfeRow({ children }: { children: React.ReactNode }) {
+  return <div className="flex gap-1">{children}</div>;
+}
+
+function DanfeField({
+  label, value, mono, className,
+}: { label: string; value: string; mono?: boolean; className?: string }) {
+  return (
+    <div className={`flex-1 border border-[hsl(40_50%_70%)] rounded-sm bg-[hsl(40_50%_96%)] overflow-hidden ${className || ""}`}>
+      <div className="px-2 py-0.5 text-[10px] text-[hsl(25_60%_35%)] bg-[hsl(40_50%_92%)] border-b border-[hsl(40_50%_75%)]">
+        {label}
+      </div>
+      <div className={`px-2 py-1 text-[12px] text-foreground truncate ${mono ? "font-mono" : ""}`} title={value}>
+        {value || "—"}
+      </div>
+    </div>
+  );
+}
