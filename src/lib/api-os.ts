@@ -575,3 +575,73 @@ export const getOperadora_Cartoes = async (): Promise<OperadoraCartao[]> => {
   const arr = Array.isArray(raw) ? raw : [raw];
   return arr.map((c: any) => normalizeApiKeys<OperadoraCartao>(c));
 };
+
+// ===== Documentos Fiscais =====
+export interface DocumentoFiscal {
+  DCFS_ID?: string;
+  DCFS_NUMERO_NOTA?: string;
+  DCFS_SERIE?: string;
+  DCFS_MODELO_NOTA?: string;
+  DCFS_DATA_EMISSAO?: string;
+  DCFS_NOME?: string;
+  DCFS_CPFCNPJ?: string;
+  DCFS_VALOR_TOTAL?: string | number;
+  DCFS_SITUACAO?: string;
+  DCFS_CHAVE?: string;
+  DCFS_TIPO_MOVIMENTO?: string;
+  DCFS_ARQUIVO_NFE?: string;
+  DCFS_PROTOCOLO?: string;
+  DCFS_DATA_AUTORIZACAO?: string;
+  DCFS_MOTIVO_CANCELAMENTO?: string;
+  UNEM_ID?: string;
+  [key: string]: any;
+}
+
+export interface GetDocumentosFiscaisParams {
+  ID?: string;
+  UNEM_ID: string;
+  dtInicio?: string;
+  dtFinal?: string;
+  DCFS_NUMERO_NOTA?: string;
+  DCFS_TIPO_MOVIMENTO?: string;
+  DCFS_NOME?: string;
+  DCFS_CPFCNPJ?: string;
+}
+
+export const getDocumentosFiscais = async (params: GetDocumentosFiscaisParams): Promise<DocumentoFiscal[]> => {
+  const qs = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+    .join('&');
+  const raw = await proxyGet<any>(`/getDocumentosFiscais?${qs}`);
+  if (!raw) return [];
+  if (!Array.isArray(raw) && (raw.rawHtml || raw.message === '200 OK')) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map((c: any) => normalizeApiKeys<DocumentoFiscal>(c));
+};
+
+export const setCancelamentoDocumentoFiscal = async (payload: {
+  DCFS_ID: string;
+  CHAVE: string;
+  MOTIVO: string;
+}) => {
+  return proxyPost<unknown>('/setCancelamentoDocumentoFiscal', payload);
+};
+
+export const setCartaCorrecaoDocumentoFiscal = async (payload: {
+  DCFS_ID: string;
+  CHAVE: string;
+  CORRECAO: string;
+}) => {
+  return proxyPost<unknown>('/setCartaCorrecaoDocumentoFiscal', payload);
+};
+
+export const setInutilizacaoDocumentoFiscal = async (payload: {
+  UNEM_ID: string;
+  SERIE: string;
+  NUMERO_INICIAL: string;
+  NUMERO_FINAL: string;
+  MOTIVO: string;
+}) => {
+  return proxyPost<unknown>('/setInutilizacaoDocumentoFiscal', payload);
+};
