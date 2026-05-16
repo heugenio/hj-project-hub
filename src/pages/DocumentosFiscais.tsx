@@ -762,43 +762,140 @@ export default function DocumentosFiscais() {
       </Card>
 
       <Dialog open={!!viewDoc} onOpenChange={(o) => !o && setViewDoc(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Documento Nº {viewDoc?.DCFS_NUMERO_NOTA} — {modeloInfo(viewDoc?.DCFS_MODELO_NOTA).full}</DialogTitle>
-            <DialogDescription>Resumo fiscal, protocolo e XML</DialogDescription>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-5 pt-4 pb-2 border-b">
+            <DialogTitle className="text-base">
+              Documento Nº {viewDoc?.DCFS_NUMERO_NOTA} — {modeloInfo(viewDoc?.DCFS_MODELO_NOTA).full}
+            </DialogTitle>
+            <DialogDescription className="text-xs">Visualização da NF-e</DialogDescription>
           </DialogHeader>
-          {viewDoc && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <Info label="Chave de Acesso" value={getChave(viewDoc)} mono />
-                <Info label="Protocolo" value={viewDoc.DCFS_PROTOCOLO} mono />
-                <Info label="Data Emissão" value={fmtDate(getData(viewDoc))} />
-                <Info label="Autorização" value={fmtDate(viewDoc.DCFS_DATA_AUTORIZACAO)} />
-                <Info label="Cliente / Fornecedor" value={viewDoc.DCFS_NOME} />
-                <Info label="CPF/CNPJ" value={viewDoc.DCFS_CPFCNPJ} mono />
-                <Info label="Valor Total" value={fmtMoney(getValor(viewDoc))} />
-                <Info label="Situação" value={getStatus(viewDoc)} />
+          {viewDoc && (() => {
+            const xml = viewDoc.DCFS_ARQUIVO_NFE ? parseXmlFromB64(viewDoc.DCFS_ARQUIVO_NFE) : "";
+            const p = parseNfeXml(xml);
+            const chaveFmt = (p.chave || getChave(viewDoc) || "").replace(/(.{4})/g, "$1.").replace(/\.$/, "");
+            return (
+              <div className="px-5 py-3 space-y-3 text-[12px]">
+                <DanfeRow>
+                  <DanfeField label="Chave de Acesso" value={chaveFmt || "—"} mono className="flex-[3]" />
+                  <DanfeField label="Número NF-e" value={p.numero || viewDoc.DCFS_NUMERO_NOTA || "—"} />
+                  <DanfeField label="Versão" value={p.versao || "—"} />
+                </DanfeRow>
+
+                <DanfeSection title="Dados da NFe">
+                  <DanfeRow>
+                    <DanfeField label="Natureza da operação" value={p.natOp || "—"} className="flex-[2]" />
+                    <DanfeField label="Tipo da operação" value={p.tpNF === "0" ? "0 - Entrada" : "1 - Saída"} />
+                    <DanfeField label="Chave de acesso" value={chaveFmt || "—"} mono className="flex-[2]" />
+                  </DanfeRow>
+                  <DanfeRow>
+                    <DanfeField label="Modelo" value={p.modelo || "—"} />
+                    <DanfeField label="Série" value={p.serie || "—"} />
+                    <DanfeField label="Número" value={p.numero || "—"} />
+                    <DanfeField label="Data/Hora da emissão" value={p.dEmi ? new Date(p.dEmi).toLocaleString("pt-BR") : "—"} className="flex-[2]" />
+                  </DanfeRow>
+                </DanfeSection>
+
+                <DanfeSection title="Emitente">
+                  <DanfeRow>
+                    <DanfeField label="CNPJ" value={p.emit.cnpj || "—"} mono />
+                    <DanfeField label="IE" value={p.emit.ie || "—"} mono />
+                    <DanfeField label="Nome/Razão Social" value={p.emit.nome || "—"} className="flex-[3]" />
+                  </DanfeRow>
+                  <DanfeRow>
+                    <DanfeField label="Município" value={p.emit.mun || "—"} className="flex-[3]" />
+                    <DanfeField label="UF" value={p.emit.uf || "—"} />
+                  </DanfeRow>
+                </DanfeSection>
+
+                <DanfeSection title="Destinatário">
+                  <DanfeRow>
+                    <DanfeField label="CNPJ/CPF" value={p.dest.doc || "—"} mono />
+                    <DanfeField label="IE" value={p.dest.ie || "—"} mono />
+                    <DanfeField label="Nome/Razão Social" value={p.dest.nome || "—"} className="flex-[3]" />
+                  </DanfeRow>
+                  <DanfeRow>
+                    <DanfeField label="Município" value={p.dest.mun || "—"} className="flex-[2]" />
+                    <DanfeField label="UF" value={p.dest.uf || "—"} />
+                    <DanfeField label="País" value={p.dest.pais || "BRASIL"} />
+                  </DanfeRow>
+                </DanfeSection>
+
+                <DanfeSection title="Produtos">
+                  <div className="border border-[hsl(40_50%_70%)] rounded-sm overflow-hidden bg-[hsl(40_50%_96%)]">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-[hsl(40_50%_88%)] text-[hsl(25_60%_35%)]">
+                        <tr className="[&_th]:px-2 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-medium [&_th]:border-r [&_th]:border-[hsl(40_50%_70%)] last:[&_th]:border-r-0">
+                          <th className="w-8">#</th>
+                          <th>Descrição</th>
+                          <th className="w-24 text-right">Quantidade</th>
+                          <th className="w-24">Unid. Com.</th>
+                          <th className="w-28 text-right">Valor Unit.</th>
+                          <th className="w-28 text-right">Valor Prod.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {p.itens.length === 0 && (
+                          <tr><td colSpan={6} className="text-center text-muted-foreground py-3">— Sem itens —</td></tr>
+                        )}
+                        {p.itens.map((it, i) => (
+                          <tr key={i} className="[&_td]:px-2 [&_td]:py-1 [&_td]:border-t [&_td]:border-[hsl(40_50%_75%)] [&_td]:border-r last:[&_td]:border-r-0 odd:bg-[hsl(40_50%_93%)]">
+                            <td>{it.n}</td>
+                            <td className="truncate max-w-[280px]" title={it.desc}>{it.desc}</td>
+                            <td className="text-right font-mono">{it.qtd}</td>
+                            <td>{it.un}</td>
+                            <td className="text-right font-mono">{fmtMoneyStr(it.vUn)}</td>
+                            <td className="text-right font-mono">{fmtMoneyStr(it.vTot)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-[hsl(40_50%_88%)] font-semibold">
+                          <td colSpan={5} className="px-2 py-1.5 text-right border-t border-[hsl(40_50%_70%)]">Valor total</td>
+                          <td className="px-2 py-1.5 text-right font-mono border-t border-[hsl(40_50%_70%)]">{fmtMoneyStr(p.totais.vNF || p.totais.vProd)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </DanfeSection>
+
+                <DanfeSection title="Eventos e Serviços">
+                  <div className="border border-[hsl(40_50%_70%)] rounded-sm overflow-hidden bg-[hsl(40_50%_96%)]">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-[hsl(40_50%_88%)] text-[hsl(25_60%_35%)]">
+                        <tr className="[&_th]:px-2 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-medium [&_th]:border-r [&_th]:border-[hsl(40_50%_70%)] last:[&_th]:border-r-0">
+                          <th>Evento</th>
+                          <th>Protocolo</th>
+                          <th>Data autorização</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="[&_td]:px-2 [&_td]:py-1 [&_td]:border-t [&_td]:border-[hsl(40_50%_75%)] [&_td]:border-r last:[&_td]:border-r-0">
+                          <td>Autorização de Uso</td>
+                          <td className="font-mono">{p.protocolo || viewDoc.DCFS_PROTOCOLO || "—"}</td>
+                          <td>{fmtDate(viewDoc.DCFS_DATA_AUTORIZACAO) || (p.dEmi ? new Date(p.dEmi).toLocaleString("pt-BR") : "—")}</td>
+                          <td>{getStatus(viewDoc) || "—"}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </DanfeSection>
               </div>
-              {viewDoc.DCFS_ARQUIVO_NFE && (
-                <div>
-                  <Label className="text-xs uppercase">XML</Label>
-                  <pre className="mt-1 text-[10px] bg-muted p-2 rounded max-h-80 overflow-auto whitespace-pre-wrap break-all">
-                    {parseXmlFromB64(viewDoc.DCFS_ARQUIVO_NFE)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
+            );
+          })()}
+          <DialogFooter className="px-5 py-3 border-t bg-muted/30">
             {viewDoc?.DCFS_ARQUIVO_NFE && (
-              <Button variant="outline" onClick={() => downloadXml(viewDoc)}>
-                <Download className="h-4 w-4 mr-1" /> Download XML
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => downloadXml(viewDoc)}>
+                  <Download className="h-4 w-4 mr-1" /> Download XML
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const xml = parseXmlFromB64(viewDoc.DCFS_ARQUIVO_NFE || "");
+                  abrirDanfe(xml, modeloInfo(viewDoc.DCFS_MODELO_NOTA).label);
+                }}>
+                  <FileText className="h-4 w-4 mr-1" /> DANFE / PDF
+                </Button>
+              </>
             )}
-            <Button variant="outline" onClick={imprimir}>
-              <Printer className="h-4 w-4 mr-1" /> Imprimir
-            </Button>
-            <Button onClick={() => setViewDoc(null)}>Fechar</Button>
+            <Button size="sm" onClick={() => setViewDoc(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
