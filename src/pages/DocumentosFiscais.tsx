@@ -536,7 +536,11 @@ ${homolog}
 }
 
 // ============ DANFE Gerencial — quando não tem XML (usa getItensFaturados) ============
-function buildDanfeGerencial(doc: DocumentoFiscal, itens: ItemFaturado[], unemNome: string): string {
+function buildDanfeGerencial(
+  doc: DocumentoFiscal,
+  itens: ItemFaturado[],
+  unidade: { nome: string; cnpj?: string; endereco?: string; numero?: string; bairro?: string; cidade?: string; uf?: string; cep?: string; fone?: string },
+): string {
   const valor = parseFloat(String(doc.DCFS_VLR_TOTAL ?? doc.DCFS_VALOR_TOTAL ?? "0").replace(",", "."));
   const rows = itens.map((it, idx) => {
     const desc = it.PROD_DESCRICAO || it.ITFT_DESCRICAO || "—";
@@ -565,9 +569,13 @@ function buildDanfeGerencial(doc: DocumentoFiscal, itens: ItemFaturado[], unemNo
 
 <table>
   <tr>
-    <td style="width:60%" class="center">
-      <div class="bold" style="font-size:13px">${unemNome}</div>
-      <div style="font-size:8px;margin-top:2px">DOCUMENTO SEM VALOR FISCAL</div>
+    <td style="width:60%">
+      <div class="bold" style="font-size:13px">${unidade.nome}</div>
+      ${unidade.cnpj ? `<div style="font-size:8px">CNPJ: ${unidade.cnpj}</div>` : ""}
+      ${unidade.endereco ? `<div style="font-size:8px">${unidade.endereco}${unidade.numero ? ", " + unidade.numero : ""}</div>` : ""}
+      ${(unidade.bairro || unidade.cidade) ? `<div style="font-size:8px">${unidade.bairro || ""}${unidade.bairro && unidade.cidade ? " - " : ""}${unidade.cidade || ""}${unidade.uf ? "/" + unidade.uf : ""}</div>` : ""}
+      ${(unidade.cep || unidade.fone) ? `<div style="font-size:8px">${unidade.cep ? "CEP: " + unidade.cep : ""}${unidade.cep && unidade.fone ? " - " : ""}${unidade.fone ? "Fone: " + unidade.fone : ""}</div>` : ""}
+      <div style="font-size:8px;margin-top:2px;font-weight:bold">DOCUMENTO SEM VALOR FISCAL</div>
     </td>
     <td class="center" style="width:40%">
       <div class="bold" style="font-size:13px">NOTA GERENCIAL</div>
@@ -842,11 +850,29 @@ export default function DocumentosFiscais() {
       // 55 (NF-e) é o padrão oficial; demais modelos eletrônicos usam o mesmo layout
       return abrirHtmlImpressao(buildDanfeOficial55(xml));
     }
-    // Sem XML -> gerencial
+    // Sem XML -> gerencial. Busca detalhe completo do documento + itens
     try {
-      toast({ title: "Carregando itens...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
-      const itens = doc.DCFS_ID ? await getItensFaturados(doc.DCFS_ID) : [];
-      abrirHtmlImpressao(buildDanfeGerencial(doc, itens, unemNome));
+      toast({ title: "Carregando dados...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
+      const [detalheArr, itens] = await Promise.all([
+        doc.DCFS_ID
+          ? getDocumentosFiscais({ ID: doc.DCFS_ID, UNEM_ID: unemId }).catch(() => [] as DocumentoFiscal[])
+          : Promise.resolve([] as DocumentoFiscal[]),
+        doc.DCFS_ID ? getItensFaturados(doc.DCFS_ID) : Promise.resolve([] as ItemFaturado[]),
+      ]);
+      const full: any = (detalheArr && detalheArr[0]) || doc;
+      const u = auth?.unidade || ({} as any);
+      const unidade = {
+        nome: full.UNEM_FANTASIA || full.UNEM_NOME || full.UNEM_RAZAO_SOCIAL || u.unem_Fantasia || u.unem_Razao_Social || "LOJA",
+        cnpj: full.UNEM_CNPJ || u.unem_CNPJ,
+        endereco: full.UNEM_ENDERECO || full.ENDE_LOGRADOURO || u.unem_Endereco,
+        numero: full.UNEM_NUMERO || full.ENDE_NUMERO,
+        bairro: full.UNEM_BAIRRO || full.BAIR_NOME,
+        cidade: full.UNEM_CIDADE || full.MUNI_NOME,
+        uf: full.UNEM_UF || full.ESTA_UF || u.unem_Uf,
+        cep: full.UNEM_CEP || full.ENDE_CEP,
+        fone: full.UNEM_FONE || u.unem_Fone,
+      };
+      abrirHtmlImpressao(buildDanfeGerencial({ ...doc, ...full }, itens, unidade));
     } catch (e: any) {
       toast({ title: "Erro ao gerar nota gerencial", description: e?.message || String(e), variant: "destructive" });
     }
@@ -1053,9 +1079,6 @@ export default function DocumentosFiscais() {
                             <DropdownMenuItem onClick={() => visualizarXml(d)}>
                               <Eye className="h-4 w-4 mr-2" /> Visualizar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={imprimir}>
-                              <Printer className="h-4 w-4 mr-2" /> Imprimir
-                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => imprimirDanfe(d)}>
                               <FileText className="h-4 w-4 mr-2" />
                               {hasXml ? "DANFE / PDF" : "Nota Gerencial"}
@@ -1081,9 +1104,6 @@ export default function DocumentosFiscais() {
                                 <XCircle className="h-4 w-4 mr-2" /> Cancelar
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => compartilhar(d)}>
-                              <Share2 className="h-4 w-4 mr-2" /> Compartilhar
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
