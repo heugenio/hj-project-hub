@@ -170,13 +170,14 @@ export default function DocumentosFiscais() {
   const totals = useMemo(() => {
     const total = docs.length;
     const valor = docs.reduce((a, d) => {
-      const n = typeof d.DCFS_VALOR_TOTAL === "number" ? d.DCFS_VALOR_TOTAL : parseFloat(String(d.DCFS_VALOR_TOTAL ?? "0").replace(",", "."));
+      const raw = getValor(d);
+      const n = typeof raw === "number" ? raw : parseFloat(String(raw ?? "0").replace(",", "."));
       return a + (Number.isNaN(n) ? 0 : n);
     }, 0);
     let autorizadas = 0, canceladas = 0, erros = 0, pendentes = 0;
     for (const d of docs) {
-      const s = (d.DCFS_SITUACAO || "").toLowerCase();
-      if (s.includes("autoriz")) autorizadas++;
+      const s = getStatus(d).toLowerCase();
+      if (s.includes("autoriz") || s === "válido" || s === "valido") autorizadas++;
       else if (s.includes("cancel")) canceladas++;
       else if (s.includes("erro") || s.includes("rejei") || s.includes("deneg")) erros++;
       else pendentes++;
