@@ -122,6 +122,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [loading, setLoading] = useState(false);
   const [formas, setFormas] = useState<FormaPagamento[]>([]);
   const [cofres, setCofres] = useState<Cofre[]>([]);
+  const [redes, setRedes] = useState<OperadoraCartao[]>([]);
   const [cofrId, setCofrId] = useState<string>("");
   const [formaSelecionada, setFormaSelecionada] = useState<string>("");
   const [parcelas, setParcelas] = useState<ParcelaUI[]>([]);
