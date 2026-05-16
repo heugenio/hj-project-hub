@@ -776,7 +776,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
               return (
                 <div
                   key={idx}
-                  className={`grid grid-cols-24 gap-1 px-2 py-0.5 items-center text-[11px] transition-colors hover:bg-accent/30 ${
+                  className={`grid grid-cols-26 gap-1 px-2 py-0.5 items-center text-[11px] transition-colors hover:bg-accent/30 ${
                     idx % 2 === 0 ? "" : "bg-muted/20"
                   }`}
                 >
