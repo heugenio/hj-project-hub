@@ -190,13 +190,16 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     (async () => {
       setLoading(true);
       try {
-        const [fp, cf, negs] = await Promise.all([
+        const [fp, cf, negs, ops] = await Promise.all([
           getFormasPagamentos(unemId).catch(() => [] as FormaPagamento[]),
           getCofres().catch(() => [] as Cofre[]),
           getNegociacoesPedidos(pedido.PDDS_ID).catch(() => [] as any[]),
+          getOperadora_Cartoes().catch(() => [] as OperadoraCartao[]),
         ]);
         setFormas(fp);
         setCofres(cf);
+        setRedes(ops);
+        const primeiraRede = String(ops?.[0]?.OPCT_REDE || ops?.[0]?.OPCT_NOME || "");
 
         const list = Array.isArray(negs) ? negs : [];
         console.log("[Recebimento] getNegociacoesPedidos:", list);
