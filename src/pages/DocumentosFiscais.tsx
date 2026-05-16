@@ -1104,9 +1104,6 @@ export default function DocumentosFiscais() {
                                 <XCircle className="h-4 w-4 mr-2" /> Cancelar
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => compartilhar(d)}>
-                              <Share2 className="h-4 w-4 mr-2" /> Compartilhar
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
