@@ -247,7 +247,7 @@ export default function DocumentosFiscais() {
     try {
       await setCartaCorrecaoDocumentoFiscal({
         DCFS_ID: cceDoc.DCFS_ID || "",
-        CHAVE: cceDoc.DCFS_CHAVE || "",
+        CHAVE: getChave(cceDoc),
         CORRECAO: cceTexto.toUpperCase(),
       });
       toast({ title: "Carta de Correção enviada" });
