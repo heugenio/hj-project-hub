@@ -16,8 +16,10 @@ import {
   getGerarVencimentos,
   getParametros,
   getItensFormaVencimento,
+  getOperadora_Cartoes,
   type FormaPagamento,
   type FormaPagamentoItem,
+  type OperadoraCartao,
 } from "@/lib/api-os";
 import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider } from "@/lib/tef";
 import { useAuth } from "@/contexts/AuthContext";
