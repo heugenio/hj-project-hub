@@ -51,12 +51,13 @@ function modeloInfo(m?: string) {
 
 function situacaoBadge(s?: string) {
   const v = (s || "").toLowerCase();
-  if (v.includes("autoriz")) return <Badge className="bg-emerald-500/10 text-emerald-700 border border-emerald-300 gap-1"><CheckCircle2 className="h-3 w-3" />Autorizada</Badge>;
-  if (v.includes("cancel")) return <Badge className="bg-red-500/10 text-red-700 border border-red-300 gap-1"><XCircle className="h-3 w-3" />Cancelada</Badge>;
-  if (v.includes("deneg")) return <Badge className="bg-orange-500/10 text-orange-700 border border-orange-300 gap-1"><AlertTriangle className="h-3 w-3" />Denegada</Badge>;
-  if (v.includes("erro") || v.includes("rejei")) return <Badge className="bg-rose-500/10 text-rose-700 border border-rose-300 gap-1"><AlertTriangle className="h-3 w-3" />Erro</Badge>;
-  if (v.includes("pend") || v.includes("process")) return <Badge className="bg-amber-500/10 text-amber-700 border border-amber-300 gap-1"><Clock className="h-3 w-3" />Pendente</Badge>;
-  return <Badge variant="outline">{s || "—"}</Badge>;
+  if (v.includes("autoriz") || v === "válido" || v === "valido")
+    return <Badge className="bg-emerald-500/10 text-emerald-700 border border-emerald-300 gap-1 text-[10px] px-1.5 py-0"><CheckCircle2 className="h-3 w-3" />{v.includes("autoriz") ? "Autorizada" : "Válido"}</Badge>;
+  if (v.includes("cancel")) return <Badge className="bg-red-500/10 text-red-700 border border-red-300 gap-1 text-[10px] px-1.5 py-0"><XCircle className="h-3 w-3" />Cancelada</Badge>;
+  if (v.includes("deneg")) return <Badge className="bg-orange-500/10 text-orange-700 border border-orange-300 gap-1 text-[10px] px-1.5 py-0"><AlertTriangle className="h-3 w-3" />Denegada</Badge>;
+  if (v.includes("erro") || v.includes("rejei")) return <Badge className="bg-rose-500/10 text-rose-700 border border-rose-300 gap-1 text-[10px] px-1.5 py-0"><AlertTriangle className="h-3 w-3" />Erro</Badge>;
+  if (v.includes("pend") || v.includes("process")) return <Badge className="bg-amber-500/10 text-amber-700 border border-amber-300 gap-1 text-[10px] px-1.5 py-0"><Clock className="h-3 w-3" />Pendente</Badge>;
+  return <Badge variant="outline" className="text-[10px] px-1.5 py-0">{s || "—"}</Badge>;
 }
 
 function fmtMoney(v: any) {
@@ -67,6 +68,12 @@ function fmtMoney(v: any) {
 
 function fmtDate(v?: string) {
   if (!v) return "—";
+  // Formato BR vindo da API: "dd/MM/yyyy HH:mm:ss"
+  const brMatch = v.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+  if (brMatch) {
+    const [, d, m, y, hh, mm] = brMatch;
+    return hh ? `${d}/${m}/${y} ${hh}:${mm}` : `${d}/${m}/${y}`;
+  }
   const tries = ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd", "yyyy/MM/dd"];
   for (const f of tries) {
     try {
@@ -76,6 +83,13 @@ function fmtDate(v?: string) {
   }
   return v;
 }
+
+// Helpers para lidar com a resposta real da API (vários nomes de campo)
+const getValor = (d: any) => d?.DCFS_VLR_TOTAL ?? d?.DCFS_VALOR_TOTAL ?? 0;
+const getData = (d: any) => d?.DCFS_DATA_NOTA ?? d?.DCFS_DATA_EMISSAO ?? d?.DCFS_DATA_SAIDA ?? "";
+const getStatus = (d: any) => d?.DCFS_STATUS ?? d?.DCFS_SITUACAO ?? "";
+const getChave = (d: any) => d?.DCFS_CHAVE_ACESSO_NFE ?? d?.DCFS_CHAVE ?? "";
+const getSerie = (d: any) => d?.DCFS_SERIE_NOTA ?? d?.DCFS_SERIE ?? "";
 
 function parseXmlFromB64(b64: string): string {
   try {
@@ -156,13 +170,14 @@ export default function DocumentosFiscais() {
   const totals = useMemo(() => {
     const total = docs.length;
     const valor = docs.reduce((a, d) => {
-      const n = typeof d.DCFS_VALOR_TOTAL === "number" ? d.DCFS_VALOR_TOTAL : parseFloat(String(d.DCFS_VALOR_TOTAL ?? "0").replace(",", "."));
+      const raw = getValor(d);
+      const n = typeof raw === "number" ? raw : parseFloat(String(raw ?? "0").replace(",", "."));
       return a + (Number.isNaN(n) ? 0 : n);
     }, 0);
     let autorizadas = 0, canceladas = 0, erros = 0, pendentes = 0;
     for (const d of docs) {
-      const s = (d.DCFS_SITUACAO || "").toLowerCase();
-      if (s.includes("autoriz")) autorizadas++;
+      const s = getStatus(d).toLowerCase();
+      if (s.includes("autoriz") || s === "válido" || s === "valido") autorizadas++;
       else if (s.includes("cancel")) canceladas++;
       else if (s.includes("erro") || s.includes("rejei") || s.includes("deneg")) erros++;
       else pendentes++;
@@ -194,7 +209,7 @@ export default function DocumentosFiscais() {
       return;
     }
     const blob = new Blob([xml], { type: "text/xml;charset=utf-8" });
-    const nome = `${doc.DCFS_CHAVE || doc.DCFS_NUMERO_NOTA || "documento"}.xml`;
+    const nome = `${getChave(doc) || doc.DCFS_NUMERO_NOTA || "documento"}.xml`;
     saveAs(blob, nome);
   };
 
@@ -211,7 +226,7 @@ export default function DocumentosFiscais() {
     try {
       await setCancelamentoDocumentoFiscal({
         DCFS_ID: cancelDoc.DCFS_ID || "",
-        CHAVE: cancelDoc.DCFS_CHAVE || "",
+        CHAVE: getChave(cancelDoc),
         MOTIVO: cancelMotivo.toUpperCase(),
       });
       toast({ title: "Cancelamento enviado", description: "Documento processado pela SEFAZ" });
@@ -232,7 +247,7 @@ export default function DocumentosFiscais() {
     try {
       await setCartaCorrecaoDocumentoFiscal({
         DCFS_ID: cceDoc.DCFS_ID || "",
-        CHAVE: cceDoc.DCFS_CHAVE || "",
+        CHAVE: getChave(cceDoc),
         CORRECAO: cceTexto.toUpperCase(),
       });
       toast({ title: "Carta de Correção enviada" });
@@ -267,7 +282,7 @@ export default function DocumentosFiscais() {
   };
 
   const compartilhar = async (doc: DocumentoFiscal) => {
-    const url = `Nota ${doc.DCFS_NUMERO_NOTA} - Chave: ${doc.DCFS_CHAVE || "—"}`;
+    const url = `Nota ${doc.DCFS_NUMERO_NOTA} - Chave: ${getChave(doc) || "—"}`;
     if (navigator.share) {
       try { await navigator.share({ title: "Documento Fiscal", text: url }); return; } catch {}
     }
@@ -281,7 +296,7 @@ export default function DocumentosFiscais() {
 
   const enviarWhatsApp = (doc: DocumentoFiscal) => {
     const fone = (doc as any).DCFS_FONE || "";
-    const txt = `Olá! Segue sua nota fiscal Nº ${doc.DCFS_NUMERO_NOTA}. Chave: ${doc.DCFS_CHAVE || ""}`;
+    const txt = `Olá! Segue sua nota fiscal Nº ${doc.DCFS_NUMERO_NOTA}. Chave: ${getChave(doc)}`;
     const url = `https://wa.me/${fone}?text=${encodeURIComponent(txt)}`;
     window.open(url, "_blank", "noopener");
   };
@@ -304,7 +319,7 @@ export default function DocumentosFiscais() {
         if (!modelos.includes(modelo)) continue;
         const xml = d.DCFS_ARQUIVO_NFE ? parseXmlFromB64(d.DCFS_ARQUIVO_NFE) : "";
         if (!xml) continue;
-        const nome = `${d.DCFS_CHAVE || `${d.DCFS_NUMERO_NOTA}_${d.DCFS_SERIE}`}.xml`;
+        const nome = `${getChave(d) || `${d.DCFS_NUMERO_NOTA}_${getSerie(d)}`}.xml`;
         zip.file(nome, xml);
         count++;
       }
@@ -367,7 +382,7 @@ export default function DocumentosFiscais() {
         </TabsList>
       </Tabs>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
         <KPI label="Quantidade" value={String(totals.total)} />
         <KPI label="Valor Total" value={fmtMoney(totals.valor)} />
         <KPI label="Autorizadas" value={String(totals.autorizadas)} tone="emerald" />
@@ -458,23 +473,25 @@ export default function DocumentosFiscais() {
                   const mod = modeloInfo(d.DCFS_MODELO_NOTA);
                   const isGerencial = (d.DCFS_MODELO_NOTA || "").toUpperCase() === "XX";
                   const hasXml = !isGerencial && !!d.DCFS_ARQUIVO_NFE;
+                  const chave = getChave(d);
+                  const status = getStatus(d);
                   return (
-                    <TableRow key={`${d.DCFS_ID || idx}-${d.DCFS_CHAVE || idx}`}>
+                    <TableRow key={`${d.DCFS_ID || idx}-${chave || idx}`}>
                       <TableCell>
                         <Badge variant="outline" className={`text-[10px] ${mod.color}`}>
                           {mod.label}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {d.DCFS_NUMERO_NOTA} / {d.DCFS_SERIE || "—"}
+                        {d.DCFS_NUMERO_NOTA} / {getSerie(d) || "—"}
                       </TableCell>
-                      <TableCell className="text-xs">{fmtDate(d.DCFS_DATA_EMISSAO)}</TableCell>
+                      <TableCell className="text-xs">{fmtDate(getData(d))}</TableCell>
                       <TableCell className="text-xs uppercase max-w-[200px] truncate">{d.DCFS_NOME || "—"}</TableCell>
                       <TableCell className="text-xs font-mono">{d.DCFS_CPFCNPJ || "—"}</TableCell>
-                      <TableCell className="text-xs text-right font-medium">{fmtMoney(d.DCFS_VALOR_TOTAL)}</TableCell>
-                      <TableCell>{situacaoBadge(d.DCFS_SITUACAO)}</TableCell>
-                      <TableCell className="text-[10px] font-mono max-w-[180px] truncate" title={d.DCFS_CHAVE}>
-                        {d.DCFS_CHAVE || "—"}
+                      <TableCell className="text-xs text-right font-medium">{fmtMoney(getValor(d))}</TableCell>
+                      <TableCell>{situacaoBadge(status)}</TableCell>
+                      <TableCell className="text-[10px] font-mono max-w-[180px] truncate" title={chave}>
+                        {chave || "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -509,7 +526,7 @@ export default function DocumentosFiscais() {
                                 <FileEdit className="h-4 w-4 mr-2" /> Carta Correção
                               </DropdownMenuItem>
                             )}
-                            {hasXml && !((d.DCFS_SITUACAO || "").toLowerCase().includes("cancel")) && (
+                            {hasXml && !(getStatus(d).toLowerCase().includes("cancel")) && (
                               <DropdownMenuItem onClick={() => setCancelDoc(d)} className="text-destructive">
                                 <XCircle className="h-4 w-4 mr-2" /> Cancelar
                               </DropdownMenuItem>
@@ -551,14 +568,14 @@ export default function DocumentosFiscais() {
           {viewDoc && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <Info label="Chave de Acesso" value={viewDoc.DCFS_CHAVE} mono />
+                <Info label="Chave de Acesso" value={getChave(viewDoc)} mono />
                 <Info label="Protocolo" value={viewDoc.DCFS_PROTOCOLO} mono />
-                <Info label="Data Emissão" value={fmtDate(viewDoc.DCFS_DATA_EMISSAO)} />
+                <Info label="Data Emissão" value={fmtDate(getData(viewDoc))} />
                 <Info label="Autorização" value={fmtDate(viewDoc.DCFS_DATA_AUTORIZACAO)} />
                 <Info label="Cliente / Fornecedor" value={viewDoc.DCFS_NOME} />
                 <Info label="CPF/CNPJ" value={viewDoc.DCFS_CPFCNPJ} mono />
-                <Info label="Valor Total" value={fmtMoney(viewDoc.DCFS_VALOR_TOTAL)} />
-                <Info label="Situação" value={viewDoc.DCFS_SITUACAO} />
+                <Info label="Valor Total" value={fmtMoney(getValor(viewDoc))} />
+                <Info label="Situação" value={getStatus(viewDoc)} />
               </div>
               {viewDoc.DCFS_ARQUIVO_NFE && (
                 <div>
@@ -589,7 +606,7 @@ export default function DocumentosFiscais() {
           <DialogHeader>
             <DialogTitle>Cancelar Documento Nº {cancelDoc?.DCFS_NUMERO_NOTA}</DialogTitle>
             <DialogDescription>
-              Chave: <span className="font-mono text-[10px]">{cancelDoc?.DCFS_CHAVE}</span>
+              Chave: <span className="font-mono text-[10px]">{getChave(cancelDoc)}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -715,9 +732,9 @@ function KPI({ label, value, tone }: { label: string; value: string; tone?: "eme
     tone === "amber" ? "text-amber-600" : "text-foreground";
   return (
     <Card>
-      <CardContent className="p-3">
-        <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
-        <p className={`text-lg font-bold ${toneClass}`}>{value}</p>
+      <CardContent className="px-2 py-1.5">
+        <p className="text-[9px] uppercase text-muted-foreground leading-tight truncate">{label}</p>
+        <p className={`text-sm font-bold leading-tight ${toneClass} truncate`}>{value}</p>
       </CardContent>
     </Card>
   );
