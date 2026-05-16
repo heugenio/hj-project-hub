@@ -250,7 +250,7 @@ const danfeBaseStyles = `
   .val{font-size:9px;font-weight:bold;line-height:1.1}
   .center{text-align:center}.right{text-align:right}.bold{font-weight:bold}
   .nb{border:none!important}
-  .sec-title{font-size:7px;text-transform:uppercase;font-weight:bold;background:#000;color:#fff;padding:1px 3px;margin-top:3px}
+  .sec-title{font-size:6.5px;text-transform:uppercase;font-weight:bold;color:#000;background:#fff;padding:1px 0;margin-top:3px;letter-spacing:.3px}
   .chave{font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;text-align:center;font-weight:bold}
   .barcode{font-family:'Libre Barcode 39',monospace;font-size:32px;text-align:center;letter-spacing:-1px}
   .homolog{border:2px solid #c00;color:#c00;text-align:center;padding:6px;font-weight:bold;margin:4px 0;font-size:12px}
@@ -419,7 +419,7 @@ ${dupRows}
   </tr>
   <tr>
     <td colspan="4"></td>
-    <td style="background:#eee"><div class="lbl">VALOR TOTAL DA NOTA</div><div class="val right" style="font-size:11px">${fmtMoneyStr(p.totais.vNF)}</div></td>
+    <td><div class="lbl">VALOR TOTAL DA NOTA</div><div class="val right" style="font-size:11px">${fmtMoneyStr(p.totais.vNF)}</div></td>
   </tr>
 </table>
 
@@ -452,7 +452,7 @@ ${dupRows}
 <div class="sec-title">DADOS DOS PRODUTOS / SERVIÇOS</div>
 <table>
   <thead>
-    <tr style="background:#eee">
+    <tr>
       <th>CÓDIGO</th><th>DESCRIÇÃO</th><th>NCM</th><th>CST</th><th>CFOP</th><th>UN</th>
       <th class="right">QTD</th><th class="right">VLR UNIT</th><th class="right">VLR TOT</th>
       <th class="right">BC ICMS</th><th class="right">VLR ICMS</th><th class="right">VLR IPI</th>
