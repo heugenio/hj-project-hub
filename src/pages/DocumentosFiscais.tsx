@@ -209,7 +209,7 @@ export default function DocumentosFiscais() {
       return;
     }
     const blob = new Blob([xml], { type: "text/xml;charset=utf-8" });
-    const nome = `${doc.DCFS_CHAVE || doc.DCFS_NUMERO_NOTA || "documento"}.xml`;
+    const nome = `${getChave(doc) || doc.DCFS_NUMERO_NOTA || "documento"}.xml`;
     saveAs(blob, nome);
   };
 
