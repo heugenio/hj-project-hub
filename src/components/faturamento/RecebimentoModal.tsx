@@ -369,6 +369,8 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             const valor = Number(v.ITFV_VLR ?? v.VALOR ?? 0);
             const tipo = String(v.TPPR_TIPO_PAGAMENTO || v.TIPO_PAGAMENTO || forma?.FPAG_TIPO || "");
             const parcela = Number(v.PARCELA) || i + 1;
+            const info = detectarCartao(tipo);
+            const primeiraRede = String(redes?.[0]?.OPCT_REDE || redes?.[0]?.OPCT_NOME || "");
             return {
               parcela,
               dias,
@@ -380,6 +382,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
               itfv_id: String(v.ITFV_ID || ""),
               tipoOptions: [],
               loadingTipos: false,
+              rede: info.isCartao ? primeiraRede : "",
             };
           })
           .sort((a, b) => a.parcela - b.parcela);
