@@ -749,7 +749,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
         {/* Grid de Parcelas (mesmo padrão da Finalizar OS) */}
         <div className="rounded-lg border border-border/60 overflow-hidden bg-card shadow-sm">
-          <div className="grid grid-cols-24 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
+          <div className="grid grid-cols-26 gap-1 bg-muted/40 px-2 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground border-b border-border/60">
             <div className="col-span-1">Parc.</div>
             <div className="col-span-1">Dias</div>
             <div className="col-span-3">Vencimento</div>
@@ -760,6 +760,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
             <div className="col-span-2">Qtd. Parc. <span className="text-destructive">*</span></div>
             <div className="col-span-2">Nr. Auto</div>
             <div className="col-span-2">Bandeira</div>
+            <div className="col-span-2">Rede</div>
             <div className="col-span-3">Cofre Portador</div>
           </div>
           <div className="max-h-[300px] overflow-auto divide-y divide-border/40">
