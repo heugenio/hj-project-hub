@@ -51,12 +51,13 @@ function modeloInfo(m?: string) {
 
 function situacaoBadge(s?: string) {
   const v = (s || "").toLowerCase();
-  if (v.includes("autoriz")) return <Badge className="bg-emerald-500/10 text-emerald-700 border border-emerald-300 gap-1"><CheckCircle2 className="h-3 w-3" />Autorizada</Badge>;
-  if (v.includes("cancel")) return <Badge className="bg-red-500/10 text-red-700 border border-red-300 gap-1"><XCircle className="h-3 w-3" />Cancelada</Badge>;
-  if (v.includes("deneg")) return <Badge className="bg-orange-500/10 text-orange-700 border border-orange-300 gap-1"><AlertTriangle className="h-3 w-3" />Denegada</Badge>;
-  if (v.includes("erro") || v.includes("rejei")) return <Badge className="bg-rose-500/10 text-rose-700 border border-rose-300 gap-1"><AlertTriangle className="h-3 w-3" />Erro</Badge>;
-  if (v.includes("pend") || v.includes("process")) return <Badge className="bg-amber-500/10 text-amber-700 border border-amber-300 gap-1"><Clock className="h-3 w-3" />Pendente</Badge>;
-  return <Badge variant="outline">{s || "—"}</Badge>;
+  if (v.includes("autoriz") || v === "válido" || v === "valido")
+    return <Badge className="bg-emerald-500/10 text-emerald-700 border border-emerald-300 gap-1 text-[10px] px-1.5 py-0"><CheckCircle2 className="h-3 w-3" />{v.includes("autoriz") ? "Autorizada" : "Válido"}</Badge>;
+  if (v.includes("cancel")) return <Badge className="bg-red-500/10 text-red-700 border border-red-300 gap-1 text-[10px] px-1.5 py-0"><XCircle className="h-3 w-3" />Cancelada</Badge>;
+  if (v.includes("deneg")) return <Badge className="bg-orange-500/10 text-orange-700 border border-orange-300 gap-1 text-[10px] px-1.5 py-0"><AlertTriangle className="h-3 w-3" />Denegada</Badge>;
+  if (v.includes("erro") || v.includes("rejei")) return <Badge className="bg-rose-500/10 text-rose-700 border border-rose-300 gap-1 text-[10px] px-1.5 py-0"><AlertTriangle className="h-3 w-3" />Erro</Badge>;
+  if (v.includes("pend") || v.includes("process")) return <Badge className="bg-amber-500/10 text-amber-700 border border-amber-300 gap-1 text-[10px] px-1.5 py-0"><Clock className="h-3 w-3" />Pendente</Badge>;
+  return <Badge variant="outline" className="text-[10px] px-1.5 py-0">{s || "—"}</Badge>;
 }
 
 function fmtMoney(v: any) {
@@ -67,6 +68,12 @@ function fmtMoney(v: any) {
 
 function fmtDate(v?: string) {
   if (!v) return "—";
+  // Formato BR vindo da API: "dd/MM/yyyy HH:mm:ss"
+  const brMatch = v.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+  if (brMatch) {
+    const [, d, m, y, hh, mm] = brMatch;
+    return hh ? `${d}/${m}/${y} ${hh}:${mm}` : `${d}/${m}/${y}`;
+  }
   const tries = ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd", "yyyy/MM/dd"];
   for (const f of tries) {
     try {
@@ -76,6 +83,13 @@ function fmtDate(v?: string) {
   }
   return v;
 }
+
+// Helpers para lidar com a resposta real da API (vários nomes de campo)
+const getValor = (d: any) => d?.DCFS_VLR_TOTAL ?? d?.DCFS_VALOR_TOTAL ?? 0;
+const getData = (d: any) => d?.DCFS_DATA_NOTA ?? d?.DCFS_DATA_EMISSAO ?? d?.DCFS_DATA_SAIDA ?? "";
+const getStatus = (d: any) => d?.DCFS_STATUS ?? d?.DCFS_SITUACAO ?? "";
+const getChave = (d: any) => d?.DCFS_CHAVE_ACESSO_NFE ?? d?.DCFS_CHAVE ?? "";
+const getSerie = (d: any) => d?.DCFS_SERIE_NOTA ?? d?.DCFS_SERIE ?? "";
 
 function parseXmlFromB64(b64: string): string {
   try {
