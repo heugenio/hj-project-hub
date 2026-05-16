@@ -14,6 +14,7 @@ import {
   Megaphone,
   CreditCard,
   Receipt,
+  FileText,
 } from "lucide-react";
 import verttriceLogo from "@/assets/verttice-logo.png";
 import { NavLink } from "@/components/NavLink";
