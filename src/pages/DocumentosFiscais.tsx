@@ -568,14 +568,14 @@ export default function DocumentosFiscais() {
           {viewDoc && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <Info label="Chave de Acesso" value={viewDoc.DCFS_CHAVE} mono />
+                <Info label="Chave de Acesso" value={getChave(viewDoc)} mono />
                 <Info label="Protocolo" value={viewDoc.DCFS_PROTOCOLO} mono />
-                <Info label="Data Emissão" value={fmtDate(viewDoc.DCFS_DATA_EMISSAO)} />
+                <Info label="Data Emissão" value={fmtDate(getData(viewDoc))} />
                 <Info label="Autorização" value={fmtDate(viewDoc.DCFS_DATA_AUTORIZACAO)} />
                 <Info label="Cliente / Fornecedor" value={viewDoc.DCFS_NOME} />
                 <Info label="CPF/CNPJ" value={viewDoc.DCFS_CPFCNPJ} mono />
-                <Info label="Valor Total" value={fmtMoney(viewDoc.DCFS_VALOR_TOTAL)} />
-                <Info label="Situação" value={viewDoc.DCFS_SITUACAO} />
+                <Info label="Valor Total" value={fmtMoney(getValor(viewDoc))} />
+                <Info label="Situação" value={getStatus(viewDoc)} />
               </div>
               {viewDoc.DCFS_ARQUIVO_NFE && (
                 <div>
