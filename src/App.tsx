@@ -19,6 +19,7 @@ import Configuracoes from "@/pages/Configuracoes";
 import Marketing from "@/pages/Marketing";
 import ConsultaPix from "@/pages/ConsultaPix";
 import Faturamento from "@/pages/Faturamento";
+import DocumentosFiscais from "@/pages/DocumentosFiscais";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
