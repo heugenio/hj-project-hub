@@ -20,6 +20,7 @@ import {
   Megaphone,
   CreditCard,
   Receipt,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,7 @@ const mainItems = [
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
   { title: "Faturamento", url: "/faturamento", icon: Receipt },
   { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
+  { title: "Documentos Fiscais", url: "/financeiro/documentos-fiscais", icon: FileText },
 ];
 
 const estoqueItems = [
