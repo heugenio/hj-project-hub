@@ -103,6 +103,12 @@ function parseXmlFromB64(b64: string): string {
   }
 }
 
+function fmtMoneyStr(v: any) {
+  const n = parseFloat(String(v ?? "0").replace(",", "."));
+  if (Number.isNaN(n)) return "0,00";
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 // ---------- Parser do XML NF-e (campos completos para DANFE oficial) ----------
 function parseFullNfeXml(xmlStr: string) {
   const out: any = {
