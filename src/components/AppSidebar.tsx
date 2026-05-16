@@ -42,6 +42,7 @@ const mainItems = [
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart },
   { title: "Faturamento", url: "/faturamento", icon: Receipt },
   { title: "Ordem de Serviço", url: "/ordem-servico", icon: Wrench },
+  { title: "Documentos Fiscais", url: "/financeiro/documentos-fiscais", icon: FileText },
 ];
 
 const estoqueItems = [
@@ -61,7 +62,6 @@ const marketingItems = [
 
 const financeiroItems = [
   { title: "Consulta PIX", url: "/financeiro/pix", icon: CreditCard },
-  { title: "Documentos Fiscais", url: "/financeiro/documentos-fiscais", icon: FileText },
 ];
 
 export function AppSidebar() {
