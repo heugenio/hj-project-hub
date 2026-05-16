@@ -526,7 +526,7 @@ export default function DocumentosFiscais() {
                                 <FileEdit className="h-4 w-4 mr-2" /> Carta Correção
                               </DropdownMenuItem>
                             )}
-                            {hasXml && !((d.DCFS_SITUACAO || "").toLowerCase().includes("cancel")) && (
+                            {hasXml && !(getStatus(d).toLowerCase().includes("cancel")) && (
                               <DropdownMenuItem onClick={() => setCancelDoc(d)} className="text-destructive">
                                 <XCircle className="h-4 w-4 mr-2" /> Cancelar
                               </DropdownMenuItem>
