@@ -732,9 +732,9 @@ function KPI({ label, value, tone }: { label: string; value: string; tone?: "eme
     tone === "amber" ? "text-amber-600" : "text-foreground";
   return (
     <Card>
-      <CardContent className="p-3">
-        <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
-        <p className={`text-lg font-bold ${toneClass}`}>{value}</p>
+      <CardContent className="px-2 py-1.5">
+        <p className="text-[9px] uppercase text-muted-foreground leading-tight truncate">{label}</p>
+        <p className={`text-sm font-bold leading-tight ${toneClass} truncate`}>{value}</p>
       </CardContent>
     </Card>
   );
