@@ -588,43 +588,43 @@ export default function DocumentosFiscais() {
         <KPI label="Erro Autorização" value={String(totals.erros)} tone="amber" />
       </div>
 
-      <Card>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
-            <div>
-              <Label className="text-[10px] uppercase">Data Inicial</Label>
-              <Input type="date" value={filters.dtInicio} className="h-8 text-xs"
+      <Card className="border-border/60">
+        <CardContent className="px-2.5 py-2">
+          <div className="grid grid-cols-2 md:grid-cols-12 gap-1.5 items-end">
+            <div className="md:col-span-2">
+              <Label className="text-[9px] uppercase text-muted-foreground">Data Inicial</Label>
+              <Input type="date" value={filters.dtInicio} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, dtInicio: e.target.value })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">Data Final</Label>
-              <Input type="date" value={filters.dtFinal} className="h-8 text-xs"
+            <div className="md:col-span-2">
+              <Label className="text-[9px] uppercase text-muted-foreground">Data Final</Label>
+              <Input type="date" value={filters.dtFinal} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, dtFinal: e.target.value })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">Nº Nota</Label>
-              <Input value={filters.DCFS_NUMERO_NOTA} className="h-8 text-xs"
+            <div className="md:col-span-1">
+              <Label className="text-[9px] uppercase text-muted-foreground">Nº Nota</Label>
+              <Input value={filters.DCFS_NUMERO_NOTA} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, DCFS_NUMERO_NOTA: e.target.value.toUpperCase() })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">Nome</Label>
-              <Input value={filters.DCFS_NOME} className="h-8 text-xs uppercase"
+            <div className="md:col-span-3">
+              <Label className="text-[9px] uppercase text-muted-foreground">Nome</Label>
+              <Input value={filters.DCFS_NOME} className="h-7 text-[11px] px-1.5 uppercase"
                 onChange={(e) => setFilters({ ...filters, DCFS_NOME: e.target.value.toUpperCase() })} />
             </div>
-            <div>
-              <Label className="text-[10px] uppercase">CPF/CNPJ</Label>
-              <Input value={filters.DCFS_CPFCNPJ} className="h-8 text-xs"
+            <div className="md:col-span-2">
+              <Label className="text-[9px] uppercase text-muted-foreground">CPF/CNPJ</Label>
+              <Input value={filters.DCFS_CPFCNPJ} className="h-7 text-[11px] px-1.5"
                 onChange={(e) => setFilters({ ...filters, DCFS_CPFCNPJ: e.target.value.replace(/\D/g, "") })} />
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={fetchDocs} disabled={loading}>
-                <Search className="h-4 w-4 mr-1" /> Pesquisar
+            <div className="md:col-span-2 flex gap-1">
+              <Button size="sm" className="h-7 px-2 text-[11px]" onClick={fetchDocs} disabled={loading}>
+                <Search className="h-3.5 w-3.5 mr-1" /> Pesquisar
               </Button>
-              <Button size="sm" variant="outline" onClick={limparFiltros}>
-                <Eraser className="h-4 w-4 mr-1" /> Limpar
+              <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={limparFiltros}>
+                <Eraser className="h-3.5 w-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" onClick={fetchDocs} disabled={loading} title="Atualizar">
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={fetchDocs} disabled={loading} title="Atualizar">
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
