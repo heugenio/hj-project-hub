@@ -921,26 +921,26 @@ export default function DocumentosFiscais() {
 
   const imprimir = () => window.print();
 
-  // Roteia DANFE: XML disponível -> tenta PDF oficial via getDanfe (backend), fallback HTML; sem XML -> gerencial
+  // DANFE: sempre tenta PDF oficial via getDanfe (backend). Sem PDF e sem XML -> gerencial.
   const imprimirDanfe = async (doc: DocumentoFiscal) => {
     const modelo = (doc.DCFS_MODELO_NOTA || "").toUpperCase();
+    // 1) PDF oficial do backend (getDanfe?ID=DCFS_ID)
+    if (doc.DCFS_ID) {
+      try {
+        toast({ title: "Gerando DANFE...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
+        const pdfB64 = await getDanfe(doc.DCFS_ID);
+        if (pdfB64 && abrirPdfBase64(pdfB64, `DANFE-${doc.DCFS_NUMERO_NOTA || doc.DCFS_ID}.pdf`)) {
+          return;
+        }
+      } catch { /* fallback abaixo */ }
+    }
+    // 2) Fallback a partir do XML (caso backend não devolva PDF)
     const xml = doc.DCFS_ARQUIVO_NFE ? parseXmlFromB64(doc.DCFS_ARQUIVO_NFE) : "";
     if (xml) {
-      // 1) Tenta PDF oficial do backend (getDanfe?ID=DCFS_ID)
-      if (doc.DCFS_ID) {
-        try {
-          toast({ title: "Gerando DANFE...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
-          const pdfB64 = await getDanfe(doc.DCFS_ID);
-          if (pdfB64 && abrirPdfBase64(pdfB64, `DANFE-${doc.DCFS_NUMERO_NOTA || doc.DCFS_ID}.pdf`)) {
-            return;
-          }
-        } catch { /* fallback abaixo */ }
-      }
-      // 2) Fallback: gera DANFE local a partir do XML
       if (modelo === "65") return abrirHtmlImpressao(buildDanfeNfce65(xml));
       return abrirHtmlImpressao(buildDanfeOficial55(xml));
     }
-    // Sem XML -> gerencial. Busca detalhe completo do documento + itens
+    // 3) Sem PDF e sem XML -> gerencial. Busca detalhe completo do documento + itens
     try {
       toast({ title: "Carregando dados...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
       const [detalheArr, itens] = await Promise.all([
