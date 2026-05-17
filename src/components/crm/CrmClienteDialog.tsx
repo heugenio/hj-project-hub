@@ -95,6 +95,8 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [buscandoDoc, setBuscandoDoc] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Cliente[]>([]);
   const [linked, setLinked] = useState<Cliente | null>(null);
