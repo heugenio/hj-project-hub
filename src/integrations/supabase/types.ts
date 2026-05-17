@@ -403,6 +403,7 @@ export type Database = {
           empresa_id: string
           enviar_foto_produto: boolean
           enviar_preco_produto: boolean
+          especialidade: string | null
           horario_fim: string | null
           horario_inicio: string | null
           id: string
@@ -414,6 +415,7 @@ export type Database = {
           pausar_quando_humano_responder: boolean
           personalidade: string | null
           prompt_personalizado: string | null
+          ramo_atividade: string | null
           saudacao: string | null
           temperatura: number
           updated_at: string
@@ -425,6 +427,7 @@ export type Database = {
           empresa_id: string
           enviar_foto_produto?: boolean
           enviar_preco_produto?: boolean
+          especialidade?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -436,6 +439,7 @@ export type Database = {
           pausar_quando_humano_responder?: boolean
           personalidade?: string | null
           prompt_personalizado?: string | null
+          ramo_atividade?: string | null
           saudacao?: string | null
           temperatura?: number
           updated_at?: string
@@ -447,6 +451,7 @@ export type Database = {
           empresa_id?: string
           enviar_foto_produto?: boolean
           enviar_preco_produto?: boolean
+          especialidade?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -458,6 +463,7 @@ export type Database = {
           pausar_quando_humano_responder?: boolean
           personalidade?: string | null
           prompt_personalizado?: string | null
+          ramo_atividade?: string | null
           saudacao?: string | null
           temperatura?: number
           updated_at?: string

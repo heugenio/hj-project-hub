@@ -60,8 +60,43 @@ Deno.serve(async (req) => {
       .limit(20);
     const historico = (ultimas ?? []).reverse();
 
+    const ramoMap: Record<string, string> = {
+      autopecas: "Auto Peças e Acessórios automotivos",
+      oficina_mecanica: "Oficina Mecânica automotiva",
+      borracharia_pneus: "Borracharia, pneus e alinhamento",
+      concessionaria: "Concessionária / Revenda de Veículos",
+      lava_jato: "Lava-Jato e Estética Automotiva",
+      posto_combustivel: "Posto de Combustível",
+      farmacia: "Farmácia / Drogaria",
+      supermercado: "Supermercado / Mercearia",
+      restaurante: "Restaurante / Lanchonete",
+      padaria: "Padaria / Confeitaria",
+      moda: "Moda, Vestuário e Calçados",
+      cosmeticos: "Cosméticos e Beleza",
+      petshop: "Pet Shop e Veterinária",
+      materiais_construcao: "Materiais de Construção",
+      moveis_decoracao: "Móveis e Decoração",
+      eletronicos: "Eletrônicos e Informática",
+      celulares_assistencia: "Celulares e Assistência Técnica",
+      imobiliaria: "Imobiliária",
+      clinica_medica: "Clínica Médica / Odontológica",
+      academia: "Academia / Estúdio Fitness",
+      salao_beleza: "Salão de Beleza / Barbearia",
+      educacao: "Educação e Cursos",
+      advocacia: "Advocacia / Contabilidade",
+      turismo: "Turismo e Hotelaria",
+      agropecuaria: "Agropecuária",
+      industria: "Indústria / Fabricação",
+      servicos_gerais: "Serviços Gerais",
+    };
+    const ramoLabel = cfg.ramo_atividade ? (ramoMap[cfg.ramo_atividade] ?? cfg.ramo_atividade) : null;
+    const especialistaLinha = ramoLabel
+      ? `Você é ESPECIALISTA no segmento de ${ramoLabel}${cfg.especialidade ? `, com foco em ${cfg.especialidade}` : ""}. Domine termos técnicos, produtos típicos, dúvidas comuns e práticas comerciais desse ramo. Recomende, tire dúvidas e oriente com a autoridade de um profissional experiente do setor.`
+      : (cfg.especialidade ? `Sua especialidade: ${cfg.especialidade}.` : "");
+
     const systemPrompt = [
       cfg.personalidade ?? "Você é um vendedor virtual cordial e prestativo.",
+      especialistaLinha,
       cfg.prompt_personalizado ?? "",
       `Contato: ${conv.nome_contato ?? conv.telefone}.`,
       "Responda em português brasileiro, com mensagens curtas e objetivas, no estilo WhatsApp.",
