@@ -1,0 +1,230 @@
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useEmpresaScope } from "@/lib/empresa-scope";
+import { ensureEtapasPadrao } from "@/lib/whatsapp-api";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search } from "lucide-react";
+import { toast } from "sonner";
+
+const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+
+type Etapa = { id: string; nome: string; ordem: number; cor: string; is_ganho: boolean; is_perdido: boolean };
+type Op = {
+  id: string; etapa_id: string; titulo: string; descricao: string | null;
+  valor_estimado: number; probabilidade: number; cliente_nome: string | null;
+  telefone: string | null; canal_origem: string | null; ordem: number;
+  ultimo_contato_em: string | null; data_prevista: string | null;
+  foto_lead_url: string | null;
+};
+
+export default function Crm() {
+  const { empresa_id, isReady, usrs_id } = useEmpresaScope();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverEtapa, setDragOverEtapa] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<any>({ titulo: "", descricao: "", etapa_id: "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
+
+  useEffect(() => { if (isReady) ensureEtapasPadrao(empresa_id); }, [empresa_id, isReady]);
+
+  const { data: etapas } = useQuery({
+    queryKey: ["crm-etapas", empresa_id], enabled: isReady,
+    queryFn: async () => {
+      const { data } = await supabase.from("crm_etapas").select("*").eq("empresa_id", empresa_id).order("ordem");
+      return (data ?? []) as Etapa[];
+    },
+  });
+
+  const { data: ops } = useQuery({
+    queryKey: ["crm-ops", empresa_id], enabled: isReady,
+    queryFn: async () => {
+      const { data } = await supabase.from("crm_oportunidades").select("*").eq("empresa_id", empresa_id).order("ordem");
+      return (data ?? []) as Op[];
+    },
+  });
+
+  // Realtime
+  useEffect(() => {
+    if (!isReady) return;
+    const ch = supabase.channel(`crm-${empresa_id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "crm_oportunidades", filter: `empresa_id=eq.${empresa_id}` },
+        () => qc.invalidateQueries({ queryKey: ["crm-ops"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [empresa_id, isReady, qc]);
+
+  const opsFiltered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    return (ops ?? []).filter((o) => !s || o.titulo.toLowerCase().includes(s) || (o.cliente_nome ?? "").toLowerCase().includes(s) || (o.telefone ?? "").includes(s));
+  }, [ops, search]);
+
+  const opsByEtapa = useMemo(() => {
+    const m: Record<string, Op[]> = {};
+    (etapas ?? []).forEach((e) => { m[e.id] = []; });
+    opsFiltered.forEach((o) => { m[o.etapa_id]?.push(o); });
+    return m;
+  }, [etapas, opsFiltered]);
+
+  const kpis = useMemo(() => {
+    const abertas = opsFiltered.filter((o) => { const e = etapas?.find((x) => x.id === o.etapa_id); return !e?.is_ganho && !e?.is_perdido; });
+    const ganhas = opsFiltered.filter((o) => etapas?.find((x) => x.id === o.etapa_id)?.is_ganho);
+    const perdidas = opsFiltered.filter((o) => etapas?.find((x) => x.id === o.etapa_id)?.is_perdido);
+    const totalAbertas = abertas.reduce((s, o) => s + Number(o.valor_estimado || 0), 0);
+    const totalGanhas = ganhas.reduce((s, o) => s + Number(o.valor_estimado || 0), 0);
+    const ponderado = abertas.reduce((s, o) => s + Number(o.valor_estimado || 0) * (o.probabilidade / 100), 0);
+    const fechadas = ganhas.length + perdidas.length;
+    const taxa = fechadas > 0 ? (ganhas.length / fechadas) * 100 : 0;
+    return { abertas: abertas.length, totalAbertas, ganhas: ganhas.length, totalGanhas, perdidas: perdidas.length, ponderado, taxa };
+  }, [opsFiltered, etapas]);
+
+  const moveTo = async (opId: string, etapaId: string) => {
+    const etapa = etapas?.find((e) => e.id === etapaId);
+    const isFinal = etapa?.is_ganho || etapa?.is_perdido;
+    const { error } = await supabase.from("crm_oportunidades").update({
+      etapa_id: etapaId, ganho: etapa?.is_ganho ? true : etapa?.is_perdido ? false : null,
+      fechada_em: isFinal ? new Date().toISOString() : null,
+    }).eq("id", opId);
+    if (error) toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["crm-ops"] });
+  };
+
+  const openNew = (etapa_id?: string) => {
+    setForm({ titulo: "", descricao: "", etapa_id: etapa_id ?? etapas?.[0]?.id ?? "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
+    setOpen(true);
+  };
+
+  const save = async () => {
+    if (!form.titulo.trim() || !form.etapa_id) { toast.error("Título e etapa obrigatórios"); return; }
+    const payload: any = {
+      empresa_id, etapa_id: form.etapa_id,
+      titulo: form.titulo.toUpperCase().trim(),
+      descricao: form.descricao?.toUpperCase().trim() || null,
+      cliente_nome: form.cliente_nome?.toUpperCase().trim() || null,
+      telefone: form.telefone?.replace(/\D/g, "") || null,
+      valor_estimado: Number(form.valor_estimado) || 0,
+      probabilidade: Number(form.probabilidade) || 50,
+      data_prevista: form.data_prevista || null,
+      canal_origem: "manual",
+      created_by: usrs_id || null,
+    };
+    const { error } = await supabase.from("crm_oportunidades").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("Oportunidade criada");
+    setOpen(false);
+    qc.invalidateQueries({ queryKey: ["crm-ops"] });
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>CRM — Funil de Vendas</h1>
+          <p className="text-sm text-muted-foreground">Pipeline de oportunidades e leads</p>
+        </div>
+        <Button onClick={() => openNew()} className="gap-2"><Plus className="h-4 w-4" /> Nova oportunidade</Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi icon={<Target className="h-4 w-4 text-blue-600" />} label="Em aberto" value={String(kpis.abertas)} sub={brl(kpis.totalAbertas)} />
+        <Kpi icon={<Sparkles className="h-4 w-4 text-violet-600" />} label="Pipeline ponderado" value={brl(kpis.ponderado)} sub="Valor × probabilidade" />
+        <Kpi icon={<Trophy className="h-4 w-4 text-emerald-600" />} label="Ganhas" value={String(kpis.ganhas)} sub={brl(kpis.totalGanhas)} />
+        <Kpi icon={<Percent className="h-4 w-4 text-amber-600" />} label="Taxa de conversão" value={`${kpis.taxa.toFixed(1)}%`} sub={`${kpis.ganhas} ganhas / ${kpis.perdidas} perdidas`} />
+      </div>
+
+      <Card className="p-3">
+        <div className="relative max-w-md">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9 h-9" placeholder="Buscar título, cliente ou telefone" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+      </Card>
+
+      <div className="flex gap-3 overflow-x-auto pb-4">
+        {(etapas ?? []).map((etapa) => {
+          const items = opsByEtapa[etapa.id] ?? [];
+          const isOver = dragOverEtapa === etapa.id;
+          return (
+            <div key={etapa.id}
+              onDragOver={(e) => { e.preventDefault(); setDragOverEtapa(etapa.id); }}
+              onDragLeave={() => setDragOverEtapa(null)}
+              onDrop={() => { if (draggingId) { moveTo(draggingId, etapa.id); setDraggingId(null); } setDragOverEtapa(null); }}
+              className={`flex w-[280px] shrink-0 flex-col rounded-xl border bg-muted/30 transition-all ${isOver ? "ring-2 ring-primary/60 bg-primary/5" : ""} ${etapa.is_ganho ? "border-emerald-500/30" : etapa.is_perdido ? "border-destructive/30" : ""}`}>
+              <div className="px-3 pt-3 pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: etapa.cor }} />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider truncate">{etapa.nome}</h3>
+                    {etapa.is_ganho && <Trophy className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
+                    {etapa.is_perdido && <TrendingDown className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                  </div>
+                  <Badge variant="outline" className="text-[10px] h-5">{items.length}</Badge>
+                </div>
+                <div className="mt-1 text-[11px] font-medium text-muted-foreground">{brl(items.reduce((s, o) => s + Number(o.valor_estimado || 0), 0))}</div>
+              </div>
+              <div className="flex-1 px-2 pb-2 space-y-2 min-h-32 overflow-y-auto max-h-[calc(100vh-360px)]">
+                {items.map((o) => (
+                  <div key={o.id} draggable onDragStart={() => setDraggingId(o.id)} onDragEnd={() => setDraggingId(null)}
+                    className="rounded-lg border bg-card p-2.5 shadow-sm cursor-grab active:cursor-grabbing hover:shadow transition-shadow">
+                    <p className="text-sm font-medium truncate">{o.titulo}</p>
+                    {o.cliente_nome && <p className="text-xs text-muted-foreground truncate">{o.cliente_nome}</p>}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs font-semibold text-primary">{brl(Number(o.valor_estimado || 0))}</span>
+                      <Badge variant="outline" className="text-[10px] h-4">{o.probabilidade}%</Badge>
+                    </div>
+                  </div>
+                ))}
+                <Button variant="ghost" size="sm" className="w-full h-8 text-xs" onClick={() => openNew(etapa.id)}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Nova oportunidade</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="TÍTULO" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value.toUpperCase() })} />
+            <Textarea placeholder="DESCRIÇÃO" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value.toUpperCase() })} rows={2} />
+            <div className="grid grid-cols-2 gap-2">
+              <Input placeholder="CLIENTE" value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value.toUpperCase() })} />
+              <Input placeholder="TELEFONE" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Input type="number" placeholder="Valor" value={form.valor_estimado} onChange={(e) => setForm({ ...form, valor_estimado: e.target.value })} />
+              <Input type="number" placeholder="Prob %" min={0} max={100} value={form.probabilidade} onChange={(e) => setForm({ ...form, probabilidade: e.target.value })} />
+              <Input type="date" value={form.data_prevista} onChange={(e) => setForm({ ...form, data_prevista: e.target.value })} />
+            </div>
+            <Select value={form.etapa_id} onValueChange={(v) => setForm({ ...form, etapa_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Etapa" /></SelectTrigger>
+              <SelectContent>{(etapas ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={save}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Kpi({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub: string }) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}<span>{label}</span></div>
+      <div className="mt-1 text-xl font-semibold">{value}</div>
+      <div className="text-[11px] text-muted-foreground">{sub}</div>
+    </Card>
+  );
+}
