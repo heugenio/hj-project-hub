@@ -174,12 +174,24 @@ export default function Crm() {
               <div className="flex-1 px-2 pb-2 space-y-2 min-h-32 overflow-y-auto max-h-[calc(100vh-360px)]">
                 {items.map((o) => (
                   <div key={o.id} draggable onDragStart={() => setDraggingId(o.id)} onDragEnd={() => setDraggingId(null)}
-                    className="rounded-lg border bg-card p-2.5 shadow-sm cursor-grab active:cursor-grabbing hover:shadow transition-shadow">
+                    onClick={() => setClienteOp(o)}
+                    className="rounded-lg border bg-card p-2.5 shadow-sm cursor-pointer hover:shadow transition-shadow active:cursor-grabbing">
                     <p className="text-sm font-medium truncate">{o.titulo}</p>
                     {o.cliente_nome && <p className="text-xs text-muted-foreground truncate">{o.cliente_nome}</p>}
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs font-semibold text-primary">{brl(Number(o.valor_estimado || 0))}</span>
-                      <Badge variant="outline" className="text-[10px] h-4">{o.probabilidade}%</Badge>
+                      <div className="flex items-center gap-1">
+                        {o.cliente_id ? (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 border-emerald-500/50 text-emerald-600">
+                            <User className="h-2.5 w-2.5" /> cliente
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-amber-600 border-amber-500/50">
+                            <UserPlus className="h-2.5 w-2.5" /> sem cliente
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-[10px] h-4">{o.probabilidade}%</Badge>
+                      </div>
                     </div>
                   </div>
                 ))}
