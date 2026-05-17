@@ -35,7 +35,9 @@ export default function Crm() {
   const [dragOverEtapa, setDragOverEtapa] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [clienteOp, setClienteOp] = useState<Op | null>(null);
-  const [form, setForm] = useState<any>({ titulo: "", descricao: "", etapa_id: "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [clienteResults, setClienteResults] = useState<Cliente[]>([]);
+  const [form, setForm] = useState<any>({ titulo: "", descricao: "", etapa_id: "", valor_estimado: 0, probabilidade: 50, cliente_id: "", cliente_nome: "", telefone: "", data_prevista: "" });
 
   useEffect(() => { if (isReady) ensureEtapasPadrao(empresa_id); }, [empresa_id, isReady]);
 
