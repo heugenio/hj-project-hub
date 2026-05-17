@@ -694,6 +694,28 @@ function abrirHtmlImpressao(html: string) {
   w.document.close();
 }
 
+function abrirPdfBase64(base64: string, nome = "danfe.pdf") {
+  try {
+    const clean = base64.replace(/^data:application\/pdf;base64,/i, "").replace(/\s+/g, "");
+    const bin = atob(clean);
+    const len = bin.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (!w) {
+      // popup bloqueado -> força download
+      const a = document.createElement("a");
+      a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 
 const STORAGE_KEY = "verttice_docfiscal_filters";
 
