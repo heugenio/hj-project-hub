@@ -27,6 +27,7 @@ import {
   setCartaCorrecaoDocumentoFiscal,
   setInutilizacaoDocumentoFiscal,
   getItensFaturados,
+  getDanfe,
   type DocumentoFiscal,
   type ItemFaturado,
 } from "@/lib/api-os";
