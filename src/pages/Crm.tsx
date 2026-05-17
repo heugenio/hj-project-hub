@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search, User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import CrmClienteDialog from "@/components/crm/CrmClienteDialog";
+import { getClientes, type Cliente } from "@/lib/api-os";
 
 const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
