@@ -31,6 +31,66 @@ interface Props {
 
 const onlyDigits = (s?: string | null) => (s || "").replace(/\D/g, "");
 
+// ===== ViaCEP =====
+async function buscarCep(cep: string) {
+  const nums = onlyDigits(cep);
+  if (nums.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
+    const d = await res.json();
+    if (d.erro) return null;
+    return d as { logradouro?: string; complemento?: string; bairro?: string; localidade?: string; uf?: string };
+  } catch { return null; }
+}
+
+// ===== BrasilAPI CNPJ =====
+async function buscarCnpjWeb(cnpj: string): Promise<Partial<Cliente> | null> {
+  const nums = onlyDigits(cnpj);
+  if (nums.length !== 14) return null;
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${nums}`);
+    if (!res.ok) return null;
+    const d = await res.json();
+    return {
+      PESS_TIPO: "J", PESS_FISICO_JURIDICO: "J",
+      PESS_NOME: (d.nome_fantasia || d.razao_social || "").toUpperCase(),
+      PESS_RAZAO_SOCIAL: (d.razao_social || "").toUpperCase(),
+      PESS_FONE: d.ddd_telefone_1 ? onlyDigits(d.ddd_telefone_1) : "",
+      PESS_EMAIL: (d.email || "").toUpperCase(),
+      ENDE_CEP: onlyDigits(d.cep || ""),
+      ENDE_LOGRADOURO: (d.logradouro || "").toUpperCase(),
+      ENDE_NUMERO: String(d.numero || "").toUpperCase(),
+      ENDE_COMPLEMENTO: (d.complemento || "").toUpperCase(),
+      BAIR_NOME: (d.bairro || "").toUpperCase(),
+      MUNI_NOME: (d.municipio || "").toUpperCase(),
+      ESTA_UF: d.uf || "", ESTA_NOME: d.uf || "",
+    } as Partial<Cliente>;
+  } catch { return null; }
+}
+
+// ===== CPF lookup via edge function (IA) =====
+async function buscarCpfWeb(cpf: string): Promise<Partial<Cliente> | null> {
+  const nums = onlyDigits(cpf);
+  if (nums.length !== 11) return null;
+  try {
+    const { data, error } = await supabase.functions.invoke("cpf-lookup", { body: { cpf: nums } });
+    if (error || !data || data.encontrado === false) return null;
+    const r: Partial<Cliente> = { PESS_FISICO_JURIDICO: "F", PESS_TIPO: "F" };
+    if (data.nome) r.PESS_NOME = String(data.nome).toUpperCase();
+    if (data.data_nascimento) r.PESS_DATA_NASCIMENTO = data.data_nascimento;
+    if (data.telefone) r.PESS_FONE = onlyDigits(data.telefone);
+    if (data.celular) r.PESS_FONE_CELULAR = onlyDigits(data.celular);
+    if (data.email) r.PESS_EMAIL = String(data.email).toUpperCase();
+    if (data.cep) r.ENDE_CEP = onlyDigits(data.cep);
+    if (data.logradouro) r.ENDE_LOGRADOURO = String(data.logradouro).toUpperCase();
+    if (data.numero) r.ENDE_NUMERO = String(data.numero).toUpperCase();
+    if (data.bairro) r.BAIR_NOME = String(data.bairro).toUpperCase();
+    if (data.cidade) r.MUNI_NOME = String(data.cidade).toUpperCase();
+    if (data.uf) { r.ESTA_UF = data.uf; r.ESTA_NOME = data.uf; }
+    return r;
+  } catch { return null; }
+}
+
 export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onLinked }: Props) {
   const { auth } = useAuth();
   const navigate = useNavigate();
