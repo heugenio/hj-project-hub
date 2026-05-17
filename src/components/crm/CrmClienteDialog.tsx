@@ -222,6 +222,57 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
     onLinked?.();
   };
 
+  // Busca automática por CPF/CNPJ — local primeiro, depois BrasilAPI/IA
+  const handleCpfCnpjBlur = async () => {
+    const nums = onlyDigits(form.PESS_CPFCNPJ);
+    if (nums.length !== 11 && nums.length !== 14) return;
+    const tipo: "F" | "J" = nums.length === 14 ? "J" : "F";
+    setForm((f) => ({ ...f, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo }));
+    setBuscandoDoc(true);
+    try {
+      // 1) Tenta no cadastro local
+      try {
+        const arr = await getClientes({ cpfcnpj: nums });
+        if (arr?.[0]) {
+          setForm((f) => ({ ...f, ...arr[0] }));
+          toast.success("Cliente já cadastrado — dados carregados");
+          return;
+        }
+      } catch { /* segue para web */ }
+
+      // 2) Web (CNPJ -> BrasilAPI / CPF -> IA)
+      const web = nums.length === 14 ? await buscarCnpjWeb(nums) : await buscarCpfWeb(nums);
+      if (web) {
+        setForm((f) => ({ ...f, ...web, PESS_CPFCNPJ: nums }));
+        toast.success(nums.length === 14 ? "Dados do CNPJ encontrados" : "Dados do CPF encontrados");
+        return;
+      }
+      toast.info("Documento não encontrado. Preencha os dados manualmente.");
+    } finally { setBuscandoDoc(false); }
+  };
+
+  // Busca automática de endereço pelo CEP (ViaCEP)
+  const handleCepBlur = async () => {
+    const cep = onlyDigits(form.ENDE_CEP);
+    if (cep.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const d = await buscarCep(cep);
+      if (!d) { toast.error("CEP não encontrado"); return; }
+      setForm((f) => ({
+        ...f,
+        ENDE_LOGRADOURO: (d.logradouro || f.ENDE_LOGRADOURO || "").toUpperCase(),
+        ENDE_COMPLEMENTO: (d.complemento || f.ENDE_COMPLEMENTO || "").toUpperCase(),
+        BAIR_NOME: (d.bairro || f.BAIR_NOME || "").toUpperCase(),
+        MUNI_NOME: (d.localidade || f.MUNI_NOME || "").toUpperCase(),
+        ESTA_UF: d.uf || f.ESTA_UF,
+        ESTA_NOME: d.uf || f.ESTA_NOME,
+      }));
+      toast.success("Endereço preenchido pelo CEP");
+    } catch { toast.error("Erro ao buscar CEP"); }
+    finally { setBuscandoCep(false); }
+  };
+
   const gerar = (destino: "pedido" | "os") => {
     if (!linked?.PESS_ID) { toast.error("Vincule um cliente antes de gerar"); return; }
     const prefill = {
