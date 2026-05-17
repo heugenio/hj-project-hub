@@ -27,6 +27,7 @@ interface Props {
 const onlyDigits = (s?: string | null) => (s || "").replace(/\D/g, "");
 
 export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onLinked }: Props) {
+  const { auth } = useAuth();
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Cliente[]>([]);
