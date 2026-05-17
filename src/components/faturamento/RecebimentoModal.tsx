@@ -143,6 +143,15 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [conciliaCartao, setConciliaCartao] = useState<boolean>(false);
   const [faturamentoFrEstb, setFaturamentoFrEstb] = useState<"S" | "N">("N");
 
+  // Overlay TEF + controle de cancelamento
+  const [tefOverlay, setTefOverlay] = useState<{
+    open: boolean;
+    parcelaAtual?: number;
+    totalParcelas?: number;
+  }>({ open: false });
+  const tefAbortRef = useRef<AbortController | null>(null);
+  const tefBusy = tefOverlay.open;
+
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
 
