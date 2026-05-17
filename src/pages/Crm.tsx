@@ -20,6 +20,7 @@ type Etapa = { id: string; nome: string; ordem: number; cor: string; is_ganho: b
 type Op = {
   id: string; etapa_id: string; titulo: string; descricao: string | null;
   valor_estimado: number; probabilidade: number; cliente_nome: string | null;
+  cliente_id: string | null;
   telefone: string | null; canal_origem: string | null; ordem: number;
   ultimo_contato_em: string | null; data_prevista: string | null;
   foto_lead_url: string | null;
