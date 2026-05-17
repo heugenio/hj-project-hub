@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,15 @@ import {
   type FormaPagamentoItem,
   type OperadoraCartao,
 } from "@/lib/api-os";
-import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider } from "@/lib/tef";
+import {
+  iniciarTransacaoTef,
+  cancelarTransacaoTef,
+  getTefProvider,
+  setTefProvider,
+  playTefSound,
+  type TefProvider,
+} from "@/lib/tef";
+import TefStatusOverlay from "@/components/faturamento/TefStatusOverlay";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
@@ -134,6 +142,15 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const [tefGpIdx, setTefGpIdx] = useState<number>(0);
   const [conciliaCartao, setConciliaCartao] = useState<boolean>(false);
   const [faturamentoFrEstb, setFaturamentoFrEstb] = useState<"S" | "N">("N");
+
+  // Overlay TEF + controle de cancelamento
+  const [tefOverlay, setTefOverlay] = useState<{
+    open: boolean;
+    parcelaAtual?: number;
+    totalParcelas?: number;
+  }>({ open: false });
+  const tefAbortRef = useRef<AbortController | null>(null);
+  const tefBusy = tefOverlay.open;
 
   const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
@@ -470,31 +487,62 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const executarTefParcela = async (idx: number) => {
     const p = parcelas[idx];
     if (!p) return;
+    if (tefBusy) {
+      toast.warning("Aguarde — uma transação TEF já está em andamento.");
+      return;
+    }
     const tipoCartao: "credito" | "debito" = /DEBITO|DÉBITO/i.test(p.tipo_pagamento) ? "debito" : "credito";
     updateParcela(idx, { tefStatus: "pendente" });
-    toast.info(`TEF: iniciando transação (${tefProvider})...`);
+    const ctl = new AbortController();
+    tefAbortRef.current = ctl;
+    setTefOverlay({ open: true, parcelaAtual: p.parcela, totalParcelas: parcelas.length });
     try {
-      const res = await iniciarTransacaoTef({
-        provider: tefProvider,
-        tipo: tipoCartao,
-        valor: p.valor,
-        parcelas: Number(p.qtd_parcelas_cartao) || 1,
-      });
+      const res = await iniciarTransacaoTef(
+        {
+          provider: tefProvider,
+          tipo: tipoCartao,
+          valor: p.valor,
+          parcelas: Number(p.qtd_parcelas_cartao) || 1,
+          documento: String(pedido?.PDDS_NUMERO || ""),
+          pdv: unemId,
+          operador: String((auth as any)?.user?.usrs_LOGIN || ""),
+        },
+        ctl.signal
+      );
       if (res.ok) {
         updateParcela(idx, {
           tefStatus: "aprovado",
           nr_auto: res.autorizacao || p.nr_auto,
           bandeira: res.bandeira || p.bandeira,
+          nsu: res.nsu,
+          rede: res.rede || p.rede,
         });
+        playTefSound("success");
         toast.success(`TEF aprovado • NSU ${res.nsu} • AUT ${res.autorizacao}`);
       } else {
         updateParcela(idx, { tefStatus: "cancelado" });
+        playTefSound("error");
         toast.error("TEF: " + (res.mensagem || "transação não aprovada"));
       }
     } catch (e: any) {
       updateParcela(idx, { tefStatus: "cancelado" });
+      playTefSound("error");
       toast.error("Erro TEF: " + (e?.message || ""));
+    } finally {
+      tefAbortRef.current = null;
+      // Mantém overlay por 1s para o operador ver o status final
+      setTimeout(() => setTefOverlay({ open: false }), 1000);
     }
+  };
+
+  const cancelarTefAtual = async () => {
+    tefAbortRef.current?.abort();
+    // tenta cancelar no agente as últimas parcelas aprovadas (best-effort)
+    const aprov = parcelas.filter((p) => p.tefStatus === "aprovado" && p.nsu);
+    for (const p of aprov) {
+      try { await cancelarTransacaoTef(tefProvider, String(p.nsu)); } catch {}
+    }
+    toast.warning("Transação TEF cancelada pelo operador.");
   };
 
   const isPix = (t: string) => /\bPIX\b/i.test(t || "");
@@ -507,6 +555,10 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
   const confirmarFaturamento = async () => {
     if (!pedido) return;
+    if (confirmando) {
+      toast.warning("Faturamento já em andamento.");
+      return;
+    }
     if (!formaAtual) {
       toast.error("Selecione a forma de pagamento.");
       return;
@@ -547,22 +599,45 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     try {
       // 1) Executa TEF nas parcelas que exigirem (Cartão Crédito/Débito ou PIX com ITFV_TEF=Sim)
       const parcelasFinal: ParcelaUI[] = [...parcelas];
+      const tefParcelas = parcelasFinal.filter(precisaTef);
       for (let i = 0; i < parcelasFinal.length; i++) {
         const p = parcelasFinal[i];
         if (!precisaTef(p)) continue;
         const tipoCartao: "credito" | "debito" =
           /DEBITO|DÉBITO/i.test(p.tipo_pagamento) ? "debito" : "credito";
-        toast.info(`TEF ${tefProvider}: parcela ${p.parcela} (${isPix(p.tipo_pagamento) ? "PIX" : tipoCartao.toUpperCase()})...`);
         updateParcela(i, { tefStatus: "pendente" });
-        const res = await iniciarTransacaoTef({
-          provider: tefProvider,
-          tipo: tipoCartao,
-          valor: p.valor,
-          parcelas: Number(p.qtd_parcelas_cartao) || 1,
+
+        const ctl = new AbortController();
+        tefAbortRef.current = ctl;
+        setTefOverlay({
+          open: true,
+          parcelaAtual: p.parcela,
+          totalParcelas: tefParcelas.length,
         });
+
+        const res = await iniciarTransacaoTef(
+          {
+            provider: tefProvider,
+            tipo: tipoCartao,
+            valor: p.valor,
+            parcelas: Number(p.qtd_parcelas_cartao) || 1,
+            documento: String(pedido.PDDS_NUMERO || ""),
+            pdv: unemId,
+            operador: String((auth as any)?.user?.usrs_LOGIN || ""),
+          },
+          ctl.signal
+        );
+
         if (!res.ok) {
           updateParcela(i, { tefStatus: "cancelado" });
-          toast.error(`TEF parcela ${p.parcela}: ${res.mensagem || "não aprovada"}`);
+          playTefSound("error");
+          await new Promise((r) => setTimeout(r, 1200));
+          setTefOverlay({ open: false });
+          tefAbortRef.current = null;
+          toast.error(
+            `TEF parcela ${p.parcela}: ${res.mensagem || "não aprovada"}. ` +
+              `Pedido NÃO foi faturado — você pode tentar novamente ou trocar a forma de pagamento.`
+          );
           setConfirmando(false);
           return;
         }
@@ -571,9 +646,14 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           nr_auto: res.autorizacao || p.nr_auto,
           bandeira: res.bandeira || p.bandeira,
           nsu: res.nsu,
+          rede: res.rede || p.rede,
         };
         parcelasFinal[i] = { ...p, ...upd };
         updateParcela(i, upd);
+        playTefSound("success");
+        await new Promise((r) => setTimeout(r, 700));
+        tefAbortRef.current = null;
+        setTefOverlay({ open: false });
         toast.success(`TEF parcela ${p.parcela} aprovada • NSU ${res.nsu}`);
       }
 
@@ -641,8 +721,23 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const podeConfirmar = !!formaAtual && parcelas.length > 0 && okValor;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          if (confirmando || tefBusy) {
+            toast.warning("Aguarde o término do TEF/faturamento antes de fechar.");
+            return;
+          }
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto"
+        onInteractOutside={(e) => { if (confirmando || tefBusy) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (confirmando || tefBusy) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Banknote className="h-5 w-5" />
@@ -1096,22 +1191,35 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         </div>
 
         <div className="flex flex-wrap gap-2 justify-end pt-2">
-          <Button variant="outline" onClick={() => onPular(pedido.PDDS_ID)} disabled={confirmando}>
+          <Button variant="outline" onClick={() => onPular(pedido.PDDS_ID)} disabled={confirmando || tefBusy}>
             Pular
           </Button>
-          <Button variant="ghost" onClick={onClose} disabled={confirmando}>
+          <Button variant="ghost" onClick={onClose} disabled={confirmando || tefBusy}>
             Fechar tudo
           </Button>
-          <Button onClick={confirmarFaturamento} disabled={!podeConfirmar || confirmando} size="lg">
+          <Button
+            onClick={confirmarFaturamento}
+            disabled={!podeConfirmar || confirmando || tefBusy}
+            size="lg"
+          >
             {confirmando ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <CheckCircle2 className="h-4 w-4 mr-2" />
             )}
-            Confirmar Faturamento
+            Confirmar Recebimento
           </Button>
         </div>
       </DialogContent>
+
+      {/* Overlay TEF — bloqueia interface enquanto a transação roda */}
+      <TefStatusOverlay
+        open={tefOverlay.open}
+        provider={tefProvider}
+        parcelaAtual={tefOverlay.parcelaAtual}
+        totalParcelas={tefOverlay.totalParcelas}
+        onCancelar={cancelarTefAtual}
+      />
     </Dialog>
   );
 }
