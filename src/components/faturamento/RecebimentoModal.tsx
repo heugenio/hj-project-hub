@@ -1191,22 +1191,35 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         </div>
 
         <div className="flex flex-wrap gap-2 justify-end pt-2">
-          <Button variant="outline" onClick={() => onPular(pedido.PDDS_ID)} disabled={confirmando}>
+          <Button variant="outline" onClick={() => onPular(pedido.PDDS_ID)} disabled={confirmando || tefBusy}>
             Pular
           </Button>
-          <Button variant="ghost" onClick={onClose} disabled={confirmando}>
+          <Button variant="ghost" onClick={onClose} disabled={confirmando || tefBusy}>
             Fechar tudo
           </Button>
-          <Button onClick={confirmarFaturamento} disabled={!podeConfirmar || confirmando} size="lg">
+          <Button
+            onClick={confirmarFaturamento}
+            disabled={!podeConfirmar || confirmando || tefBusy}
+            size="lg"
+          >
             {confirmando ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <CheckCircle2 className="h-4 w-4 mr-2" />
             )}
-            Confirmar Faturamento
+            Confirmar Recebimento
           </Button>
         </div>
       </DialogContent>
+
+      {/* Overlay TEF — bloqueia interface enquanto a transação roda */}
+      <TefStatusOverlay
+        open={tefOverlay.open}
+        provider={tefProvider}
+        parcelaAtual={tefOverlay.parcelaAtual}
+        totalParcelas={tefOverlay.totalParcelas}
+        onCancelar={cancelarTefAtual}
+      />
     </Dialog>
   );
 }
