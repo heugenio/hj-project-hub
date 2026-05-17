@@ -17,3 +17,15 @@ verify_jwt = false
 
 [functions.itau-token]
 verify_jwt = false
+
+[functions.whatsapp-zapi-webhook]
+verify_jwt = false
+
+[functions.whatsapp-zapi-enviar]
+verify_jwt = false
+
+[functions.whatsapp-ia-responder]
+verify_jwt = false
+
+[functions.whatsapp-ia-sugerir]
+verify_jwt = false
