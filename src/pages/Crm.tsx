@@ -235,36 +235,71 @@ export default function Crm() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Nova oportunidade</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Input placeholder="TÍTULO" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value.toUpperCase() })} />
-            <Textarea placeholder="DESCRIÇÃO" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value.toUpperCase() })} rows={2} />
-            <div className="space-y-1">
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                Vincular cliente cadastrado {form.cliente_id && <span className="text-emerald-600">(ID {form.cliente_id})</span>}
+        <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
+          {/* Header com gradiente */}
+          <div className="bg-gradient-to-br from-primary via-primary to-primary/80 px-6 py-5 text-primary-foreground">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold text-primary-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Nova oportunidade
+                </DialogTitle>
+                <p className="text-xs text-primary-foreground/80 mt-0.5">Adicione um lead ao seu funil de vendas</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+            {/* Seção: Identificação */}
+            <section className="space-y-2">
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <FileText className="h-3 w-3" /> Identificação
+              </div>
+              <Input placeholder="TÍTULO DA OPORTUNIDADE *" value={form.titulo}
+                onChange={(e) => setForm({ ...form, titulo: e.target.value.toUpperCase() })}
+                className="h-10 text-sm font-medium" />
+              <Textarea placeholder="DESCRIÇÃO / ANOTAÇÕES" value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value.toUpperCase() })}
+                rows={2} className="resize-none text-sm" />
+            </section>
+
+            {/* Seção: Cliente */}
+            <section className="space-y-2 rounded-xl border bg-muted/20 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <User className="h-3 w-3" /> Cliente
+                </div>
+                {form.cliente_id && (
+                  <Badge variant="outline" className="text-[10px] h-5 border-emerald-500/50 text-emerald-600 gap-1">
+                    <User className="h-2.5 w-2.5" /> ID {form.cliente_id}
+                  </Badge>
+                )}
               </div>
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9 h-9" placeholder="BUSCAR POR NOME OU CPF/CNPJ"
+                  <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-9 h-9 text-xs" placeholder="BUSCAR CLIENTE CADASTRADO (NOME OU CPF/CNPJ)"
                     value={clienteSearch}
                     onChange={(e) => setClienteSearch(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarClientesNovo(); } }} />
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={buscarClientesNovo}>Buscar</Button>
+                <Button type="button" variant="secondary" size="sm" className="h-9" onClick={buscarClientesNovo}>
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
                 {form.cliente_id && (
-                  <Button type="button" variant="ghost" size="sm"
+                  <Button type="button" variant="ghost" size="sm" className="h-9"
                     onClick={() => { setForm({ ...form, cliente_id: "", cliente_nome: "", telefone: "" }); setClienteSearch(""); }}>
                     Limpar
                   </Button>
                 )}
               </div>
               {clienteResults.length > 0 && (
-                <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                <div className="max-h-40 overflow-y-auto rounded-lg border bg-background divide-y shadow-sm">
                   {clienteResults.map((c) => (
                     <button key={c.PESS_ID} type="button" onClick={() => selecionarClienteNovo(c)}
-                      className="w-full text-left px-3 py-1.5 hover:bg-accent text-xs">
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-xs transition-colors">
                       <div className="font-medium truncate">{c.PESS_NOME}</div>
                       <div className="text-[10px] text-muted-foreground truncate">
                         {c.PESS_CPFCNPJ || "—"}{c.PESS_FONE_CELULAR ? ` · ${c.PESS_FONE_CELULAR}` : ""}
@@ -273,24 +308,74 @@ export default function Crm() {
                   ))}
                 </div>
               )}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input placeholder="CLIENTE (livre)" value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value.toUpperCase() })} />
-              <Input placeholder="TELEFONE" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <Input type="number" placeholder="Valor" value={form.valor_estimado} onChange={(e) => setForm({ ...form, valor_estimado: e.target.value })} />
-              <Input type="number" placeholder="Prob %" min={0} max={100} value={form.probabilidade} onChange={(e) => setForm({ ...form, probabilidade: e.target.value })} />
-              <Input type="date" value={form.data_prevista} onChange={(e) => setForm({ ...form, data_prevista: e.target.value })} />
-            </div>
-            <Select value={form.etapa_id} onValueChange={(v) => setForm({ ...form, etapa_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Etapa" /></SelectTrigger>
-              <SelectContent>{(etapas ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
-            </Select>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <UserPlus className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-9 h-9 text-xs" placeholder="NOME (LEAD AVULSO)"
+                    value={form.cliente_nome}
+                    onChange={(e) => setForm({ ...form, cliente_nome: e.target.value.toUpperCase() })} />
+                </div>
+                <div className="relative">
+                  <Phone className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-9 h-9 text-xs" placeholder="TELEFONE / WHATSAPP"
+                    value={form.telefone}
+                    onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+                </div>
+              </div>
+            </section>
+
+            {/* Seção: Negócio */}
+            <section className="space-y-2">
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <DollarSign className="h-3 w-3" /> Detalhes do negócio
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground uppercase">Valor (R$)</label>
+                  <Input type="number" placeholder="0,00" value={form.valor_estimado}
+                    onChange={(e) => setForm({ ...form, valor_estimado: e.target.value })}
+                    className="h-9 text-sm font-semibold" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground uppercase">Probabilidade</label>
+                  <Input type="number" placeholder="50" min={0} max={100} value={form.probabilidade}
+                    onChange={(e) => setForm({ ...form, probabilidade: e.target.value })}
+                    className="h-9 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground uppercase">Previsão</label>
+                  <div className="relative">
+                    <CalendarDays className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <Input type="date" value={form.data_prevista}
+                      onChange={(e) => setForm({ ...form, data_prevista: e.target.value })}
+                      className="pl-8 h-9 text-xs" />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground uppercase flex items-center gap-1"><TagIcon className="h-3 w-3" /> Etapa do funil</label>
+                <Select value={form.etapa_id} onValueChange={(v) => setForm({ ...form, etapa_id: v })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione a etapa" /></SelectTrigger>
+                  <SelectContent>
+                    {(etapas ?? []).map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: e.cor }} />
+                          {e.nome}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </section>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="border-t bg-muted/30 px-6 py-3">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save}>Salvar</Button>
+            <Button onClick={save} className="gap-2">
+              <Sparkles className="h-4 w-4" /> Criar oportunidade
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
