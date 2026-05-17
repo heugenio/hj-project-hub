@@ -205,6 +205,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     setFormaSelecionada("");
     setCofrId("");
     setParcelas([]);
+    setFaturamentoFrEstb("N");
 
     (async () => {
       setLoading(true);
