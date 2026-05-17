@@ -683,3 +683,37 @@ export const getItensFaturados = async (dcfsId: string): Promise<ItemFaturado[]>
   const arr = Array.isArray(raw) ? raw : [raw];
   return arr.map((c: any) => normalizeApiKeys<ItemFaturado>(c));
 };
+
+/**
+ * Busca DANFE em PDF (base64) gerado pelo backend legado.
+ * Retorna string base64 (sem prefixo data:) ou null se indisponível.
+ * Tenta múltiplas chaves comuns na resposta: pdf, base64, arquivo, danfe, DANFE, file.
+ */
+export const getDanfe = async (id: string): Promise<string | null> => {
+  if (!id) return null;
+  try {
+    const raw = await proxyGet<any>(`/getDanfe?ID=${encodeURIComponent(id)}`);
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      const s = raw.trim();
+      // base64 pura
+      if (/^[A-Za-z0-9+/=\r\n]+$/.test(s) && s.length > 100) return s.replace(/\s+/g, '');
+      return null;
+    }
+    if (raw.rawHtml || raw.message === '200 OK') return null;
+    const obj = Array.isArray(raw) ? raw[0] || {} : raw;
+    const candidates = [
+      obj.pdf, obj.PDF, obj.base64, obj.BASE64, obj.arquivo, obj.ARQUIVO,
+      obj.danfe, obj.DANFE, obj.file, obj.FILE, obj.data, obj.DATA,
+      obj.DCFS_ARQUIVO_DANFE, obj.ARQUIVO_DANFE,
+    ];
+    for (const c of candidates) {
+      if (typeof c === 'string' && c.length > 100) {
+        return c.replace(/^data:application\/pdf;base64,/i, '').replace(/\s+/g, '');
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};

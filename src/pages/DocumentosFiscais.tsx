@@ -27,6 +27,7 @@ import {
   setCartaCorrecaoDocumentoFiscal,
   setInutilizacaoDocumentoFiscal,
   getItensFaturados,
+  getDanfe,
   type DocumentoFiscal,
   type ItemFaturado,
 } from "@/lib/api-os";
@@ -693,6 +694,28 @@ function abrirHtmlImpressao(html: string) {
   w.document.close();
 }
 
+function abrirPdfBase64(base64: string, nome = "danfe.pdf") {
+  try {
+    const clean = base64.replace(/^data:application\/pdf;base64,/i, "").replace(/\s+/g, "");
+    const bin = atob(clean);
+    const len = bin.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (!w) {
+      // popup bloqueado -> força download
+      const a = document.createElement("a");
+      a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 
 const STORAGE_KEY = "verttice_docfiscal_filters";
 
@@ -898,13 +921,23 @@ export default function DocumentosFiscais() {
 
   const imprimir = () => window.print();
 
-  // Roteia DANFE: XML disponível -> DANFE oficial conforme modelo; sem XML/Gerencial -> busca itens faturados
+  // Roteia DANFE: XML disponível -> tenta PDF oficial via getDanfe (backend), fallback HTML; sem XML -> gerencial
   const imprimirDanfe = async (doc: DocumentoFiscal) => {
     const modelo = (doc.DCFS_MODELO_NOTA || "").toUpperCase();
     const xml = doc.DCFS_ARQUIVO_NFE ? parseXmlFromB64(doc.DCFS_ARQUIVO_NFE) : "";
     if (xml) {
+      // 1) Tenta PDF oficial do backend (getDanfe?ID=DCFS_ID)
+      if (doc.DCFS_ID) {
+        try {
+          toast({ title: "Gerando DANFE...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
+          const pdfB64 = await getDanfe(doc.DCFS_ID);
+          if (pdfB64 && abrirPdfBase64(pdfB64, `DANFE-${doc.DCFS_NUMERO_NOTA || doc.DCFS_ID}.pdf`)) {
+            return;
+          }
+        } catch { /* fallback abaixo */ }
+      }
+      // 2) Fallback: gera DANFE local a partir do XML
       if (modelo === "65") return abrirHtmlImpressao(buildDanfeNfce65(xml));
-      // 55 (NF-e) é o padrão oficial; demais modelos eletrônicos usam o mesmo layout
       return abrirHtmlImpressao(buildDanfeOficial55(xml));
     }
     // Sem XML -> gerencial. Busca detalhe completo do documento + itens
