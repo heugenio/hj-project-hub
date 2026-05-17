@@ -141,7 +141,7 @@ export async function crmAutoQualificar(p: CrmAutoQualificarParams) {
     };
     const tipoTimeline =
       p.evento === "pedido_faturado" || p.evento === "os_finalizada"
-        ? "venda"
+        ? "pedido"
         : "nota";
     if (opp?.id) {
       await supabase.rpc("crm_registrar_evento", {
