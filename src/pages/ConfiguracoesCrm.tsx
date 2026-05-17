@@ -115,7 +115,7 @@ export default function ConfiguracoesCrm() {
           <Card>
             <CardHeader>
               <CardTitle>Agente de IA</CardTitle>
-              <CardDescription>Respostas automáticas no WhatsApp via Lovable AI Gateway.</CardDescription>
+              <CardDescription>Respostas automáticas no WhatsApp via AI Gateway.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
