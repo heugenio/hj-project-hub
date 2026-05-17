@@ -97,21 +97,38 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
 
   const salvarCliente = async () => {
     if (!form.PESS_NOME?.trim()) { toast.error("Nome é obrigatório"); return; }
+    const docDigits = onlyDigits(form.PESS_CPFCNPJ);
+    if (!linked && !docDigits) { toast.error("CPF/CNPJ é obrigatório para cadastrar novo cliente"); return; }
     setBusy(true);
     try {
-      const payload: Partial<Cliente> = {
+      const unemId = (auth?.unidade as any)?.unem_Id || (auth?.unidade as any)?.Unem_Id || "";
+      const payload: any = {
         ...form,
         PESS_NOME: form.PESS_NOME?.toUpperCase().trim(),
-        PESS_CPFCNPJ: onlyDigits(form.PESS_CPFCNPJ),
+        PESS_CPFCNPJ: docDigits,
         PESS_FONE: onlyDigits(form.PESS_FONE),
         PESS_FONE_CELULAR: onlyDigits(form.PESS_FONE_CELULAR),
+        PESS_FISICO_JURIDICO: form.PESS_FISICO_JURIDICO || (docDigits.length > 11 ? "J" : "F"),
+        PESS_TIPO: form.PESS_TIPO || (docDigits.length > 11 ? "J" : "F"),
+        UNEM_ID: unemId,
       };
       const saved = await setCliente(payload);
-      const novo = (Array.isArray(saved) ? saved[0] : saved) as Cliente;
+      let novo: Cliente = (Array.isArray(saved) ? saved[0] : saved) as Cliente;
+      // Backend legado costuma retornar { success: true } sem PESS_ID — reconsulta por CPF/CNPJ
+      if (!novo?.PESS_ID && docDigits) {
+        try {
+          const arr = await getClientes({ cpfcnpj: docDigits });
+          if (arr?.[0]) novo = arr[0];
+        } catch { /* ignore */ }
+      }
       if (!novo?.PESS_ID && linked?.PESS_ID) novo.PESS_ID = linked.PESS_ID;
       toast.success(linked ? "Cliente atualizado" : "Cliente cadastrado");
-      if (novo?.PESS_ID) await vincularNoCrm(novo);
-      else onLinked?.();
+      if (novo?.PESS_ID) {
+        await vincularNoCrm(novo);
+      } else {
+        toast.message("Cliente salvo, mas não foi possível recuperar o ID para vincular automaticamente.");
+        onLinked?.();
+      }
     } catch (e: any) {
       toast.error(e?.message || "Erro ao salvar cliente");
     } finally { setBusy(false); }
