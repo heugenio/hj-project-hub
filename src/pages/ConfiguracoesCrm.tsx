@@ -1,0 +1,173 @@
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useEmpresaScope } from "@/lib/empresa-scope";
+import { Copy, Loader2 } from "lucide-react";
+
+const SUPA_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+export default function ConfiguracoesCrm() {
+  const { empresa_id, isReady } = useEmpresaScope();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [wa, setWa] = useState<any>({ provedor: "zapi", instance_id: "", token_api: "", client_token: "", numero_whatsapp: "", ativo: false, webhook_secret: "", webhook_path: "" });
+  const [ia, setIa] = useState<any>({ ativo: false, modelo: "google/gemini-3-flash-preview", temperatura: 0.7, max_tokens: 400, personalidade: "", prompt_personalizado: "", saudacao: "", horario_inicio: "", horario_fim: "", mensagem_ausencia: "", pausar_quando_humano_responder: true });
+
+  useEffect(() => {
+    if (!isReady) return;
+    (async () => {
+      setLoading(true);
+      const [{ data: w }, { data: i }] = await Promise.all([
+        supabase.from("whatsapp_configuracoes").select("*").eq("empresa_id", empresa_id).maybeSingle(),
+        supabase.from("whatsapp_ia_config").select("*").eq("empresa_id", empresa_id).maybeSingle(),
+      ]);
+      if (w) setWa(w);
+      if (i) setIa(i);
+      setLoading(false);
+    })();
+  }, [empresa_id, isReady]);
+
+  const webhookUrl = wa.webhook_secret
+    ? `${SUPA_URL}/functions/v1/whatsapp-zapi-webhook?empresa_id=${encodeURIComponent(empresa_id)}&secret=${wa.webhook_secret}`
+    : "";
+
+  const saveWa = async () => {
+    setSaving(true);
+    const payload = { ...wa, empresa_id };
+    delete payload.id; delete payload.created_at; delete payload.updated_at;
+    const { data, error } = await supabase.from("whatsapp_configuracoes")
+      .upsert(payload, { onConflict: "empresa_id" }).select("*").single();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    setWa(data);
+    toast.success("Configuração WhatsApp salva");
+  };
+
+  const saveIa = async () => {
+    setSaving(true);
+    const payload = { ...ia, empresa_id, temperatura: Number(ia.temperatura), max_tokens: Number(ia.max_tokens), horario_inicio: ia.horario_inicio || null, horario_fim: ia.horario_fim || null };
+    delete payload.id; delete payload.created_at; delete payload.updated_at;
+    const { data, error } = await supabase.from("whatsapp_ia_config")
+      .upsert(payload, { onConflict: "empresa_id" }).select("*").single();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    setIa(data);
+    toast.success("Configuração IA salva");
+  };
+
+  if (loading) return <div className="p-6 flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando…</div>;
+
+  return (
+    <div className="p-6 space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Configurações CRM / WhatsApp / IA</h1>
+        <p className="text-sm text-muted-foreground">Empresa atual: {empresa_id || "—"}</p>
+      </div>
+
+      <Tabs defaultValue="whatsapp">
+        <TabsList>
+          <TabsTrigger value="whatsapp">WhatsApp (Z-API)</TabsTrigger>
+          <TabsTrigger value="ia">Agente IA</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="whatsapp" className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Z-API</CardTitle>
+              <CardDescription>Cole as credenciais da sua instância Z-API.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Instance ID</Label><Input value={wa.instance_id ?? ""} onChange={(e) => setWa({ ...wa, instance_id: e.target.value })} /></div>
+                <div><Label>Token</Label><Input value={wa.token_api ?? ""} onChange={(e) => setWa({ ...wa, token_api: e.target.value })} /></div>
+                <div><Label>Client-Token (Account Token)</Label><Input value={wa.client_token ?? ""} onChange={(e) => setWa({ ...wa, client_token: e.target.value })} /></div>
+                <div><Label>Número WhatsApp</Label><Input value={wa.numero_whatsapp ?? ""} onChange={(e) => setWa({ ...wa, numero_whatsapp: e.target.value })} /></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={wa.ativo} onCheckedChange={(v) => setWa({ ...wa, ativo: v })} />
+                <Label>Ativo (recebe webhooks e permite envio)</Label>
+              </div>
+              {webhookUrl && (
+                <div className="space-y-1 rounded-lg border bg-muted/40 p-3">
+                  <Label className="text-xs">URL do Webhook (cole no painel Z-API → "Ao receber" e "Status da mensagem")</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-[11px] break-all bg-background border rounded px-2 py-1">{webhookUrl}</code>
+                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(webhookUrl); toast.success("Copiado"); }}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end"><Button onClick={saveWa} disabled={saving}>{saving ? "Salvando..." : "Salvar WhatsApp"}</Button></div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ia" className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agente de IA</CardTitle>
+              <CardDescription>Respostas automáticas no WhatsApp via Lovable AI Gateway.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Switch checked={ia.ativo} onCheckedChange={(v) => setIa({ ...ia, ativo: v })} />
+                <Label>IA ativa</Label>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Modelo</Label>
+                  <Select value={ia.modelo} onValueChange={(v) => setIa({ ...ia, modelo: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="google/gemini-3-flash-preview">Gemini 3 Flash (rápido)</SelectItem>
+                      <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                      <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                      <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
+                      <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Temperatura</Label><Input type="number" step="0.1" min={0} max={2} value={ia.temperatura} onChange={(e) => setIa({ ...ia, temperatura: e.target.value })} /></div>
+                <div><Label>Max tokens</Label><Input type="number" value={ia.max_tokens} onChange={(e) => setIa({ ...ia, max_tokens: e.target.value })} /></div>
+              </div>
+              <div>
+                <Label>Personalidade</Label>
+                <Textarea rows={2} value={ia.personalidade ?? ""} onChange={(e) => setIa({ ...ia, personalidade: e.target.value })} />
+              </div>
+              <div>
+                <Label>Prompt personalizado (contexto da empresa, produtos, regras)</Label>
+                <Textarea rows={4} value={ia.prompt_personalizado ?? ""} onChange={(e) => setIa({ ...ia, prompt_personalizado: e.target.value })} />
+              </div>
+              <div>
+                <Label>Saudação</Label>
+                <Input value={ia.saudacao ?? ""} onChange={(e) => setIa({ ...ia, saudacao: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div><Label>Horário início</Label><Input type="time" value={ia.horario_inicio ?? ""} onChange={(e) => setIa({ ...ia, horario_inicio: e.target.value })} /></div>
+                <div><Label>Horário fim</Label><Input type="time" value={ia.horario_fim ?? ""} onChange={(e) => setIa({ ...ia, horario_fim: e.target.value })} /></div>
+                <div className="flex items-center gap-2 pt-6">
+                  <Switch checked={ia.pausar_quando_humano_responder} onCheckedChange={(v) => setIa({ ...ia, pausar_quando_humano_responder: v })} />
+                  <Label className="text-xs">Pausar quando humano responder</Label>
+                </div>
+              </div>
+              <div>
+                <Label>Mensagem fora do horário</Label>
+                <Textarea rows={2} value={ia.mensagem_ausencia ?? ""} onChange={(e) => setIa({ ...ia, mensagem_ausencia: e.target.value })} />
+              </div>
+              <div className="flex justify-end"><Button onClick={saveIa} disabled={saving}>{saving ? "Salvando..." : "Salvar IA"}</Button></div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
