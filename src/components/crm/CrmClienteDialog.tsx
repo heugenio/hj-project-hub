@@ -1,6 +1,7 @@
 // Vincula uma oportunidade do CRM a um cliente cadastrado no sistema legado
 // e permite criar / completar as informações cadastrais do cliente.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
