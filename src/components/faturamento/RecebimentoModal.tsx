@@ -707,6 +707,25 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
         return;
       }
       toast.success(`Pedido ${pedido.PDDS_NUMERO} faturado.`);
+      // Integração CRM: marca oportunidade como ganha
+      try {
+        const { crmAutoQualificar } = await import("@/lib/crm-integration");
+        const empr = localStorage.getItem("hj_empr_id") || (pedido as any)?.EMPR_ID || "";
+        const unem = localStorage.getItem("hj_unem_id") || (pedido as any)?.UNEM_ID || undefined;
+        const usrs = localStorage.getItem("hj_usrs_id") || undefined;
+        await crmAutoQualificar({
+          empresa_id: String(empr),
+          unem_id: unem ? String(unem) : undefined,
+          usrs_id: usrs ? String(usrs) : undefined,
+          evento: "pedido_faturado",
+          cliente_id: String((pedido as any)?.PESS_ID || ""),
+          cliente_nome: (pedido as any)?.PESS_NOME || (pedido as any)?.PESS_RAZAO_SOCIAL,
+          telefone: (pedido as any)?.TELEFONE || (pedido as any)?.PESS_TELEFONE || (pedido as any)?.PESS_CELULAR,
+          valor: Number((pedido as any)?.PDDS_VLR_TOTAL || total || 0),
+          documento_numero: String(pedido.PDDS_NUMERO || ""),
+          origem: "Faturamento",
+        });
+      } catch {}
       onFaturado(pedido.PDDS_ID);
     } catch (e: any) {
       toast.error("Erro: " + (e?.message || ""));
