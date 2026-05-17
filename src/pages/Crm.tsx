@@ -100,8 +100,32 @@ export default function Crm() {
   };
 
   const openNew = (etapa_id?: string) => {
-    setForm({ titulo: "", descricao: "", etapa_id: etapa_id ?? etapas?.[0]?.id ?? "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
+    setForm({ titulo: "", descricao: "", etapa_id: etapa_id ?? etapas?.[0]?.id ?? "", valor_estimado: 0, probabilidade: 50, cliente_id: "", cliente_nome: "", telefone: "", data_prevista: "" });
+    setClienteResults([]);
+    setClienteSearch("");
     setOpen(true);
+  };
+
+  const buscarClientesNovo = async () => {
+    const q = clienteSearch.trim();
+    if (!q) return;
+    try {
+      const isDoc = /\d/.test(q) && q.replace(/\D/g, "").length >= 11;
+      const arr = await getClientes(isDoc ? { cpfcnpj: q.replace(/\D/g, "") } : { nome: q.toUpperCase() });
+      setClienteResults(arr.slice(0, 10));
+      if (!arr.length) toast.message("Nenhum cliente encontrado");
+    } catch (e: any) { toast.error(e?.message || "Erro ao buscar"); }
+  };
+
+  const selecionarClienteNovo = (c: any) => {
+    setForm((f: any) => ({
+      ...f,
+      cliente_id: String(c.PESS_ID || ""),
+      cliente_nome: c.PESS_NOME || "",
+      telefone: (c.PESS_FONE_CELULAR || c.PESS_FONE || "").replace(/\D/g, ""),
+    }));
+    setClienteResults([]);
+    setClienteSearch(c.PESS_NOME || "");
   };
 
   const save = async () => {
@@ -110,6 +134,7 @@ export default function Crm() {
       empresa_id, etapa_id: form.etapa_id,
       titulo: form.titulo.toUpperCase().trim(),
       descricao: form.descricao?.toUpperCase().trim() || null,
+      cliente_id: form.cliente_id ? String(form.cliente_id) : null,
       cliente_nome: form.cliente_nome?.toUpperCase().trim() || null,
       telefone: form.telefone?.replace(/\D/g, "") || null,
       valor_estimado: Number(form.valor_estimado) || 0,
