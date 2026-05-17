@@ -564,7 +564,22 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
       if (result.ORSV_NUMERO) setNumeroOS(result.ORSV_NUMERO);
       setStatusOS(finalizar ? 'Finalizado' : 'Aberto');
       toast.success(finalizar ? 'OS finalizada com sucesso!' : 'OS salva com sucesso!');
-      // Após salvar, fechar a tela e voltar para a listagem (que executará Consultar)
+      // CRM: mover oportunidade para "Orçamento Enviado" ao criar OS
+      try {
+        const { crmAutoQualificar } = await import('@/lib/crm-integration');
+        await crmAutoQualificar({
+          empresa_id: (auth as any)?.empresa?.n || '',
+          unem_id: auth?.unidade?.unem_Id,
+          usrs_id: auth?.user?.usrs_ID,
+          evento: 'os_criada',
+          cliente_id: cliente?.PESS_ID,
+          cliente_nome: cliente?.PESS_NOME || (cliente as any)?.PESS_RAZAO_SOCIAL,
+          telefone: (cliente as any)?.TELEFONE || (cliente as any)?.PESS_TELEFONE || (cliente as any)?.PESS_CELULAR,
+          valor: Number(totalFinal) || 0,
+          documento_numero: String(result.ORSV_NUMERO || ''),
+          origem: 'OS',
+        });
+      } catch {}
       setTimeout(() => onBack(), 300);
     } catch (e: any) {
       toast.error('Erro ao salvar OS: ' + e.message);
