@@ -555,6 +555,10 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
   const confirmarFaturamento = async () => {
     if (!pedido) return;
+    if (confirmando) {
+      toast.warning("Faturamento já em andamento.");
+      return;
+    }
     if (!formaAtual) {
       toast.error("Selecione a forma de pagamento.");
       return;
