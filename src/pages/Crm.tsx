@@ -238,8 +238,42 @@ export default function Crm() {
           <div className="space-y-3">
             <Input placeholder="TÍTULO" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value.toUpperCase() })} />
             <Textarea placeholder="DESCRIÇÃO" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value.toUpperCase() })} rows={2} />
+            <div className="space-y-1">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                Vincular cliente cadastrado {form.cliente_id && <span className="text-emerald-600">(ID {form.cliente_id})</span>}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-9 h-9" placeholder="BUSCAR POR NOME OU CPF/CNPJ"
+                    value={clienteSearch}
+                    onChange={(e) => setClienteSearch(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarClientesNovo(); } }} />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={buscarClientesNovo}>Buscar</Button>
+                {form.cliente_id && (
+                  <Button type="button" variant="ghost" size="sm"
+                    onClick={() => { setForm({ ...form, cliente_id: "", cliente_nome: "", telefone: "" }); setClienteSearch(""); }}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              {clienteResults.length > 0 && (
+                <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                  {clienteResults.map((c) => (
+                    <button key={c.PESS_ID} type="button" onClick={() => selecionarClienteNovo(c)}
+                      className="w-full text-left px-3 py-1.5 hover:bg-accent text-xs">
+                      <div className="font-medium truncate">{c.PESS_NOME}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {c.PESS_CPFCNPJ || "—"}{c.PESS_FONE_CELULAR ? ` · ${c.PESS_FONE_CELULAR}` : ""}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <Input placeholder="CLIENTE" value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value.toUpperCase() })} />
+              <Input placeholder="CLIENTE (livre)" value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value.toUpperCase() })} />
               <Input placeholder="TELEFONE" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
             </div>
             <div className="grid grid-cols-3 gap-2">
