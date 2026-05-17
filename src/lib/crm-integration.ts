@@ -4,10 +4,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
 type EventoOperacao =
+  | "whatsapp_resposta_humana"
   | "os_criada"
   | "os_finalizada"
+  | "os_cancelada"
   | "pedido_criado"
-  | "pedido_faturado";
+  | "pedido_faturado"
+  | "pedido_cancelado";
 
 interface CrmAutoQualificarParams {
   empresa_id: string;
@@ -19,18 +22,22 @@ interface CrmAutoQualificarParams {
   telefone?: string | null;
   valor?: number;
   documento_numero?: string;
-  origem?: string; // "OS", "Pedido", "Faturamento"
+  origem?: string;
+  motivo?: string;
 }
 
 const normalizaTelefone = (t?: string | null) =>
   (t || "").replace(/\D/g, "").replace(/^55/, "");
 
-// Mapeia evento -> heurística de etapa (busca por nome contém)
-const ETAPA_ALVO: Record<EventoOperacao, { tokens: string[]; ganho?: boolean }> = {
-  os_criada: { tokens: ["negocia", "qualific"] },
-  pedido_criado: { tokens: ["negocia", "orçament", "orcament"] },
-  os_finalizada: { tokens: ["pós", "pos", "ganh"], ganho: true },
-  pedido_faturado: { tokens: ["pós", "pos", "ganh"], ganho: true },
+// Mapeia evento -> etapa alvo (por tokens no nome) ou flag is_ganho/is_perdido
+const ETAPA_ALVO: Record<EventoOperacao, { tokens: string[]; ganho?: boolean; perdido?: boolean }> = {
+  whatsapp_resposta_humana: { tokens: ["primeiro", "atend"] },
+  os_criada: { tokens: ["orçament", "orcament"] },
+  pedido_criado: { tokens: ["negocia"] },
+  os_finalizada: { tokens: ["ganh", "pós", "pos"], ganho: true },
+  pedido_faturado: { tokens: ["ganh", "pós", "pos"], ganho: true },
+  os_cancelada: { tokens: ["perdid"], perdido: true },
+  pedido_cancelado: { tokens: ["perdid"], perdido: true },
 };
 
 export async function crmAutoQualificar(p: CrmAutoQualificarParams) {
