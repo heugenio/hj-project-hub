@@ -94,6 +94,7 @@ export async function crmAutoQualificar(p: CrmAutoQualificarParams) {
     const cfg = ETAPA_ALVO[p.evento];
     let etapaAlvo =
       (cfg.ganho ? lista.find((e: any) => e.is_ganho) : null) ||
+      (cfg.perdido ? lista.find((e: any) => e.is_perdido) : null) ||
       lista.find((e: any) =>
         cfg.tokens.some((tk) => (e.nome || "").toLowerCase().includes(tk))
       ) ||
@@ -114,22 +115,25 @@ export async function crmAutoQualificar(p: CrmAutoQualificarParams) {
           valor_estimado: Number(p.valor || 0),
           canal_origem: p.origem || "operacao",
           ultimo_contato_em: new Date().toISOString(),
-          ganho: cfg.ganho ? true : null,
-          fechada_em: cfg.ganho ? new Date().toISOString() : null,
+          ganho: cfg.ganho ? true : cfg.perdido ? false : null,
+          motivo_perda: cfg.perdido ? (p.motivo || null) : null,
+          fechada_em: (cfg.ganho || cfg.perdido) ? new Date().toISOString() : null,
           created_by: p.usrs_id || null,
         })
         .select("*")
         .single();
       opp = nova;
     } else {
-      // 4. Atualiza oportunidade existente: move etapa, valor, ganho, último contato
-      const patch: any = {
-        ultimo_contato_em: new Date().toISOString(),
-      };
+      const patch: any = { ultimo_contato_em: new Date().toISOString() };
       if (etapaAlvo?.id && etapaAlvo.id !== opp.etapa_id) patch.etapa_id = etapaAlvo.id;
       if (cfg.ganho) {
         patch.ganho = true;
         patch.fechada_em = new Date().toISOString();
+      }
+      if (cfg.perdido) {
+        patch.ganho = false;
+        patch.fechada_em = new Date().toISOString();
+        if (p.motivo) patch.motivo_perda = p.motivo;
       }
       if (p.valor && Number(p.valor) > Number(opp.valor_estimado || 0)) {
         patch.valor_estimado = Number(p.valor);
@@ -141,14 +145,19 @@ export async function crmAutoQualificar(p: CrmAutoQualificarParams) {
 
     // 5. Registra evento na timeline
     const titulos: Record<EventoOperacao, string> = {
-      os_criada: `OS ${p.documento_numero || ""} criada`,
+      whatsapp_resposta_humana: `Atendente respondeu via WhatsApp`,
+      os_criada: `OS ${p.documento_numero || ""} criada (orçamento enviado)`,
       os_finalizada: `OS ${p.documento_numero || ""} finalizada`,
-      pedido_criado: `Pedido ${p.documento_numero || ""} criado`,
+      os_cancelada: `OS ${p.documento_numero || ""} cancelada`,
+      pedido_criado: `Pedido ${p.documento_numero || ""} criado (negociação)`,
       pedido_faturado: `Pedido ${p.documento_numero || ""} faturado`,
+      pedido_cancelado: `Pedido ${p.documento_numero || ""} cancelado`,
     };
     const tipoTimeline =
       p.evento === "pedido_faturado" || p.evento === "os_finalizada"
         ? "pedido"
+        : p.evento === "whatsapp_resposta_humana"
+        ? "mensagem"
         : "nota";
     if (opp?.id) {
       await supabase.rpc("crm_registrar_evento", {
@@ -156,11 +165,16 @@ export async function crmAutoQualificar(p: CrmAutoQualificarParams) {
         _oportunidade_id: opp.id,
         _tipo: tipoTimeline as any,
         _titulo: titulos[p.evento].trim(),
-        _descricao: `Valor: R$ ${Number(p.valor || 0).toFixed(2)}`,
+        _descricao: p.motivo
+          ? `Motivo: ${p.motivo}`
+          : p.valor
+          ? `Valor: R$ ${Number(p.valor || 0).toFixed(2)}`
+          : null,
         _dados: {
           documento: p.documento_numero,
           valor: p.valor,
           origem: p.origem,
+          motivo: p.motivo,
         },
         _user_id: p.usrs_id || null,
       });
