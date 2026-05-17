@@ -105,6 +105,9 @@ export default function FinalizarOSDialog({
   emprId,
   usrsId,
   onFinalized,
+  clienteNome,
+  clienteId,
+  telefoneCliente,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -487,6 +490,22 @@ export default function FinalizarOSDialog({
     try {
       await setFinalizarOS(previewPayload);
       toast.success(`OS #${orsvNumero || ""} finalizada com sucesso.`);
+      // Integração CRM: qualifica automaticamente a oportunidade como ganha
+      try {
+        const { crmAutoQualificar } = await import("@/lib/crm-integration");
+        await crmAutoQualificar({
+          empresa_id: emprId || "",
+          unem_id: unemId,
+          usrs_id: usrsId,
+          evento: "os_finalizada",
+          cliente_id: clienteId || null,
+          cliente_nome: clienteNome || null,
+          telefone: telefoneCliente || null,
+          valor: Number(valorTotal) || 0,
+          documento_numero: orsvNumero,
+          origem: "OS",
+        });
+      } catch {}
       setPreviewPayload(null);
       onFinalized();
       onClose();
