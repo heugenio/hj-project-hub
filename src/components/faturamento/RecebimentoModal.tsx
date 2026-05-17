@@ -547,10 +547,15 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
   const isPix = (t: string) => /\bPIX\b/i.test(t || "");
   const precisaTef = (p: ParcelaUI) => {
-    const tef = String(p.itfv_tef || "").trim().toLowerCase();
-    if (tef !== "sim") return false;
     const t = (p.tipo_pagamento || formaAtualLabel || "").toUpperCase();
-    return /CART[ÃA]O|CARTAO/.test(t) || isPix(t);
+    const isCartaoOuPix = /CART[ÃA]O|CARTAO/.test(t) || isPix(t);
+    if (!isCartaoOuPix) return false;
+    // TEF é exigido quando: a forma/parcela está marcada ITFV_TEF=Sim
+    // OU quando há provedor TEF configurado (tefGpIdx > 0) para cartão/PIX.
+    const tef = String(p.itfv_tef || "").trim().toLowerCase();
+    if (tef === "sim") return true;
+    if (tefGpIdx > 0) return true;
+    return false;
   };
 
   const confirmarFaturamento = async () => {
