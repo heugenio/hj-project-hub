@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search, User, UserPlus, Briefcase, Wrench, Phone, CalendarDays, DollarSign, FileText, TagIcon } from "lucide-react";
+import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search, User, UserPlus, Phone, CalendarDays, DollarSign, FileText, TagIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import CrmClienteDialog from "@/components/crm/CrmClienteDialog";
