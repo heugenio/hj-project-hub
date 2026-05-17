@@ -113,6 +113,7 @@ const TEF_GP_LIST: { idx: number; value: string; label: string }[] = [
   { idx: 19, value: "gpMercadoPago", label: "Mercado Pago" },
   { idx: 20, value: "gpFiserv", label: "Fiserv" },
   { idx: 21, value: "gpTefId", label: "TEF ID" },
+  { idx: 99, value: "gpTefSimulado", label: "TEF Simulado (teste)" },
 ];
 const GP_TO_PROVIDER: Record<string, TefProvider> = {
   gpPayGo: "paygo",
@@ -120,6 +121,7 @@ const GP_TO_PROVIDER: Record<string, TefProvider> = {
   gpCappta: "cappta",
   gpCliSiTef: "clisitef",
   gpAPI: "sw-express",
+  gpTefSimulado: "simulado",
 };
 const gpToProvider = (gp: string): TefProvider => GP_TO_PROVIDER[gp] || "simulado";
 
