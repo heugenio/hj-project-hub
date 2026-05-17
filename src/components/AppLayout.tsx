@@ -21,6 +21,9 @@ import {
   CreditCard,
   Receipt,
   FileText,
+  Users,
+  MessageSquare,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +52,12 @@ const marketingItems = [
 
 const financeiroItems = [
   { title: "Consulta PIX", url: "/financeiro/pix", icon: CreditCard },
+];
+
+const crmItems = [
+  { title: "CRM (Funil)", url: "/crm", icon: Users },
+  { title: "Inbox WhatsApp", url: "/inbox", icon: MessageSquare },
+  { title: "Config. CRM / IA", url: "/configuracoes/crm-ia", icon: Bot },
 ];
 
 function formatCNPJ(cnpj: string): string {
@@ -264,6 +273,16 @@ export function AppLayout() {
             {collapsed && !mobile ? "•" : "Marketing"}
           </p>
           {marketingItems.map((item) => (
+            <NavLink key={item.url} item={item} mobile={mobile} />
+          ))}
+        </div>
+
+        {/* CRM & Atendimento group */}
+        <div className="mt-3">
+          <p className={cn("text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mb-2", collapsed && !mobile ? "text-center" : "px-2")}>
+            {collapsed && !mobile ? "•" : "CRM & Atendimento"}
+          </p>
+          {crmItems.map((item) => (
             <NavLink key={item.url} item={item} mobile={mobile} />
           ))}
         </div>
