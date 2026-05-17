@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,15 @@ import {
   type FormaPagamentoItem,
   type OperadoraCartao,
 } from "@/lib/api-os";
-import { iniciarTransacaoTef, getTefProvider, setTefProvider, type TefProvider } from "@/lib/tef";
+import {
+  iniciarTransacaoTef,
+  cancelarTransacaoTef,
+  getTefProvider,
+  setTefProvider,
+  playTefSound,
+  type TefProvider,
+} from "@/lib/tef";
+import TefStatusOverlay from "@/components/faturamento/TefStatusOverlay";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
