@@ -599,22 +599,45 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
     try {
       // 1) Executa TEF nas parcelas que exigirem (Cartão Crédito/Débito ou PIX com ITFV_TEF=Sim)
       const parcelasFinal: ParcelaUI[] = [...parcelas];
+      const tefParcelas = parcelasFinal.filter(precisaTef);
       for (let i = 0; i < parcelasFinal.length; i++) {
         const p = parcelasFinal[i];
         if (!precisaTef(p)) continue;
         const tipoCartao: "credito" | "debito" =
           /DEBITO|DÉBITO/i.test(p.tipo_pagamento) ? "debito" : "credito";
-        toast.info(`TEF ${tefProvider}: parcela ${p.parcela} (${isPix(p.tipo_pagamento) ? "PIX" : tipoCartao.toUpperCase()})...`);
         updateParcela(i, { tefStatus: "pendente" });
-        const res = await iniciarTransacaoTef({
-          provider: tefProvider,
-          tipo: tipoCartao,
-          valor: p.valor,
-          parcelas: Number(p.qtd_parcelas_cartao) || 1,
+
+        const ctl = new AbortController();
+        tefAbortRef.current = ctl;
+        setTefOverlay({
+          open: true,
+          parcelaAtual: p.parcela,
+          totalParcelas: tefParcelas.length,
         });
+
+        const res = await iniciarTransacaoTef(
+          {
+            provider: tefProvider,
+            tipo: tipoCartao,
+            valor: p.valor,
+            parcelas: Number(p.qtd_parcelas_cartao) || 1,
+            documento: String(pedido.PDDS_NUMERO || ""),
+            pdv: unemId,
+            operador: String((auth as any)?.user?.usrs_LOGIN || ""),
+          },
+          ctl.signal
+        );
+
         if (!res.ok) {
           updateParcela(i, { tefStatus: "cancelado" });
-          toast.error(`TEF parcela ${p.parcela}: ${res.mensagem || "não aprovada"}`);
+          playTefSound("error");
+          await new Promise((r) => setTimeout(r, 1200));
+          setTefOverlay({ open: false });
+          tefAbortRef.current = null;
+          toast.error(
+            `TEF parcela ${p.parcela}: ${res.mensagem || "não aprovada"}. ` +
+              `Pedido NÃO foi faturado — você pode tentar novamente ou trocar a forma de pagamento.`
+          );
           setConfirmando(false);
           return;
         }
@@ -623,9 +646,14 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           nr_auto: res.autorizacao || p.nr_auto,
           bandeira: res.bandeira || p.bandeira,
           nsu: res.nsu,
+          rede: res.rede || p.rede,
         };
         parcelasFinal[i] = { ...p, ...upd };
         updateParcela(i, upd);
+        playTefSound("success");
+        await new Promise((r) => setTimeout(r, 700));
+        tefAbortRef.current = null;
+        setTefOverlay({ open: false });
         toast.success(`TEF parcela ${p.parcela} aprovada • NSU ${res.nsu}`);
       }
 
