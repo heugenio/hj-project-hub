@@ -33,6 +33,7 @@ export default function Crm() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverEtapa, setDragOverEtapa] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [clienteOp, setClienteOp] = useState<Op | null>(null);
   const [form, setForm] = useState<any>({ titulo: "", descricao: "", etapa_id: "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
 
   useEffect(() => { if (isReady) ensureEtapasPadrao(empresa_id); }, [empresa_id, isReady]);
