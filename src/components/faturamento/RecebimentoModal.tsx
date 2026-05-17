@@ -487,31 +487,62 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const executarTefParcela = async (idx: number) => {
     const p = parcelas[idx];
     if (!p) return;
+    if (tefBusy) {
+      toast.warning("Aguarde — uma transação TEF já está em andamento.");
+      return;
+    }
     const tipoCartao: "credito" | "debito" = /DEBITO|DÉBITO/i.test(p.tipo_pagamento) ? "debito" : "credito";
     updateParcela(idx, { tefStatus: "pendente" });
-    toast.info(`TEF: iniciando transação (${tefProvider})...`);
+    const ctl = new AbortController();
+    tefAbortRef.current = ctl;
+    setTefOverlay({ open: true, parcelaAtual: p.parcela, totalParcelas: parcelas.length });
     try {
-      const res = await iniciarTransacaoTef({
-        provider: tefProvider,
-        tipo: tipoCartao,
-        valor: p.valor,
-        parcelas: Number(p.qtd_parcelas_cartao) || 1,
-      });
+      const res = await iniciarTransacaoTef(
+        {
+          provider: tefProvider,
+          tipo: tipoCartao,
+          valor: p.valor,
+          parcelas: Number(p.qtd_parcelas_cartao) || 1,
+          documento: String(pedido?.PDDS_NUMERO || ""),
+          pdv: unemId,
+          operador: String((auth as any)?.user?.usrs_LOGIN || ""),
+        },
+        ctl.signal
+      );
       if (res.ok) {
         updateParcela(idx, {
           tefStatus: "aprovado",
           nr_auto: res.autorizacao || p.nr_auto,
           bandeira: res.bandeira || p.bandeira,
+          nsu: res.nsu,
+          rede: res.rede || p.rede,
         });
+        playTefSound("success");
         toast.success(`TEF aprovado • NSU ${res.nsu} • AUT ${res.autorizacao}`);
       } else {
         updateParcela(idx, { tefStatus: "cancelado" });
+        playTefSound("error");
         toast.error("TEF: " + (res.mensagem || "transação não aprovada"));
       }
     } catch (e: any) {
       updateParcela(idx, { tefStatus: "cancelado" });
+      playTefSound("error");
       toast.error("Erro TEF: " + (e?.message || ""));
+    } finally {
+      tefAbortRef.current = null;
+      // Mantém overlay por 1s para o operador ver o status final
+      setTimeout(() => setTefOverlay({ open: false }), 1000);
     }
+  };
+
+  const cancelarTefAtual = async () => {
+    tefAbortRef.current?.abort();
+    // tenta cancelar no agente as últimas parcelas aprovadas (best-effort)
+    const aprov = parcelas.filter((p) => p.tefStatus === "aprovado" && p.nsu);
+    for (const p of aprov) {
+      try { await cancelarTransacaoTef(tefProvider, String(p.nsu)); } catch {}
+    }
+    toast.warning("Transação TEF cancelada pelo operador.");
   };
 
   const isPix = (t: string) => /\bPIX\b/i.test(t || "");
