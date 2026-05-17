@@ -721,8 +721,23 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const podeConfirmar = !!formaAtual && parcelas.length > 0 && okValor;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          if (confirmando || tefBusy) {
+            toast.warning("Aguarde o término do TEF/faturamento antes de fechar.");
+            return;
+          }
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto"
+        onInteractOutside={(e) => { if (confirmando || tefBusy) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (confirmando || tefBusy) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Banknote className="h-5 w-5" />
