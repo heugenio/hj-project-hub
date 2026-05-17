@@ -19,7 +19,7 @@ export default function ConfiguracoesCrm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [wa, setWa] = useState<any>({ provedor: "zapi", instance_id: "", token_api: "", client_token: "", numero_whatsapp: "", ativo: false, webhook_secret: "", webhook_path: "" });
-  const [ia, setIa] = useState<any>({ ativo: false, modelo: "google/gemini-3-flash-preview", temperatura: 0.7, max_tokens: 400, personalidade: "", prompt_personalizado: "", saudacao: "", horario_inicio: "", horario_fim: "", mensagem_ausencia: "", pausar_quando_humano_responder: true });
+  const [ia, setIa] = useState<any>({ ativo: false, modelo: "google/gemini-3-flash-preview", temperatura: 0.7, max_tokens: 400, personalidade: "", prompt_personalizado: "", saudacao: "", horario_inicio: "", horario_fim: "", mensagem_ausencia: "", pausar_quando_humano_responder: true, ramo_atividade: "", especialidade: "" });
 
   useEffect(() => {
     if (!isReady) return;
@@ -138,6 +138,48 @@ export default function ConfiguracoesCrm() {
                 </div>
                 <div><Label>Temperatura</Label><Input type="number" step="0.1" min={0} max={2} value={ia.temperatura} onChange={(e) => setIa({ ...ia, temperatura: e.target.value })} /></div>
                 <div><Label>Max tokens</Label><Input type="number" value={ia.max_tokens} onChange={(e) => setIa({ ...ia, max_tokens: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Ramo de Atividade</Label>
+                  <Select value={ia.ramo_atividade ?? ""} onValueChange={(v) => setIa({ ...ia, ramo_atividade: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o ramo..." /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="autopecas">Auto Peças e Acessórios</SelectItem>
+                      <SelectItem value="oficina_mecanica">Oficina Mecânica</SelectItem>
+                      <SelectItem value="borracharia_pneus">Borracharia / Pneus</SelectItem>
+                      <SelectItem value="concessionaria">Concessionária / Revenda de Veículos</SelectItem>
+                      <SelectItem value="lava_jato">Lava-Jato / Estética Automotiva</SelectItem>
+                      <SelectItem value="posto_combustivel">Posto de Combustível</SelectItem>
+                      <SelectItem value="farmacia">Farmácia / Drogaria</SelectItem>
+                      <SelectItem value="supermercado">Supermercado / Mercearia</SelectItem>
+                      <SelectItem value="restaurante">Restaurante / Lanchonete</SelectItem>
+                      <SelectItem value="padaria">Padaria / Confeitaria</SelectItem>
+                      <SelectItem value="moda">Moda / Vestuário / Calçados</SelectItem>
+                      <SelectItem value="cosmeticos">Cosméticos / Beleza</SelectItem>
+                      <SelectItem value="petshop">Pet Shop / Veterinária</SelectItem>
+                      <SelectItem value="materiais_construcao">Materiais de Construção</SelectItem>
+                      <SelectItem value="moveis_decoracao">Móveis / Decoração</SelectItem>
+                      <SelectItem value="eletronicos">Eletrônicos / Informática</SelectItem>
+                      <SelectItem value="celulares_assistencia">Celulares / Assistência Técnica</SelectItem>
+                      <SelectItem value="imobiliaria">Imobiliária</SelectItem>
+                      <SelectItem value="clinica_medica">Clínica Médica / Odontológica</SelectItem>
+                      <SelectItem value="academia">Academia / Estúdio Fitness</SelectItem>
+                      <SelectItem value="salao_beleza">Salão de Beleza / Barbearia</SelectItem>
+                      <SelectItem value="educacao">Educação / Cursos</SelectItem>
+                      <SelectItem value="advocacia">Advocacia / Contabilidade</SelectItem>
+                      <SelectItem value="turismo">Turismo / Hotelaria</SelectItem>
+                      <SelectItem value="agropecuaria">Agropecuária</SelectItem>
+                      <SelectItem value="industria">Indústria / Fabricação</SelectItem>
+                      <SelectItem value="servicos_gerais">Serviços Gerais</SelectItem>
+                      <SelectItem value="outro">Outro (descrever em Especialidade)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Especialidade / Nicho específico</Label>
+                  <Input placeholder="Ex.: peças para linha pesada, motos esportivas..." value={ia.especialidade ?? ""} onChange={(e) => setIa({ ...ia, especialidade: e.target.value })} />
+                </div>
               </div>
               <div>
                 <Label>Personalidade</Label>
