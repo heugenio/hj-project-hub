@@ -688,6 +688,22 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       if (result?.PDDS_NUMERO || result?.ORSV_NUMERO) setNumeroPedido(result.PDDS_NUMERO || result.ORSV_NUMERO);
       setStatusPedido('Aberto');
       toast.success('Pedido salvo com sucesso!');
+      // CRM: mover oportunidade para "Negociação" ao criar pedido
+      try {
+        const { crmAutoQualificar } = await import('@/lib/crm-integration');
+        await crmAutoQualificar({
+          empresa_id: (auth as any)?.empresa?.n || '',
+          unem_id: auth?.unidade?.unem_Id,
+          usrs_id: auth?.user?.usrs_ID,
+          evento: 'pedido_criado',
+          cliente_id: cliente?.PESS_ID,
+          cliente_nome: cliente?.PESS_NOME,
+          telefone: cliente?.PESS_FONE_CELULAR || cliente?.PESS_FONE,
+          valor: Number((payload as any)?.PDDS_VLR_TOTAL || 0),
+          documento_numero: String(result?.PDDS_NUMERO || result?.ORSV_NUMERO || ''),
+          origem: 'Pedido',
+        });
+      } catch {}
       setTimeout(() => onBack(), 300);
     } catch (e: any) {
       toast.error('Erro ao salvar pedido: ' + e.message);
