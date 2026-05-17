@@ -9,6 +9,7 @@ import { Search, Link2, UserPlus, Save, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientes, setCliente, type Cliente } from "@/lib/api-os";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
