@@ -113,6 +113,7 @@ const TEF_GP_LIST: { idx: number; value: string; label: string }[] = [
   { idx: 19, value: "gpMercadoPago", label: "Mercado Pago" },
   { idx: 20, value: "gpFiserv", label: "Fiserv" },
   { idx: 21, value: "gpTefId", label: "TEF ID" },
+  { idx: 99, value: "gpTefSimulado", label: "TEF Simulado (teste)" },
 ];
 const GP_TO_PROVIDER: Record<string, TefProvider> = {
   gpPayGo: "paygo",
@@ -120,6 +121,7 @@ const GP_TO_PROVIDER: Record<string, TefProvider> = {
   gpCappta: "cappta",
   gpCliSiTef: "clisitef",
   gpAPI: "sw-express",
+  gpTefSimulado: "simulado",
 };
 const gpToProvider = (gp: string): TefProvider => GP_TO_PROVIDER[gp] || "simulado";
 
@@ -547,15 +549,13 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
 
   const isPix = (t: string) => /\bPIX\b/i.test(t || "");
   const precisaTef = (p: ParcelaUI) => {
+    // gpNenhum (idx 0) = sem TEF / POS manual — nunca dispara TEF
+    if (tefGpIdx === 0) return false;
     const t = (p.tipo_pagamento || formaAtualLabel || "").toUpperCase();
     const isCartaoOuPix = /CART[ÃA]O|CARTAO/.test(t) || isPix(t);
     if (!isCartaoOuPix) return false;
-    // TEF é exigido quando: a forma/parcela está marcada ITFV_TEF=Sim
-    // OU quando há provedor TEF configurado (tefGpIdx > 0) para cartão/PIX.
-    const tef = String(p.itfv_tef || "").trim().toLowerCase();
-    if (tef === "sim") return true;
-    if (tefGpIdx > 0) return true;
-    return false;
+    // Com provedor TEF configurado (incluindo gpTefSimulado=99), Cartão/PIX sempre passa por TEF
+    return true;
   };
 
   const confirmarFaturamento = async () => {
