@@ -20,6 +20,9 @@ import Marketing from "@/pages/Marketing";
 import ConsultaPix from "@/pages/ConsultaPix";
 import Faturamento from "@/pages/Faturamento";
 import DocumentosFiscais from "@/pages/DocumentosFiscais";
+import Crm from "@/pages/Crm";
+import Inbox from "@/pages/Inbox";
+import ConfiguracoesCrm from "@/pages/ConfiguracoesCrm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +52,9 @@ const App = () => (
                 <Route path="/financeiro/pix" element={<ConsultaPix />} />
                 <Route path="/faturamento" element={<Faturamento />} />
                 <Route path="/financeiro/documentos-fiscais" element={<DocumentosFiscais />} />
+                <Route path="/crm" element={<Crm />} />
+                <Route path="/inbox" element={<Inbox />} />
+                <Route path="/configuracoes/crm-ia" element={<ConfiguracoesCrm />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
