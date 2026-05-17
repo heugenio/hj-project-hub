@@ -1,6 +1,7 @@
 // Vincula uma oportunidade do CRM a um cliente cadastrado no sistema legado
 // e permite criar / completar as informações cadastrais do cliente.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -67,19 +68,32 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
     })();
   }, [open, oportunidade.cliente_id, oportunidade.cliente_nome, oportunidade.telefone]);
 
-  const buscar = async () => {
-    const q = search.trim();
-    if (!q) return;
+  const debouncedSearch = useDebounce(search, 350);
+  const lastQueryRef = useRef<string>("");
+
+  const buscar = async (queryArg?: string) => {
+    const q = (queryArg ?? search).trim();
+    if (!q) { setResults([]); return; }
     setBusy(true);
     try {
       const isDoc = /\d/.test(q) && onlyDigits(q).length >= 11;
       const arr = await getClientes(isDoc ? { cpfcnpj: onlyDigits(q) } : { nome: q.toUpperCase() });
       setResults(arr.slice(0, 15));
-      if (!arr.length) toast.message("Nenhum cliente encontrado");
     } catch (e: any) {
       toast.error(e?.message || "Erro ao buscar clientes");
     } finally { setBusy(false); }
   };
+
+  // Busca automática (debounced) — dispara a partir de 3 caracteres
+  useEffect(() => {
+    if (!open || linked) return;
+    const q = debouncedSearch.trim();
+    if (q.length < 3) { setResults([]); lastQueryRef.current = ""; return; }
+    if (q === lastQueryRef.current) return;
+    lastQueryRef.current = q;
+    buscar(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, open, linked]);
 
   const vincularNoCrm = async (cli: Cliente) => {
     const patch: any = {
@@ -274,8 +288,9 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
                     onChange={(e) => setSearch(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === "Enter") buscar(); }}
                   />
+                  {busy && <div className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
                 </div>
-                <Button onClick={buscar} disabled={busy} size="sm" className="h-9">Buscar</Button>
+                <Button onClick={() => buscar()} disabled={busy} size="sm" className="h-9">Buscar</Button>
                 <Button variant="outline" size="sm" className="h-9" onClick={() => setShowForm(true)}>
                   <UserPlus className="h-4 w-4 mr-1" /> Novo
                 </Button>
