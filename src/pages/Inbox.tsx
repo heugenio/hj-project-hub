@@ -83,6 +83,20 @@ export default function Inbox() {
     setEnviando(true);
     try {
       await enviarMensagemWhatsapp({ empresa_id, conversa_id: selectedId, texto: texto.trim(), enviada_por: usrs_id });
+      // CRM: humano respondeu → mover para "Primeiro Atendimento"
+      if (selected) {
+        try {
+          const { crmAutoQualificar } = await import("@/lib/crm-integration");
+          await crmAutoQualificar({
+            empresa_id,
+            usrs_id,
+            evento: "whatsapp_resposta_humana",
+            cliente_nome: selected.nome_contato,
+            telefone: selected.telefone,
+            origem: "WhatsApp",
+          });
+        } catch {}
+      }
       setTexto(""); setSugestoes([]);
       qc.invalidateQueries({ queryKey: ["wa-msgs"] });
       qc.invalidateQueries({ queryKey: ["wa-conversas"] });

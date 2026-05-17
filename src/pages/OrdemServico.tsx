@@ -99,6 +99,23 @@ export default function OrdemServico() {
     try {
       await setCancelarOrdemServico(cancelOS.oRSV_ID, motivo, usrsId);
       toast.success(`OS #${cancelOS.oRSV_NUMERO} cancelada com sucesso.`);
+      // CRM: marca oportunidade como Venda Perdida
+      try {
+        const { crmAutoQualificar } = await import('@/lib/crm-integration');
+        await crmAutoQualificar({
+          empresa_id: (auth as any)?.empresa?.n || '',
+          unem_id: auth?.unidade?.unem_Id,
+          usrs_id: usrsId,
+          evento: 'os_cancelada',
+          cliente_id: (cancelOS as any)?.pESS_ID || (cancelOS as any)?.PESS_ID,
+          cliente_nome: (cancelOS as any)?.pESS_NOME || (cancelOS as any)?.PESS_NOME,
+          telefone: (cancelOS as any)?.tELEFONE || (cancelOS as any)?.TELEFONE,
+          valor: Number((cancelOS as any)?.oRSV_VLR_TOTAL || 0),
+          documento_numero: String(cancelOS.oRSV_NUMERO || ''),
+          origem: 'OS',
+          motivo,
+        });
+      } catch {}
       setCancelOS(null);
       setCancelMotivo("");
       handleSearch();
