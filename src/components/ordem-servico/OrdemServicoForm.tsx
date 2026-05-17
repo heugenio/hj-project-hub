@@ -1365,11 +1365,13 @@ export default function OrdemServicoForm({ onBack, editingOS, viewMode = false }
           unemId={auth?.unidade?.unem_Id}
           emprId={(auth as any)?.empresa?.n}
           usrsId={auth?.user?.usrs_ID || ''}
+          clienteNome={cliente?.PESS_NOME || (cliente as any)?.PESS_RAZAO_SOCIAL}
+          clienteId={cliente?.PESS_ID}
+          telefoneCliente={(cliente as any)?.TELEFONE || (cliente as any)?.PESS_TELEFONE || (cliente as any)?.PESS_CELULAR}
           onFinalized={() => {
             setStatusOS('Faturado');
             setFinalizarDialogOpen(false);
             toast.success('OS finalizada com sucesso!');
-            // Após finalizar, fechar a tela e voltar para a listagem (que executará Consultar)
             setTimeout(() => onBack(), 300);
           }}
         />

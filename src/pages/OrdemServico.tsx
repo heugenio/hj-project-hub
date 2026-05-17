@@ -380,6 +380,9 @@ export default function OrdemServico() {
           unemId={auth?.unidade?.unem_Id}
           emprId={(auth as any)?.empresa?.n}
           usrsId={auth?.user?.usrs_ID || ""}
+          clienteNome={(finalizarOS as any)?.pESS_NOME || (finalizarOS as any)?.PESS_NOME}
+          clienteId={(finalizarOS as any)?.pESS_ID || (finalizarOS as any)?.PESS_ID}
+          telefoneCliente={(finalizarOS as any)?.tELEFONE || (finalizarOS as any)?.TELEFONE}
           onFinalized={() => {
             setFinalizarOS(null);
             handleSearch();
