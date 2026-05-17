@@ -236,7 +236,7 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
             <div className="grid grid-cols-2 gap-2">
               <Input placeholder="NOME *" value={form.PESS_NOME || ""}
                 onChange={(e) => setForm({ ...form, PESS_NOME: e.target.value.toUpperCase() })} />
-              <Input placeholder="CPF / CNPJ" value={form.PESS_CPFCNPJ || ""}
+              <Input placeholder={linked ? "CPF / CNPJ" : "CPF / CNPJ *"} value={form.PESS_CPFCNPJ || ""}
                 onChange={(e) => setForm({ ...form, PESS_CPFCNPJ: e.target.value })} />
               <Input placeholder="CELULAR" value={form.PESS_FONE_CELULAR || ""}
                 onChange={(e) => setForm({ ...form, PESS_FONE_CELULAR: e.target.value })} />
