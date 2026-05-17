@@ -443,8 +443,16 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
                 <div className="grid grid-cols-2 gap-2">
                   <Input placeholder="NOME *" value={form.PESS_NOME || ""}
                     onChange={(e) => setForm({ ...form, PESS_NOME: e.target.value.toUpperCase() })} className="h-9 text-xs" />
-                  <Input placeholder={linked ? "CPF / CNPJ" : "CPF / CNPJ *"} value={form.PESS_CPFCNPJ || ""}
-                    onChange={(e) => setForm({ ...form, PESS_CPFCNPJ: e.target.value })} className="h-9 text-xs" />
+                  <div className="relative">
+                    <Input placeholder={linked ? "CPF / CNPJ" : "CPF / CNPJ *"} value={form.PESS_CPFCNPJ || ""}
+                      onChange={(e) => setForm({ ...form, PESS_CPFCNPJ: e.target.value })}
+                      onBlur={handleCpfCnpjBlur}
+                      className="h-9 text-xs pr-8" />
+                    {buscandoDoc && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
+                  </div>
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  💡 Digite o CPF/CNPJ completo — buscamos automaticamente no cadastro e na web
                 </div>
               </div>
 
