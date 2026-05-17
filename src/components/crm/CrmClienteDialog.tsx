@@ -31,10 +31,72 @@ interface Props {
 
 const onlyDigits = (s?: string | null) => (s || "").replace(/\D/g, "");
 
+// ===== ViaCEP =====
+async function buscarCep(cep: string) {
+  const nums = onlyDigits(cep);
+  if (nums.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${nums}/json/`);
+    const d = await res.json();
+    if (d.erro) return null;
+    return d as { logradouro?: string; complemento?: string; bairro?: string; localidade?: string; uf?: string };
+  } catch { return null; }
+}
+
+// ===== BrasilAPI CNPJ =====
+async function buscarCnpjWeb(cnpj: string): Promise<Partial<Cliente> | null> {
+  const nums = onlyDigits(cnpj);
+  if (nums.length !== 14) return null;
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${nums}`);
+    if (!res.ok) return null;
+    const d = await res.json();
+    return {
+      PESS_TIPO: "J", PESS_FISICO_JURIDICO: "J",
+      PESS_NOME: (d.nome_fantasia || d.razao_social || "").toUpperCase(),
+      PESS_RAZAO_SOCIAL: (d.razao_social || "").toUpperCase(),
+      PESS_FONE: d.ddd_telefone_1 ? onlyDigits(d.ddd_telefone_1) : "",
+      PESS_EMAIL: (d.email || "").toUpperCase(),
+      ENDE_CEP: onlyDigits(d.cep || ""),
+      ENDE_LOGRADOURO: (d.logradouro || "").toUpperCase(),
+      ENDE_NUMERO: String(d.numero || "").toUpperCase(),
+      ENDE_COMPLEMENTO: (d.complemento || "").toUpperCase(),
+      BAIR_NOME: (d.bairro || "").toUpperCase(),
+      MUNI_NOME: (d.municipio || "").toUpperCase(),
+      ESTA_UF: d.uf || "", ESTA_NOME: d.uf || "",
+    } as Partial<Cliente>;
+  } catch { return null; }
+}
+
+// ===== CPF lookup via edge function (IA) =====
+async function buscarCpfWeb(cpf: string): Promise<Partial<Cliente> | null> {
+  const nums = onlyDigits(cpf);
+  if (nums.length !== 11) return null;
+  try {
+    const { data, error } = await supabase.functions.invoke("cpf-lookup", { body: { cpf: nums } });
+    if (error || !data || data.encontrado === false) return null;
+    const r: Partial<Cliente> = { PESS_FISICO_JURIDICO: "F", PESS_TIPO: "F" };
+    if (data.nome) r.PESS_NOME = String(data.nome).toUpperCase();
+    if (data.data_nascimento) r.PESS_DATA_NASCIMENTO = data.data_nascimento;
+    if (data.telefone) r.PESS_FONE = onlyDigits(data.telefone);
+    if (data.celular) r.PESS_FONE_CELULAR = onlyDigits(data.celular);
+    if (data.email) r.PESS_EMAIL = String(data.email).toUpperCase();
+    if (data.cep) r.ENDE_CEP = onlyDigits(data.cep);
+    if (data.logradouro) r.ENDE_LOGRADOURO = String(data.logradouro).toUpperCase();
+    if (data.numero) r.ENDE_NUMERO = String(data.numero).toUpperCase();
+    if (data.bairro) r.BAIR_NOME = String(data.bairro).toUpperCase();
+    if (data.cidade) r.MUNI_NOME = String(data.cidade).toUpperCase();
+    if (data.uf) { r.ESTA_UF = data.uf; r.ESTA_NOME = data.uf; }
+    return r;
+  } catch { return null; }
+}
+
 export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onLinked }: Props) {
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [buscandoDoc, setBuscandoDoc] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Cliente[]>([]);
   const [linked, setLinked] = useState<Cliente | null>(null);
@@ -158,6 +220,57 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
     setLinked(null);
     toast.success("Vínculo removido");
     onLinked?.();
+  };
+
+  // Busca automática por CPF/CNPJ — local primeiro, depois BrasilAPI/IA
+  const handleCpfCnpjBlur = async () => {
+    const nums = onlyDigits(form.PESS_CPFCNPJ);
+    if (nums.length !== 11 && nums.length !== 14) return;
+    const tipo: "F" | "J" = nums.length === 14 ? "J" : "F";
+    setForm((f) => ({ ...f, PESS_FISICO_JURIDICO: tipo, PESS_TIPO: tipo }));
+    setBuscandoDoc(true);
+    try {
+      // 1) Tenta no cadastro local
+      try {
+        const arr = await getClientes({ cpfcnpj: nums });
+        if (arr?.[0]) {
+          setForm((f) => ({ ...f, ...arr[0] }));
+          toast.success("Cliente já cadastrado — dados carregados");
+          return;
+        }
+      } catch { /* segue para web */ }
+
+      // 2) Web (CNPJ -> BrasilAPI / CPF -> IA)
+      const web = nums.length === 14 ? await buscarCnpjWeb(nums) : await buscarCpfWeb(nums);
+      if (web) {
+        setForm((f) => ({ ...f, ...web, PESS_CPFCNPJ: nums }));
+        toast.success(nums.length === 14 ? "Dados do CNPJ encontrados" : "Dados do CPF encontrados");
+        return;
+      }
+      toast.info("Documento não encontrado. Preencha os dados manualmente.");
+    } finally { setBuscandoDoc(false); }
+  };
+
+  // Busca automática de endereço pelo CEP (ViaCEP)
+  const handleCepBlur = async () => {
+    const cep = onlyDigits(form.ENDE_CEP);
+    if (cep.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const d = await buscarCep(cep);
+      if (!d) { toast.error("CEP não encontrado"); return; }
+      setForm((f) => ({
+        ...f,
+        ENDE_LOGRADOURO: (d.logradouro || f.ENDE_LOGRADOURO || "").toUpperCase(),
+        ENDE_COMPLEMENTO: (d.complemento || f.ENDE_COMPLEMENTO || "").toUpperCase(),
+        BAIR_NOME: (d.bairro || f.BAIR_NOME || "").toUpperCase(),
+        MUNI_NOME: (d.localidade || f.MUNI_NOME || "").toUpperCase(),
+        ESTA_UF: d.uf || f.ESTA_UF,
+        ESTA_NOME: d.uf || f.ESTA_NOME,
+      }));
+      toast.success("Endereço preenchido pelo CEP");
+    } catch { toast.error("Erro ao buscar CEP"); }
+    finally { setBuscandoCep(false); }
   };
 
   const gerar = (destino: "pedido" | "os") => {
@@ -330,8 +443,16 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
                 <div className="grid grid-cols-2 gap-2">
                   <Input placeholder="NOME *" value={form.PESS_NOME || ""}
                     onChange={(e) => setForm({ ...form, PESS_NOME: e.target.value.toUpperCase() })} className="h-9 text-xs" />
-                  <Input placeholder={linked ? "CPF / CNPJ" : "CPF / CNPJ *"} value={form.PESS_CPFCNPJ || ""}
-                    onChange={(e) => setForm({ ...form, PESS_CPFCNPJ: e.target.value })} className="h-9 text-xs" />
+                  <div className="relative">
+                    <Input placeholder={linked ? "CPF / CNPJ" : "CPF / CNPJ *"} value={form.PESS_CPFCNPJ || ""}
+                      onChange={(e) => setForm({ ...form, PESS_CPFCNPJ: e.target.value })}
+                      onBlur={handleCpfCnpjBlur}
+                      className="h-9 text-xs pr-8" />
+                    {buscandoDoc && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
+                  </div>
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  💡 Digite o CPF/CNPJ completo — buscamos automaticamente no cadastro e na web
                 </div>
               </div>
 
@@ -367,8 +488,12 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
                     onChange={(e) => setForm({ ...form, ENDE_NUMERO: e.target.value.toUpperCase() })} />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <Input className="h-9 text-xs" placeholder="CEP" value={form.ENDE_CEP || ""}
-                    onChange={(e) => setForm({ ...form, ENDE_CEP: e.target.value })} />
+                  <div className="relative">
+                    <Input className="h-9 text-xs pr-8" placeholder="CEP" value={form.ENDE_CEP || ""}
+                      onChange={(e) => setForm({ ...form, ENDE_CEP: e.target.value })}
+                      onBlur={handleCepBlur} />
+                    {buscandoCep && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
+                  </div>
                   <Input className="h-9 text-xs" placeholder="BAIRRO" value={form.BAIR_NOME || ""}
                     onChange={(e) => setForm({ ...form, BAIR_NOME: e.target.value.toUpperCase() })} />
                   <Input className="h-9 text-xs" placeholder="MUNICÍPIO" value={form.MUNI_NOME || ""}
