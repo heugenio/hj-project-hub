@@ -234,10 +234,13 @@ function makeAgentProvider(spec: AgentSpec): ITefProvider {
       emit(spec.name, 'aguardando_pinpad', 'Aguardando PinPad...');
       const probe = await tryAgent(spec.baseUrl, undefined, 1500);
       if (probe === null) {
-        emit(spec.name, 'erro', `Agente ${spec.name} não respondeu. Caindo para modo simulado.`);
-        const r = await simular(req);
+        emit(spec.name, 'erro', `Agente ${spec.name} não respondeu em ${spec.baseUrl}. Verifique se o agente TEF local está em execução.`);
         removePending(pending.id);
-        return r;
+        return {
+          ok: false,
+          provider: spec.name,
+          mensagem: `Agente TEF ${spec.name} não está disponível em ${spec.baseUrl}. Inicie o agente local e tente novamente.`,
+        };
       }
 
       // 2) Inicia venda
