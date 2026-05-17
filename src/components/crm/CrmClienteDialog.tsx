@@ -9,6 +9,7 @@ import { Search, Link2, UserPlus, Save, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientes, setCliente, type Cliente } from "@/lib/api-os";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
@@ -26,6 +27,7 @@ interface Props {
 const onlyDigits = (s?: string | null) => (s || "").replace(/\D/g, "");
 
 export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onLinked }: Props) {
+  const { auth } = useAuth();
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Cliente[]>([]);
@@ -95,21 +97,38 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
 
   const salvarCliente = async () => {
     if (!form.PESS_NOME?.trim()) { toast.error("Nome é obrigatório"); return; }
+    const docDigits = onlyDigits(form.PESS_CPFCNPJ);
+    if (!linked && !docDigits) { toast.error("CPF/CNPJ é obrigatório para cadastrar novo cliente"); return; }
     setBusy(true);
     try {
-      const payload: Partial<Cliente> = {
+      const unemId = (auth?.unidade as any)?.unem_Id || (auth?.unidade as any)?.Unem_Id || "";
+      const payload: any = {
         ...form,
         PESS_NOME: form.PESS_NOME?.toUpperCase().trim(),
-        PESS_CPFCNPJ: onlyDigits(form.PESS_CPFCNPJ),
+        PESS_CPFCNPJ: docDigits,
         PESS_FONE: onlyDigits(form.PESS_FONE),
         PESS_FONE_CELULAR: onlyDigits(form.PESS_FONE_CELULAR),
+        PESS_FISICO_JURIDICO: form.PESS_FISICO_JURIDICO || (docDigits.length > 11 ? "J" : "F"),
+        PESS_TIPO: form.PESS_TIPO || (docDigits.length > 11 ? "J" : "F"),
+        UNEM_ID: unemId,
       };
       const saved = await setCliente(payload);
-      const novo = (Array.isArray(saved) ? saved[0] : saved) as Cliente;
+      let novo: Cliente = (Array.isArray(saved) ? saved[0] : saved) as Cliente;
+      // Backend legado costuma retornar { success: true } sem PESS_ID — reconsulta por CPF/CNPJ
+      if (!novo?.PESS_ID && docDigits) {
+        try {
+          const arr = await getClientes({ cpfcnpj: docDigits });
+          if (arr?.[0]) novo = arr[0];
+        } catch { /* ignore */ }
+      }
       if (!novo?.PESS_ID && linked?.PESS_ID) novo.PESS_ID = linked.PESS_ID;
       toast.success(linked ? "Cliente atualizado" : "Cliente cadastrado");
-      if (novo?.PESS_ID) await vincularNoCrm(novo);
-      else onLinked?.();
+      if (novo?.PESS_ID) {
+        await vincularNoCrm(novo);
+      } else {
+        toast.message("Cliente salvo, mas não foi possível recuperar o ID para vincular automaticamente.");
+        onLinked?.();
+      }
     } catch (e: any) {
       toast.error(e?.message || "Erro ao salvar cliente");
     } finally { setBusy(false); }
@@ -217,7 +236,7 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
             <div className="grid grid-cols-2 gap-2">
               <Input placeholder="NOME *" value={form.PESS_NOME || ""}
                 onChange={(e) => setForm({ ...form, PESS_NOME: e.target.value.toUpperCase() })} />
-              <Input placeholder="CPF / CNPJ" value={form.PESS_CPFCNPJ || ""}
+              <Input placeholder={linked ? "CPF / CNPJ" : "CPF / CNPJ *"} value={form.PESS_CPFCNPJ || ""}
                 onChange={(e) => setForm({ ...form, PESS_CPFCNPJ: e.target.value })} />
               <Input placeholder="CELULAR" value={form.PESS_FONE_CELULAR || ""}
                 onChange={(e) => setForm({ ...form, PESS_FONE_CELULAR: e.target.value })} />

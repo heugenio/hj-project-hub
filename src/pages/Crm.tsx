@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search, User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import CrmClienteDialog from "@/components/crm/CrmClienteDialog";
+import { getClientes, type Cliente } from "@/lib/api-os";
 
 const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
@@ -34,7 +35,9 @@ export default function Crm() {
   const [dragOverEtapa, setDragOverEtapa] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [clienteOp, setClienteOp] = useState<Op | null>(null);
-  const [form, setForm] = useState<any>({ titulo: "", descricao: "", etapa_id: "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [clienteResults, setClienteResults] = useState<Cliente[]>([]);
+  const [form, setForm] = useState<any>({ titulo: "", descricao: "", etapa_id: "", valor_estimado: 0, probabilidade: 50, cliente_id: "", cliente_nome: "", telefone: "", data_prevista: "" });
 
   useEffect(() => { if (isReady) ensureEtapasPadrao(empresa_id); }, [empresa_id, isReady]);
 
@@ -100,8 +103,32 @@ export default function Crm() {
   };
 
   const openNew = (etapa_id?: string) => {
-    setForm({ titulo: "", descricao: "", etapa_id: etapa_id ?? etapas?.[0]?.id ?? "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
+    setForm({ titulo: "", descricao: "", etapa_id: etapa_id ?? etapas?.[0]?.id ?? "", valor_estimado: 0, probabilidade: 50, cliente_id: "", cliente_nome: "", telefone: "", data_prevista: "" });
+    setClienteResults([]);
+    setClienteSearch("");
     setOpen(true);
+  };
+
+  const buscarClientesNovo = async () => {
+    const q = clienteSearch.trim();
+    if (!q) return;
+    try {
+      const isDoc = /\d/.test(q) && q.replace(/\D/g, "").length >= 11;
+      const arr = await getClientes(isDoc ? { cpfcnpj: q.replace(/\D/g, "") } : { nome: q.toUpperCase() });
+      setClienteResults(arr.slice(0, 10));
+      if (!arr.length) toast.message("Nenhum cliente encontrado");
+    } catch (e: any) { toast.error(e?.message || "Erro ao buscar"); }
+  };
+
+  const selecionarClienteNovo = (c: any) => {
+    setForm((f: any) => ({
+      ...f,
+      cliente_id: String(c.PESS_ID || ""),
+      cliente_nome: c.PESS_NOME || "",
+      telefone: (c.PESS_FONE_CELULAR || c.PESS_FONE || "").replace(/\D/g, ""),
+    }));
+    setClienteResults([]);
+    setClienteSearch(c.PESS_NOME || "");
   };
 
   const save = async () => {
@@ -110,6 +137,7 @@ export default function Crm() {
       empresa_id, etapa_id: form.etapa_id,
       titulo: form.titulo.toUpperCase().trim(),
       descricao: form.descricao?.toUpperCase().trim() || null,
+      cliente_id: form.cliente_id ? String(form.cliente_id) : null,
       cliente_nome: form.cliente_nome?.toUpperCase().trim() || null,
       telefone: form.telefone?.replace(/\D/g, "") || null,
       valor_estimado: Number(form.valor_estimado) || 0,
@@ -210,8 +238,42 @@ export default function Crm() {
           <div className="space-y-3">
             <Input placeholder="TÍTULO" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value.toUpperCase() })} />
             <Textarea placeholder="DESCRIÇÃO" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value.toUpperCase() })} rows={2} />
+            <div className="space-y-1">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                Vincular cliente cadastrado {form.cliente_id && <span className="text-emerald-600">(ID {form.cliente_id})</span>}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-9 h-9" placeholder="BUSCAR POR NOME OU CPF/CNPJ"
+                    value={clienteSearch}
+                    onChange={(e) => setClienteSearch(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarClientesNovo(); } }} />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={buscarClientesNovo}>Buscar</Button>
+                {form.cliente_id && (
+                  <Button type="button" variant="ghost" size="sm"
+                    onClick={() => { setForm({ ...form, cliente_id: "", cliente_nome: "", telefone: "" }); setClienteSearch(""); }}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              {clienteResults.length > 0 && (
+                <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                  {clienteResults.map((c) => (
+                    <button key={c.PESS_ID} type="button" onClick={() => selecionarClienteNovo(c)}
+                      className="w-full text-left px-3 py-1.5 hover:bg-accent text-xs">
+                      <div className="font-medium truncate">{c.PESS_NOME}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {c.PESS_CPFCNPJ || "—"}{c.PESS_FONE_CELULAR ? ` · ${c.PESS_FONE_CELULAR}` : ""}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <Input placeholder="CLIENTE" value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value.toUpperCase() })} />
+              <Input placeholder="CLIENTE (livre)" value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value.toUpperCase() })} />
               <Input placeholder="TELEFONE" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
             </div>
             <div className="grid grid-cols-3 gap-2">
