@@ -700,12 +700,14 @@ export const getDanfe = async (id: string): Promise<string | null> => {
       if (/^[A-Za-z0-9+/=\r\n]+$/.test(s) && s.length > 100) return s.replace(/\s+/g, '');
       return null;
     }
-    if (raw.rawHtml || raw.message === '200 OK') return null;
+    if (raw.rawHtml) return null;
     const obj = Array.isArray(raw) ? raw[0] || {} : raw;
     const candidates = [
       obj.pdf, obj.PDF, obj.base64, obj.BASE64, obj.arquivo, obj.ARQUIVO,
       obj.danfe, obj.DANFE, obj.file, obj.FILE, obj.data, obj.DATA,
       obj.DCFS_ARQUIVO_DANFE, obj.ARQUIVO_DANFE,
+      // Proxy embrulha texto cru (base64) em { success, message }
+      obj.message, obj.MESSAGE,
     ];
     for (const c of candidates) {
       if (typeof c === 'string' && c.length > 100) {
