@@ -68,19 +68,32 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
     })();
   }, [open, oportunidade.cliente_id, oportunidade.cliente_nome, oportunidade.telefone]);
 
-  const buscar = async () => {
-    const q = search.trim();
-    if (!q) return;
+  const debouncedSearch = useDebounce(search, 350);
+  const lastQueryRef = useRef<string>("");
+
+  const buscar = async (queryArg?: string) => {
+    const q = (queryArg ?? search).trim();
+    if (!q) { setResults([]); return; }
     setBusy(true);
     try {
       const isDoc = /\d/.test(q) && onlyDigits(q).length >= 11;
       const arr = await getClientes(isDoc ? { cpfcnpj: onlyDigits(q) } : { nome: q.toUpperCase() });
       setResults(arr.slice(0, 15));
-      if (!arr.length) toast.message("Nenhum cliente encontrado");
     } catch (e: any) {
       toast.error(e?.message || "Erro ao buscar clientes");
     } finally { setBusy(false); }
   };
+
+  // Busca automática (debounced) — dispara a partir de 3 caracteres
+  useEffect(() => {
+    if (!open || linked) return;
+    const q = debouncedSearch.trim();
+    if (q.length < 3) { setResults([]); lastQueryRef.current = ""; return; }
+    if (q === lastQueryRef.current) return;
+    lastQueryRef.current = q;
+    buscar(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, open, linked]);
 
   const vincularNoCrm = async (cli: Cliente) => {
     const patch: any = {
