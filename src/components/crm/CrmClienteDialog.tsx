@@ -288,8 +288,9 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
                     onChange={(e) => setSearch(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === "Enter") buscar(); }}
                   />
+                  {busy && <div className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
                 </div>
-                <Button onClick={buscar} disabled={busy} size="sm" className="h-9">Buscar</Button>
+                <Button onClick={() => buscar()} disabled={busy} size="sm" className="h-9">Buscar</Button>
                 <Button variant="outline" size="sm" className="h-9" onClick={() => setShowForm(true)}>
                   <UserPlus className="h-4 w-4 mr-1" /> Novo
                 </Button>
