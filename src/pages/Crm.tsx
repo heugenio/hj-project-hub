@@ -230,6 +230,15 @@ export default function Crm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {clienteOp && (
+        <CrmClienteDialog
+          open={!!clienteOp}
+          onOpenChange={(v) => { if (!v) setClienteOp(null); }}
+          oportunidade={clienteOp}
+          onLinked={() => qc.invalidateQueries({ queryKey: ["crm-ops"] })}
+        />
+      )}
     </div>
   );
 }
