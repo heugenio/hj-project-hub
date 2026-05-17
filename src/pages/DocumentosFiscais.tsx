@@ -921,13 +921,23 @@ export default function DocumentosFiscais() {
 
   const imprimir = () => window.print();
 
-  // Roteia DANFE: XML disponível -> DANFE oficial conforme modelo; sem XML/Gerencial -> busca itens faturados
+  // Roteia DANFE: XML disponível -> tenta PDF oficial via getDanfe (backend), fallback HTML; sem XML -> gerencial
   const imprimirDanfe = async (doc: DocumentoFiscal) => {
     const modelo = (doc.DCFS_MODELO_NOTA || "").toUpperCase();
     const xml = doc.DCFS_ARQUIVO_NFE ? parseXmlFromB64(doc.DCFS_ARQUIVO_NFE) : "";
     if (xml) {
+      // 1) Tenta PDF oficial do backend (getDanfe?ID=DCFS_ID)
+      if (doc.DCFS_ID) {
+        try {
+          toast({ title: "Gerando DANFE...", description: `Documento Nº ${doc.DCFS_NUMERO_NOTA}` });
+          const pdfB64 = await getDanfe(doc.DCFS_ID);
+          if (pdfB64 && abrirPdfBase64(pdfB64, `DANFE-${doc.DCFS_NUMERO_NOTA || doc.DCFS_ID}.pdf`)) {
+            return;
+          }
+        } catch { /* fallback abaixo */ }
+      }
+      // 2) Fallback: gera DANFE local a partir do XML
       if (modelo === "65") return abrirHtmlImpressao(buildDanfeNfce65(xml));
-      // 55 (NF-e) é o padrão oficial; demais modelos eletrônicos usam o mesmo layout
       return abrirHtmlImpressao(buildDanfeOficial55(xml));
     }
     // Sem XML -> gerencial. Busca detalhe completo do documento + itens
