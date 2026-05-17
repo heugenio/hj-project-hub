@@ -488,8 +488,12 @@ export default function CrmClienteDialog({ open, onOpenChange, oportunidade, onL
                     onChange={(e) => setForm({ ...form, ENDE_NUMERO: e.target.value.toUpperCase() })} />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <Input className="h-9 text-xs" placeholder="CEP" value={form.ENDE_CEP || ""}
-                    onChange={(e) => setForm({ ...form, ENDE_CEP: e.target.value })} />
+                  <div className="relative">
+                    <Input className="h-9 text-xs pr-8" placeholder="CEP" value={form.ENDE_CEP || ""}
+                      onChange={(e) => setForm({ ...form, ENDE_CEP: e.target.value })}
+                      onBlur={handleCepBlur} />
+                    {buscandoCep && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
+                  </div>
                   <Input className="h-9 text-xs" placeholder="BAIRRO" value={form.BAIR_NOME || ""}
                     onChange={(e) => setForm({ ...form, BAIR_NOME: e.target.value.toUpperCase() })} />
                   <Input className="h-9 text-xs" placeholder="MUNICÍPIO" value={form.MUNI_NOME || ""}
