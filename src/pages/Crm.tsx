@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search } from "lucide-react";
+import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search, User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import CrmClienteDialog from "@/components/crm/CrmClienteDialog";
 
 const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
@@ -19,6 +20,7 @@ type Etapa = { id: string; nome: string; ordem: number; cor: string; is_ganho: b
 type Op = {
   id: string; etapa_id: string; titulo: string; descricao: string | null;
   valor_estimado: number; probabilidade: number; cliente_nome: string | null;
+  cliente_id: string | null;
   telefone: string | null; canal_origem: string | null; ordem: number;
   ultimo_contato_em: string | null; data_prevista: string | null;
   foto_lead_url: string | null;
@@ -31,6 +33,7 @@ export default function Crm() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverEtapa, setDragOverEtapa] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [clienteOp, setClienteOp] = useState<Op | null>(null);
   const [form, setForm] = useState<any>({ titulo: "", descricao: "", etapa_id: "", valor_estimado: 0, probabilidade: 50, cliente_nome: "", telefone: "", data_prevista: "" });
 
   useEffect(() => { if (isReady) ensureEtapasPadrao(empresa_id); }, [empresa_id, isReady]);
@@ -171,12 +174,24 @@ export default function Crm() {
               <div className="flex-1 px-2 pb-2 space-y-2 min-h-32 overflow-y-auto max-h-[calc(100vh-360px)]">
                 {items.map((o) => (
                   <div key={o.id} draggable onDragStart={() => setDraggingId(o.id)} onDragEnd={() => setDraggingId(null)}
-                    className="rounded-lg border bg-card p-2.5 shadow-sm cursor-grab active:cursor-grabbing hover:shadow transition-shadow">
+                    onClick={() => setClienteOp(o)}
+                    className="rounded-lg border bg-card p-2.5 shadow-sm cursor-pointer hover:shadow transition-shadow active:cursor-grabbing">
                     <p className="text-sm font-medium truncate">{o.titulo}</p>
                     {o.cliente_nome && <p className="text-xs text-muted-foreground truncate">{o.cliente_nome}</p>}
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs font-semibold text-primary">{brl(Number(o.valor_estimado || 0))}</span>
-                      <Badge variant="outline" className="text-[10px] h-4">{o.probabilidade}%</Badge>
+                      <div className="flex items-center gap-1">
+                        {o.cliente_id ? (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 border-emerald-500/50 text-emerald-600">
+                            <User className="h-2.5 w-2.5" /> cliente
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-amber-600 border-amber-500/50">
+                            <UserPlus className="h-2.5 w-2.5" /> sem cliente
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-[10px] h-4">{o.probabilidade}%</Badge>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -215,6 +230,15 @@ export default function Crm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {clienteOp && (
+        <CrmClienteDialog
+          open={!!clienteOp}
+          onOpenChange={(v) => { if (!v) setClienteOp(null); }}
+          oportunidade={clienteOp}
+          onLinked={() => qc.invalidateQueries({ queryKey: ["crm-ops"] })}
+        />
+      )}
     </div>
   );
 }
