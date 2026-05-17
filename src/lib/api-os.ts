@@ -710,8 +710,9 @@ export const getDanfe = async (id: string): Promise<string | null> => {
       obj.message, obj.MESSAGE,
     ];
     for (const c of candidates) {
-      if (typeof c === 'string' && c.length > 100) {
-        return c.replace(/^data:application\/pdf;base64,/i, '').replace(/\s+/g, '');
+      if (typeof c === 'string' && c.length > 100 && c !== '200 OK') {
+        const clean = c.replace(/^data:application\/pdf;base64,/i, '').replace(/\s+/g, '');
+        if (/^[A-Za-z0-9+/=]+$/.test(clean)) return clean;
       }
     }
     return null;
