@@ -69,6 +69,9 @@ interface Props {
   emprId?: string;
   usrsId: string;
   onFinalized: () => void;
+  clienteNome?: string;
+  clienteId?: string;
+  telefoneCliente?: string;
 }
 
 const fmtBRL = (v: number) =>
