@@ -30,7 +30,6 @@ type Op = {
 export default function Crm() {
   const { empresa_id, isReady, usrs_id } = useEmpresaScope();
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverEtapa, setDragOverEtapa] = useState<string | null>(null);
