@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Target, Trophy, TrendingDown, Sparkles, Percent, Search, User, UserPlus, Phone, CalendarDays, DollarSign, FileText, TagIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import CrmClienteDialog from "@/components/crm/CrmClienteDialog";
 import { getClientes, type Cliente } from "@/lib/api-os";
 
