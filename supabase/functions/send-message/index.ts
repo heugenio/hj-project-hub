@@ -60,10 +60,28 @@ const BITRIX_WABA_TO_NOME: Record<string, string> = Object.fromEntries(
   Object.values(BITRIX_LOJAS).map(v => [v.waba_id, v.nome])
 );
 
+// UNEM_ID (legacy) → nome oficial Bitrix
+const BITRIX_UNEM_TO_NOME: Record<string, string> = {
+  '000640010004': 'Flamboyant',
+  '000640010005': 'Av 85',
+  '000640010007': 'Tamandare',
+  '000640010006': 'Av Independencia',
+  '000640010003': 'Asa Sul',
+  '000640010002': 'Tag Sul',
+  '000640010001': 'Sia',
+  '000640010008': 'Walter Santos',
+  '000640010009': 'Tag Norte',
+  '000640010010': 'Asa Norte',
+  '000640010011': 'Anapolis',
+};
+
 function resolveBitrixLojaNome(input: string): string {
   const raw = (input || '').trim();
   if (!raw) return '';
+  // UNEM_ID legacy (12 dígitos começando 000640010) → nome
+  if (BITRIX_UNEM_TO_NOME[raw]) return BITRIX_UNEM_TO_NOME[raw];
   const digits = raw.replace(/\D/g, '');
+  if (BITRIX_UNEM_TO_NOME[digits]) return BITRIX_UNEM_TO_NOME[digits];
   // CNPJ conhecido → nome
   if (digits.length === 14 && BITRIX_LOJAS[digits]) return BITRIX_LOJAS[digits].nome;
   // waba_id conhecido → nome
