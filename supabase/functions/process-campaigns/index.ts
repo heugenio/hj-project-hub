@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       } catch { return ''; }
     };
 
-    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n'];
+    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n', 'Bitrix'];
     sanitizeProvider = (v: string) => {
       const trimmed = v.trim();
       return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
@@ -193,6 +193,15 @@ Deno.serve(async (req) => {
         payload.device = device;
         payload.webhookUrl = campaign.n8n_webhook_url || 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto';
       }
+      if (provider === 'Bitrix') {
+        // token = template name (from TOKENWHATS); device = loja/waba_id (from DEVICEWHATS)
+        payload.bitrixTemplate = token || 'lembrete_rodizio';
+        payload.bitrixLoja = device || (contato.UNEM_FANTASIA || '');
+        payload.bitrixNome = nomeCliente;
+        payload.type = 'text';
+        delete payload.file;
+        delete payload.mediaType;
+      }
 
       try {
         console.log(`Enviando para ${foneFull} via ${provider}...`);
@@ -302,7 +311,7 @@ Deno.serve(async (req) => {
           paramsCache[unemId] = await getProviderParams(unemId);
         }
         const { provider, token, device, phoneId } = paramsCache[unemId];
-        if (!provider || (provider !== 'n8n' && !token)) {
+        if (!provider || (provider !== 'n8n' && provider !== 'Bitrix' && !token)) {
           console.log(`Unidade ${unemId}: provider ou token vazio – pulando`);
           continue;
         }
@@ -314,7 +323,7 @@ Deno.serve(async (req) => {
       const unemId = campaign.filtro_unem_id;
       const { provider, token, device, phoneId } = await getProviderParams(unemId);
 
-      if (!provider || (provider !== 'n8n' && !token)) {
+      if (!provider || (provider !== 'n8n' && provider !== 'Bitrix' && !token)) {
         console.log(`Unidade ${unemId}: provider ou token vazio – pulando`);
         await reschedule(sb, campaign, now);
         return jsonResp({ id: campaign.id, status: 'no_provider' });

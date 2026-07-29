@@ -4,7 +4,7 @@ const corsHeaders = {
 };
 
 interface SendRequest {
-  provider: 'Nexus' | 'WhatsAppOficial' | 'BrasilAPI' | 'Email' | 'n8n';
+  provider: 'Nexus' | 'WhatsAppOficial' | 'BrasilAPI' | 'Email' | 'n8n' | 'Bitrix';
   token: string;
   device?: string; // BrasilAPI DeviceToken
   phoneNumberId?: string; // WhatsApp Oficial
@@ -26,6 +26,43 @@ interface SendRequest {
   nexusUrl?: string;
   // n8n webhook URL
   webhookUrl?: string;
+  // Bitrix (Griffe Disparos) fields
+  bitrixLoja?: string;       // nome da loja OU waba_id
+  bitrixTemplate?: string;   // nome do template aprovado (default: lembrete_rodizio)
+  bitrixLanguage?: string;   // default pt_BR
+  bitrixNome?: string;       // valor da variável {{1}}
+}
+
+async function sendBitrix(req: SendRequest): Promise<Response> {
+  const baseUrl = Deno.env.get('GRIFFE_DISPAROS_BASE_URL') || 'https://griffe-disparos-bot-griffe.r7obki.easypanel.host';
+  const apiKey = Deno.env.get('GRIFFE_DISPAROS_API_KEY') || '';
+  const template = (req.bitrixTemplate || req.token || 'lembrete_rodizio').trim();
+  const loja = (req.bitrixLoja || req.device || '').trim();
+  const language = (req.bitrixLanguage || 'pt_BR').trim();
+  const nome = (req.bitrixNome || req.text || '').trim();
+
+  let phone = req.number.replace(/\D/g, '');
+  if (!phone.startsWith('55')) phone = '55' + phone;
+
+  const body: Record<string, unknown> = {
+    template,
+    language,
+    contatos: [{ numero: phone, nome }],
+  };
+  // Aceita nome de loja OU waba_id (só dígitos)
+  if (/^\d+$/.test(loja)) body.waba_id = loja;
+  else body.loja = loja;
+
+  console.log(`Bitrix payload: loja=${loja}, template=${template}, numero=${phone}, nome=${nome}`);
+
+  return fetch(`${baseUrl}/api/disparos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
+    },
+    body: JSON.stringify(body),
+  });
 }
 
 async function sendNexus(req: SendRequest): Promise<Response> {
@@ -336,6 +373,9 @@ Deno.serve(async (req) => {
         break;
       case 'n8n':
         response = await sendN8n(body);
+        break;
+      case 'Bitrix':
+        response = await sendBitrix(body);
         break;
       default:
         return new Response(
