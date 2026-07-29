@@ -877,7 +877,7 @@ export default function Marketing() {
                 curPhoneNumberId = cached.phoneNumberId || bgWhatsPhoneNumberId;
               }
 
-              if (!curProvider || (curProvider !== 'n8n' && !curToken)) {
+              if (!curProvider || (curProvider !== 'n8n' && curProvider !== 'Bitrix' && !curToken)) {
                 console.warn(`⚠️ UNEM_ID=${contatoUnemId}: provider ou token vazio, pulando ${phone}`);
                 if (bgIdx >= 0) bgSend.contatos[bgIdx].sendStatus = 'error';
                 bgSend.progress.erros++;
@@ -914,14 +914,20 @@ export default function Marketing() {
                 if (n8nUrl) payload.webhookUrl = n8nUrl;
               }
               if (curProvider === 'WhatsAppOficial') payload.phoneNumberId = curPhoneNumberId;
-
-              if (bgImagemUrl) {
+              if (curProvider === 'Bitrix') {
+                // token = template name (via TOKENWHATS parametro); device = loja/waba_id (via DEVICEWHATS)
+                payload.bitrixTemplate = curToken || 'lembrete_rodizio';
+                payload.bitrixLoja = curDevice || contato.loja || emprNome;
+                payload.bitrixNome = nomeComTratamento;
+                payload.type = 'text';
+              } else if (bgImagemUrl) {
                 payload.type = "media";
                 payload.mediaType = "image";
                 payload.file = bgImagemUrl;
               } else {
                 payload.type = "text";
               }
+
 
               console.log('=== ENVIO MARKETING ===');
               console.log('Provider:', curProvider, '| UNEM_ID:', contatoUnemId);
