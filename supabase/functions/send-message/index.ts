@@ -78,7 +78,10 @@ const BITRIX_UNEM_TO_NOME: Record<string, string> = {
 function resolveBitrixLojaNome(input: string): string {
   const raw = (input || '').trim();
   if (!raw) return '';
+  // UNEM_ID legacy (12 dígitos começando 000640010) → nome
+  if (BITRIX_UNEM_TO_NOME[raw]) return BITRIX_UNEM_TO_NOME[raw];
   const digits = raw.replace(/\D/g, '');
+  if (BITRIX_UNEM_TO_NOME[digits]) return BITRIX_UNEM_TO_NOME[digits];
   // CNPJ conhecido → nome
   if (digits.length === 14 && BITRIX_LOJAS[digits]) return BITRIX_LOJAS[digits].nome;
   // waba_id conhecido → nome
