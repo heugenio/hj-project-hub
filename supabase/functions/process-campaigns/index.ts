@@ -7,11 +7,11 @@ const corsHeaders = {
 
 const MAX_SENDS_PER_RUN = 150;
 // Random delay between messages to avoid blocking
-// n8n: 1s, 2s, 3s — others: 60s, 90s, 120s
+// n8n/Bitrix: 12-25s (backend queues/throttles) — others: 60s, 90s, 120s
 const MESSAGE_DELAYS_STANDARD = [60000, 90000, 120000];
-const MESSAGE_DELAYS_N8N = [12000, 18000, 25000];
+const MESSAGE_DELAYS_FAST = [12000, 18000, 25000];
 function getRandomMessageDelay(provider?: string): number {
-  const delays = provider === 'n8n' ? MESSAGE_DELAYS_N8N : MESSAGE_DELAYS_STANDARD;
+  const delays = (provider === 'n8n' || provider === 'Bitrix') ? MESSAGE_DELAYS_FAST : MESSAGE_DELAYS_STANDARD;
   return delays[Math.floor(Math.random() * delays.length)];
 }
 
