@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
 
     let totalEnviados = 0;
     let totalErros = 0;
+    let totalPulados = 0;
     let sendCount = 0;
 
     // Helper to send a single contact – returns 'sent' | 'skipped' | 'error'
@@ -280,7 +281,7 @@ Deno.serve(async (req) => {
       for (const contato of contatos) {
         if (sendCount >= MAX_SENDS_PER_RUN) break;
         const result = await sendOne(contato, campaign, provider, token, device, phoneId, unemId);
-        if (result === 'skipped') continue; // don't count skipped against quota
+        if (result === 'skipped') { totalPulados++; continue; }
         if (result === 'sent') totalEnviados++;
         else totalErros++;
         sendCount++;
@@ -345,10 +346,10 @@ Deno.serve(async (req) => {
     }
 
     // ── Reschedule ──
-    await reschedule(sb, campaign, now, totalEnviados, totalErros);
-    console.log(`Campaign ${campaign.nome} done: enviados=${totalEnviados}, erros=${totalErros}, sendCount=${sendCount}`);
+    await reschedule(sb, campaign, now, totalEnviados, totalErros, totalPulados);
+    console.log(`Campaign ${campaign.nome} done: enviados=${totalEnviados}, erros=${totalErros}, pulados=${totalPulados}, sendCount=${sendCount}`);
 
-    allResults.push({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros });
+    allResults.push({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros, pulados: totalPulados });
     } // end for each campaign
 
     return jsonResp({ processed: allResults.length, results: allResults });
@@ -360,7 +361,7 @@ Deno.serve(async (req) => {
   }
 });
 
-async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros = 0) {
+async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros = 0, pulados = 0) {
   const next = new Date(now);
   if (campaign.recorrencia === 'semanal') next.setDate(next.getDate() + 7);
   else next.setDate(next.getDate() + 1);
@@ -374,6 +375,7 @@ async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros
     proxima_execucao: next.toISOString(),
     total_enviados: enviados,
     total_erros: erros,
+    total_pulados: pulados,
     updated_at: now.toISOString(),
   }).eq('id', campaign.id);
 }
