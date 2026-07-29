@@ -919,7 +919,7 @@ export default function Marketing() {
                 payload.bitrixTemplate = curToken || msweTipo || 'lembrete_rodizio';
                 // loja: DEVICEWHATS OU CNPJ da unidade OU nome fantasia
                 payload.bitrixLoja = curDevice
-                  || contato.raw?.UNEM_CNPJ || contato.raw?.unem_CNPJ || contato.raw?.UNEM_CGC
+                  || (contato.raw as any)?.UNEM_CNPJ || (contato.raw as any)?.unem_CNPJ || (contato.raw as any)?.UNEM_CGC
                   || contato.loja || emprNome;
                 payload.bitrixNome = nomeComTratamento;
                 payload.type = 'text';
