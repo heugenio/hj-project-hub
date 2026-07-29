@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       } catch { return ''; }
     };
 
-    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n'];
+    const VALID_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n', 'Bitrix'];
     sanitizeProvider = (v: string) => {
       const trimmed = v.trim();
       return VALID_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase()) || '';
