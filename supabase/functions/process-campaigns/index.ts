@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
         // loja: CNPJ da unidade OU nome fantasia (send-message resolve para nome oficial).
         // IGNORAR DEVICEWHATS (UUID do APIBrasil, não identifica loja Bitrix).
         payload.bitrixLoja = contato.UNEM_CNPJ || contato.unem_CNPJ || contato.UNEM_CGC
-          || contato.UNEM_FANTASIA || contato.unem_Fantasia || '';
+          || unemId || contato.UNEM_FANTASIA || contato.unem_Fantasia || '';
         payload.bitrixNome = nomeCliente;
         payload.token = '';
         payload.device = '';
