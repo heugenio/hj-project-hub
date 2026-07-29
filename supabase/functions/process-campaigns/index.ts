@@ -346,10 +346,10 @@ Deno.serve(async (req) => {
     }
 
     // ── Reschedule ──
-    await reschedule(sb, campaign, now, totalEnviados, totalErros);
-    console.log(`Campaign ${campaign.nome} done: enviados=${totalEnviados}, erros=${totalErros}, sendCount=${sendCount}`);
+    await reschedule(sb, campaign, now, totalEnviados, totalErros, totalPulados);
+    console.log(`Campaign ${campaign.nome} done: enviados=${totalEnviados}, erros=${totalErros}, pulados=${totalPulados}, sendCount=${sendCount}`);
 
-    allResults.push({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros });
+    allResults.push({ id: campaign.id, nome: campaign.nome, enviados: totalEnviados, erros: totalErros, pulados: totalPulados });
     } // end for each campaign
 
     return jsonResp({ processed: allResults.length, results: allResults });
