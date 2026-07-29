@@ -109,12 +109,16 @@ Deno.serve(async (req) => {
           const qtdDias = Number(msgConfig?.MSWA_QTD_DIAS) || 0;
 
           if (qtdDias > 0) {
-            // RODIZIO diário: busca exatamente o dia alvo (hoje - qtdDias)
-            const dataAlvo = new Date(hoje);
-            dataAlvo.setDate(dataAlvo.getDate() - qtdDias);
-            const dataAlvoFmt = fmtDate(dataAlvo);
-            console.log(`Campanha ${campaign.nome}: RODIZIO diário com MSWA_QTD_DIAS=${qtdDias}, DATA=${dataAlvoFmt} (dia exato)`);
-            return { dataIni: dataAlvoFmt, dataFim: dataAlvoFmt };
+            // RODIZIO diário: janela de 7 dias terminando no dia alvo (hoje - qtdDias)
+            // Mesma lógica do envio manual em Marketing.tsx
+            const fim = new Date(hoje);
+            fim.setDate(fim.getDate() - qtdDias);
+            const ini = new Date(fim);
+            ini.setDate(ini.getDate() - 7);
+            const dataIniFmt = fmtDate(ini);
+            const dataFimFmt = fmtDate(fim);
+            console.log(`Campanha ${campaign.nome}: RODIZIO diário com MSWA_QTD_DIAS=${qtdDias}, DATAINI=${dataIniFmt}, DATAFIM=${dataFimFmt} (janela 7 dias)`);
+            return { dataIni: dataIniFmt, dataFim: dataFimFmt };
           }
         } catch (err) {
           console.warn(`Campanha ${campaign.nome}: erro ao buscar MSWA_QTD_DIAS do RODIZIO, usando data atual`, err);
