@@ -1,0 +1,1 @@
+ALTER TABLE public.campanhas_agendadas ADD COLUMN IF NOT EXISTS total_pulados integer NOT NULL DEFAULT 0;

@@ -37,6 +37,7 @@ export type Database = {
           todas_unidades: boolean | null
           total_enviados: number | null
           total_erros: number | null
+          total_pulados: number
           ultima_execucao: string | null
           updated_at: string | null
         }
@@ -62,6 +63,7 @@ export type Database = {
           todas_unidades?: boolean | null
           total_enviados?: number | null
           total_erros?: number | null
+          total_pulados?: number
           ultima_execucao?: string | null
           updated_at?: string | null
         }
@@ -87,6 +89,7 @@ export type Database = {
           todas_unidades?: boolean | null
           total_enviados?: number | null
           total_erros?: number | null
+          total_pulados?: number
           ultima_execucao?: string | null
           updated_at?: string | null
         }
