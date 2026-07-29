@@ -56,19 +56,24 @@ const BITRIX_TEMPLATE_ALIASES: Record<string, string> = {
   'RODIZIO': 'lembrete_rodizio',
 };
 
-function resolveBitrixLoja(input: string): { waba_id?: string; loja?: string } {
+const BITRIX_WABA_TO_NOME: Record<string, string> = Object.fromEntries(
+  Object.values(BITRIX_LOJAS).map(v => [v.waba_id, v.nome])
+);
+
+function resolveBitrixLojaNome(input: string): string {
   const raw = (input || '').trim();
-  if (!raw) return {};
+  if (!raw) return '';
   const digits = raw.replace(/\D/g, '');
-  // CNPJ conhecido → waba_id
-  if (digits.length === 14 && BITRIX_LOJAS[digits]) return { waba_id: BITRIX_LOJAS[digits].waba_id };
-  // já é waba_id (só dígitos)
-  if (/^\d+$/.test(raw)) return { waba_id: raw };
-  // nome fantasia conhecido → waba_id
+  // CNPJ conhecido → nome
+  if (digits.length === 14 && BITRIX_LOJAS[digits]) return BITRIX_LOJAS[digits].nome;
+  // waba_id conhecido → nome
+  if (/^\d+$/.test(raw) && BITRIX_WABA_TO_NOME[raw]) return BITRIX_WABA_TO_NOME[raw];
+  // nome fantasia conhecido (normalizado) → nome oficial
   const key = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (BITRIX_NOME_TO_WABA[key]) return { waba_id: BITRIX_NOME_TO_WABA[key] };
-  // fallback: manda como nome de loja
-  return { loja: raw };
+  const wabaFromNome = BITRIX_NOME_TO_WABA[key];
+  if (wabaFromNome && BITRIX_WABA_TO_NOME[wabaFromNome]) return BITRIX_WABA_TO_NOME[wabaFromNome];
+  // fallback: usa como nome de loja
+  return raw;
 }
 
 async function sendBitrix(req: SendRequest): Promise<Response> {
@@ -83,16 +88,17 @@ async function sendBitrix(req: SendRequest): Promise<Response> {
   let phone = req.number.replace(/\D/g, '');
   if (!phone.startsWith('55')) phone = '55' + phone;
 
+  const loja = resolveBitrixLojaNome(lojaIn);
   const body: Record<string, unknown> = {
+    loja,
     template,
     language,
     contatos: [{ numero: phone, nome }],
+    msgs_por_bloco: 20,
+    intervalo_blocos_seg: 60,
   };
-  const resolved = resolveBitrixLoja(lojaIn);
-  if (resolved.waba_id) body.waba_id = resolved.waba_id;
-  else if (resolved.loja) body.loja = resolved.loja;
 
-  console.log(`Bitrix payload: lojaIn=${lojaIn} → ${JSON.stringify(resolved)}, template=${template} (raw=${rawTpl}), numero=${phone}, nome=${nome}`);
+  console.log(`Bitrix payload: lojaIn=${lojaIn} → loja=${loja}, template=${template} (raw=${rawTpl}), numero=${phone}, nome=${nome}`);
 
   return fetch(`${baseUrl}/api/disparos`, {
     method: 'POST',
