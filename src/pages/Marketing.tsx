@@ -218,7 +218,7 @@ export default function Marketing() {
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [filtroUnemId, setFiltroUnemId] = useState<string>(() => {
     try {
-      const stored = localStorage.getItem('hj_unidade');
+      const stored = sessionStorage.getItem('hj_unidade');
       if (stored) {
         const u = JSON.parse(stored);
         return u.unem_Id || u.UNEM_ID || '__todas__';
@@ -251,7 +251,7 @@ export default function Marketing() {
   const getResolvedUnemId = (): string => {
     if (filtroUnemId && filtroUnemId !== '__todas__') return filtroUnemId;
     try {
-      const stored = localStorage.getItem('hj_unidade');
+      const stored = sessionStorage.getItem('hj_unidade');
       if (stored) {
         const u = JSON.parse(stored);
         return u.unem_Id || u.UNEM_ID || '';
@@ -319,7 +319,7 @@ export default function Marketing() {
     const fetchUnidades = async () => {
       setLoadingUnidades(true);
       try {
-        const stored = localStorage.getItem('hj_unidade');
+        const stored = sessionStorage.getItem('hj_unidade');
         let emprId = '';
         if (stored) {
           try { const u = JSON.parse(stored); emprId = u.empr_id || u.empr_Id || ''; } catch {}
@@ -485,7 +485,7 @@ export default function Marketing() {
   const gerarLista = useCallback(async () => {
     setLoading(true);
     try {
-      const stored = localStorage.getItem('hj_unidade');
+      const stored = sessionStorage.getItem('hj_unidade');
       let unemId = '';
       if (stored) {
         try { unemId = JSON.parse(stored).unem_Id || JSON.parse(stored).UNEM_ID || ''; } catch {}
@@ -614,7 +614,7 @@ export default function Marketing() {
     const unem = unidades.find(u => u.unem_Id === filtroUnemId);
     if (unem?.unem_Endereco) return unem.unem_Endereco;
     try {
-      const stored = localStorage.getItem('hj_unidade');
+      const stored = sessionStorage.getItem('hj_unidade');
       if (stored) {
         const u = JSON.parse(stored);
         return u.unem_Endereco || u.UNEM_ENDERECO || '';
@@ -824,7 +824,7 @@ export default function Marketing() {
               const emailDest = contato.email;
               if (!emailDest) { bgSend.progress.erros++; continue; }
 
-              const storedUnidade = localStorage.getItem('hj_unidade');
+              const storedUnidade = sessionStorage.getItem('hj_unidade');
               let emprNome = '';
               if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
               const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;
@@ -928,7 +928,7 @@ export default function Marketing() {
                 continue;
               }
 
-              const storedUnidade = localStorage.getItem('hj_unidade');
+              const storedUnidade = sessionStorage.getItem('hj_unidade');
               let emprNome = '';
               if (storedUnidade) { try { emprNome = JSON.parse(storedUnidade).unem_Fantasia || ''; } catch {} }
               const nomeComTratamento = contato.tratamento ? `${contato.tratamento} ${contato.nome}` : contato.nome;

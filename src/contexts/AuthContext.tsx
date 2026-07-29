@@ -18,24 +18,31 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<AuthState | null>(() => {
     try {
-      const user = localStorage.getItem("hj_user");
-      const unidade = localStorage.getItem("hj_unidade");
+      // Sessão por aba: usa sessionStorage para permitir empresas/usuários diferentes em cada aba
+      const user = sessionStorage.getItem("hj_user");
+      const unidade = sessionStorage.getItem("hj_unidade");
       if (user && unidade) return { user: JSON.parse(user), unidade: JSON.parse(unidade) };
     } catch {}
     return null;
   });
 
   const login = (user: Usuario, unidade: UnidadeEmpresarial) => {
-    localStorage.setItem("hj_user", JSON.stringify(user));
-    localStorage.setItem("hj_unidade", JSON.stringify(unidade));
-    localStorage.setItem("hj_logged", "true");
+    sessionStorage.setItem("hj_user", JSON.stringify(user));
+    sessionStorage.setItem("hj_unidade", JSON.stringify(unidade));
+    sessionStorage.setItem("hj_logged", "true");
+    // Limpa qualquer resquício de localStorage (versões antigas)
+    try {
+      localStorage.removeItem("hj_user");
+      localStorage.removeItem("hj_unidade");
+      localStorage.removeItem("hj_logged");
+    } catch {}
     setAuth({ user, unidade });
   };
 
   const logout = () => {
-    localStorage.removeItem("hj_user");
-    localStorage.removeItem("hj_unidade");
-    localStorage.removeItem("hj_logged");
+    sessionStorage.removeItem("hj_user");
+    sessionStorage.removeItem("hj_unidade");
+    sessionStorage.removeItem("hj_logged");
     setAuth(null);
   };
 

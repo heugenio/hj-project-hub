@@ -716,9 +716,9 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
       // Integração CRM: marca oportunidade como ganha
       try {
         const { crmAutoQualificar } = await import("@/lib/crm-integration");
-        const empr = localStorage.getItem("hj_empr_id") || (pedido as any)?.EMPR_ID || "";
-        const unem = localStorage.getItem("hj_unem_id") || (pedido as any)?.UNEM_ID || undefined;
-        const usrs = localStorage.getItem("hj_usrs_id") || undefined;
+        const empr = sessionStorage.getItem("hj_empr_id") || (pedido as any)?.EMPR_ID || "";
+        const unem = sessionStorage.getItem("hj_unem_id") || (pedido as any)?.UNEM_ID || undefined;
+        const usrs = sessionStorage.getItem("hj_usrs_id") || undefined;
         await crmAutoQualificar({
           empresa_id: String(empr),
           unem_id: unem ? String(unem) : undefined,
