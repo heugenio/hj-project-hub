@@ -194,9 +194,12 @@ Deno.serve(async (req) => {
         payload.webhookUrl = campaign.n8n_webhook_url || 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto';
       }
       if (provider === 'Bitrix') {
-        // token = template name (from TOKENWHATS); device = loja/waba_id (from DEVICEWHATS)
-        payload.bitrixTemplate = token || 'lembrete_rodizio';
-        payload.bitrixLoja = device || (contato.UNEM_FANTASIA || '');
+        // template: TOKENWHATS (parametro) OU tipo da campanha (ex.: RODIZIO → lembrete_rodizio via alias no send-message)
+        payload.bitrixTemplate = token || campaign.tipo || 'lembrete_rodizio';
+        // loja: DEVICEWHATS (parametro) OU CNPJ da unidade OU nome fantasia (send-message resolve para waba_id)
+        payload.bitrixLoja = device
+          || contato.UNEM_CNPJ || contato.unem_CNPJ || contato.UNEM_CGC
+          || contato.UNEM_FANTASIA || '';
         payload.bitrixNome = nomeCliente;
         payload.type = 'text';
         delete payload.file;
