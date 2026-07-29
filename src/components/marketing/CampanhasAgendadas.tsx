@@ -38,6 +38,7 @@ interface CampanhaAgendada {
   proxima_execucao: string | null;
   total_enviados: number;
   total_erros: number;
+  total_pulados?: number;
   created_at: string;
   empr_id: string | null;
   base_url: string | null;
