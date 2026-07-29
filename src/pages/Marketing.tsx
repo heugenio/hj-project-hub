@@ -915,9 +915,12 @@ export default function Marketing() {
               }
               if (curProvider === 'WhatsAppOficial') payload.phoneNumberId = curPhoneNumberId;
               if (curProvider === 'Bitrix') {
-                // token = template name (via TOKENWHATS parametro); device = loja/waba_id (via DEVICEWHATS)
-                payload.bitrixTemplate = curToken || 'lembrete_rodizio';
-                payload.bitrixLoja = curDevice || contato.loja || emprNome;
+                // template: TOKENWHATS OU tipo (msweTipo, ex.: RODIZIO → lembrete_rodizio)
+                payload.bitrixTemplate = curToken || msweTipo || 'lembrete_rodizio';
+                // loja: DEVICEWHATS OU CNPJ da unidade OU nome fantasia
+                payload.bitrixLoja = curDevice
+                  || contato.raw?.UNEM_CNPJ || contato.raw?.unem_CNPJ || contato.raw?.UNEM_CGC
+                  || contato.loja || emprNome;
                 payload.bitrixNome = nomeComTratamento;
                 payload.type = 'text';
               } else if (bgImagemUrl) {
