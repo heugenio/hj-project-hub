@@ -403,7 +403,7 @@ export default function CampanhasAgendadas({ unidades }: Props) {
             <p className="text-[10px] mt-0.5">Clique em "Nova Campanha" para criar</p>
           </div>
         ) : (
-          <ScrollArea className="max-h-fit">
+          <div className="overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
