@@ -514,7 +514,7 @@ export default function CampanhasAgendadas({ unidades }: Props) {
                 ))}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         )}
       </CardContent>
 
