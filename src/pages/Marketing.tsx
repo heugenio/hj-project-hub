@@ -117,10 +117,51 @@ async function fetchParametro(unemId: string, nome: string): Promise<string> {
 
 const VALID_WHATS_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n', 'Bitrix'];
 
+const BITRIX_TEMPLATE_ALIASES: Record<string, string> = {
+  RODIZIO: 'lembrete_rodizio',
+};
+
+const BITRIX_LOJA_ALIASES: Record<string, string> = {
+  '000640010004': 'Flamboyant',
+  '000640010005': 'Av 85',
+  '000640010007': 'Tamandare',
+  '000640010006': 'Av Independencia',
+  '000640010003': 'Asa Sul',
+  '000640010002': 'Tag Sul',
+  '000640010001': 'Sia',
+  '000640010008': 'Walter Santos',
+  '000640010009': 'Tag Norte',
+  '000640010010': 'Asa Norte',
+  '000640010011': 'Anapolis',
+  '05801944000181': 'Flamboyant',
+  '05801944000262': 'Av 85',
+  '05801944000343': 'Tamandare',
+  '05801944000424': 'Av Independencia',
+  '10929311000193': 'Asa Sul',
+  '10929311000274': 'Tag Sul',
+  '10929311000355': 'Sia',
+  '05801944000505': 'Walter Santos',
+  '10929311000436': 'Tag Norte',
+  '10929311000517': 'Asa Norte',
+  '05801944000696': 'Anapolis',
+  '1b70ef24-b836-4eca-b92b-d521915b3930': 'Flamboyant',
+};
+
 function sanitizeProvider(value: string): string {
   const trimmed = value.trim();
   const match = VALID_WHATS_PROVIDERS.find(p => p.toLowerCase() === trimmed.toLowerCase());
   return match || '';
+}
+
+function resolveBitrixTemplateForLog(value: string): string {
+  const raw = (value || '').trim();
+  return BITRIX_TEMPLATE_ALIASES[raw.toUpperCase()] || raw || 'lembrete_rodizio';
+}
+
+function resolveBitrixLojaForLog(value: string): string {
+  const raw = (value || '').trim();
+  const digits = raw.replace(/\D/g, '');
+  return BITRIX_LOJA_ALIASES[raw] || BITRIX_LOJA_ALIASES[digits] || raw;
 }
 
 // ── Background sending state (persists across navigation) ──
@@ -717,7 +758,7 @@ export default function Marketing() {
           toast.error("Provedor WhatsApp não configurado. Verifique o parâmetro SERVIDORWHATS para esta unidade.");
           return;
         }
-        if (whatsProvider !== 'n8n' && !whatsToken) {
+        if (whatsProvider !== 'n8n' && whatsProvider !== 'Bitrix' && !whatsToken) {
           toast.error("Token WhatsApp não configurado. Verifique o parâmetro TOKENWHATS para esta unidade.");
           return;
         }
@@ -915,12 +956,12 @@ export default function Marketing() {
               }
               if (curProvider === 'WhatsAppOficial') payload.phoneNumberId = curPhoneNumberId;
               if (curProvider === 'Bitrix') {
-                // template: TOKENWHATS OU tipo (msweTipo, ex.: RODIZIO → lembrete_rodizio)
-                payload.bitrixTemplate = curToken || msweTipo || 'lembrete_rodizio';
-                // loja: DEVICEWHATS OU CNPJ da unidade OU nome fantasia
-                payload.bitrixLoja = curDevice
-                  || (contato.raw as any)?.UNEM_CNPJ || (contato.raw as any)?.unem_CNPJ || (contato.raw as any)?.UNEM_CGC
-                  || contato.loja || emprNome;
+                // Bitrix/Griffe: TOKENWHATS e DEVICEWHATS são do APIBrasil; não usar aqui.
+                payload.token = '';
+                payload.device = '';
+                payload.bitrixTemplate = msweTipo || 'lembrete_rodizio';
+                payload.bitrixLoja = (contato.raw as any)?.UNEM_CNPJ || (contato.raw as any)?.unem_CNPJ || (contato.raw as any)?.UNEM_CGC
+                  || contatoUnemId || contato.loja || emprNome;
                 payload.bitrixNome = nomeComTratamento;
                 payload.type = 'text';
               } else if (bgImagemUrl) {
@@ -935,7 +976,18 @@ export default function Marketing() {
               console.log('=== ENVIO MARKETING ===');
               console.log('Provider:', curProvider, '| UNEM_ID:', contatoUnemId);
               console.log('Destino:', phone);
-              console.log('Payload:', JSON.stringify(payload, null, 2));
+              if (curProvider === 'Bitrix') {
+                const numeroBitrix = phone.startsWith('55') ? phone : `55${phone}`;
+                console.log('Payload Griffe:', JSON.stringify({
+                  loja: resolveBitrixLojaForLog(payload.bitrixLoja),
+                  template: resolveBitrixTemplateForLog(payload.bitrixTemplate),
+                  contatos: [{ numero: numeroBitrix, nome: payload.bitrixNome }],
+                  msgs_por_bloco: 20,
+                  intervalo_blocos_seg: 60,
+                }, null, 2));
+              } else {
+                console.log('Payload:', JSON.stringify(payload, null, 2));
+              }
 
               const sendStart = performance.now();
               const { data: respData, error } = await supabase.functions.invoke('send-message', { body: payload });

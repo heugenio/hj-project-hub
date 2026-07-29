@@ -75,9 +75,24 @@ const BITRIX_UNEM_TO_NOME: Record<string, string> = {
   '000640010011': 'Anapolis',
 };
 
+// DEVICEWHATS antigo (APIBrasil/Bitrix) → nome oficial Griffe, para tolerar cache/config legado
+const BITRIX_DEVICE_TO_NOME: Record<string, string> = {
+  '1b70ef24-b836-4eca-b92b-d521915b3930': 'Flamboyant',
+};
+
+function normalizeBitrixTemplate(input: string): string {
+  const raw = (input || '').trim();
+  if (!raw) return 'lembrete_rodizio';
+  if (raw.split('.').length === 3 || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+    return 'lembrete_rodizio';
+  }
+  return BITRIX_TEMPLATE_ALIASES[raw.toUpperCase()] || raw;
+}
+
 function resolveBitrixLojaNome(input: string): string {
   const raw = (input || '').trim();
   if (!raw) return '';
+  if (BITRIX_DEVICE_TO_NOME[raw]) return BITRIX_DEVICE_TO_NOME[raw];
   // UNEM_ID legacy (12 dígitos começando 000640010) → nome
   if (BITRIX_UNEM_TO_NOME[raw]) return BITRIX_UNEM_TO_NOME[raw];
   const digits = raw.replace(/\D/g, '');
@@ -97,10 +112,9 @@ function resolveBitrixLojaNome(input: string): string {
 async function sendBitrix(req: SendRequest): Promise<Response> {
   const baseUrl = Deno.env.get('GRIFFE_DISPAROS_BASE_URL') || 'https://griffe-disparos-bot-griffe.r7obki.easypanel.host';
   const apiKey = Deno.env.get('GRIFFE_DISPAROS_API_KEY') || '';
-  const rawTpl = (req.bitrixTemplate || req.token || 'lembrete_rodizio').trim();
-  const template = BITRIX_TEMPLATE_ALIASES[rawTpl.toUpperCase()] || rawTpl;
+  const rawTpl = (req.bitrixTemplate || 'lembrete_rodizio').trim();
+  const template = normalizeBitrixTemplate(rawTpl);
   const lojaIn = (req.bitrixLoja || req.device || '').trim();
-  const language = (req.bitrixLanguage || 'pt_BR').trim();
   const nome = (req.bitrixNome || req.text || '').trim();
 
   let phone = req.number.replace(/\D/g, '');
@@ -110,7 +124,6 @@ async function sendBitrix(req: SendRequest): Promise<Response> {
   const body: Record<string, unknown> = {
     loja,
     template,
-    language,
     contatos: [{ numero: phone, nome }],
     msgs_por_bloco: 20,
     intervalo_blocos_seg: 60,
