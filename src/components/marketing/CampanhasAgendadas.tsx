@@ -450,6 +450,9 @@ export default function CampanhasAgendadas({ unidades }: Props) {
                     <TableCell className="text-center">
                       <span className="text-[10px]">
                         <span className="text-green-600">{c.total_enviados}</span>
+                        {(c.total_pulados ?? 0) > 0 && (
+                          <span className="text-amber-600 ml-1" title="Já enviadas hoje">/ {c.total_pulados} pul</span>
+                        )}
                         {c.total_erros > 0 && <span className="text-destructive ml-1">/ {c.total_erros} err</span>}
                       </span>
                     </TableCell>
