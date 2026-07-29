@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
       for (const contato of contatos) {
         if (sendCount >= MAX_SENDS_PER_RUN) break;
         const result = await sendOne(contato, campaign, provider, token, device, phoneId, unemId);
-        if (result === 'skipped') continue; // don't count skipped against quota
+        if (result === 'skipped') { totalPulados++; continue; }
         if (result === 'sent') totalEnviados++;
         else totalErros++;
         sendCount++;
