@@ -193,6 +193,15 @@ Deno.serve(async (req) => {
         payload.device = device;
         payload.webhookUrl = campaign.n8n_webhook_url || 'https://n8n.srv1576408.hstgr.cloud/webhook-test/webhook-envio-direto';
       }
+      if (provider === 'Bitrix') {
+        // token = template name (from TOKENWHATS); device = loja/waba_id (from DEVICEWHATS)
+        payload.bitrixTemplate = token || 'lembrete_rodizio';
+        payload.bitrixLoja = device || (contato.UNEM_FANTASIA || '');
+        payload.bitrixNome = nomeCliente;
+        payload.type = 'text';
+        delete payload.file;
+        delete payload.mediaType;
+      }
 
       try {
         console.log(`Enviando para ${foneFull} via ${provider}...`);
