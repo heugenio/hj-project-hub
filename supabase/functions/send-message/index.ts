@@ -374,6 +374,9 @@ Deno.serve(async (req) => {
       case 'n8n':
         response = await sendN8n(body);
         break;
+      case 'Bitrix':
+        response = await sendBitrix(body);
+        break;
       default:
         return new Response(
           JSON.stringify({ error: `Unknown provider: ${provider}` }),
