@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
 
     let totalEnviados = 0;
     let totalErros = 0;
+    let totalPulados = 0;
     let sendCount = 0;
 
     // Helper to send a single contact – returns 'sent' | 'skipped' | 'error'
