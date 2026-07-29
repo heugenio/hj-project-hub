@@ -53,16 +53,32 @@ Deno.serve(async (req) => {
 
     const baseUrl = campaign.base_url || 'http://3.214.255.198:8085';
 
-    // ── Proxy call ──
+    // ── Direct call to legacy API (avoid edge-to-edge rate limits) ──
+    const BASIC_AUTH = 'Basic ' + btoa('hjsystems:11032011');
     proxyCall = async (endpoint: string, method = 'GET', body?: any): Promise<any> => {
       console.log(`proxyCall: ${method} ${endpoint}`);
-      const resp = await fetch(`${supabaseUrl}/functions/v1/api-proxy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${anonKey}` },
-        body: JSON.stringify({ baseUrl, endpoint, method, ...(body ? { body } : {}) }),
-      });
-      const raw = await resp.text();
-      try { return JSON.parse(raw); } catch { return null; }
+      try {
+        const resp = await fetch(`${baseUrl}${endpoint}`, {
+          method,
+          headers: {
+            'Authorization': BASIC_AUTH,
+            ...(body ? { 'Content-Type': 'application/json' } : {}),
+          },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        });
+        const raw = await resp.text();
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+        if (trimmed.startsWith('<')) {
+          const m = trimmed.match(/\{[\s\S]*\}/);
+          if (m) { try { return JSON.parse(m[0]); } catch { return null; } }
+          return null;
+        }
+        try { return JSON.parse(trimmed); } catch { return null; }
+      } catch (err) {
+        console.error(`proxyCall error ${endpoint}:`, err);
+        return null;
+      }
     };
 
     // ── fetchParametro ──
