@@ -361,7 +361,7 @@ Deno.serve(async (req) => {
   }
 });
 
-async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros = 0) {
+async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros = 0, pulados = 0) {
   const next = new Date(now);
   if (campaign.recorrencia === 'semanal') next.setDate(next.getDate() + 7);
   else next.setDate(next.getDate() + 1);
@@ -375,6 +375,7 @@ async function reschedule(sb: any, campaign: any, now: Date, enviados = 0, erros
     proxima_execucao: next.toISOString(),
     total_enviados: enviados,
     total_erros: erros,
+    total_pulados: pulados,
     updated_at: now.toISOString(),
   }).eq('id', campaign.id);
 }
