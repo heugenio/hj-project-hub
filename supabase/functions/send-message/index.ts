@@ -33,11 +33,50 @@ interface SendRequest {
   bitrixNome?: string;       // valor da variável {{1}}
 }
 
+// CNPJ (14 dígitos) → waba_id  |  Nome fantasia (normalizado) → waba_id
+const BITRIX_LOJAS: Record<string, { waba_id: string; nome: string }> = {
+  '05801944000696': { waba_id: '1471069679719597', nome: 'Anapolis' },
+  '10929311000517': { waba_id: '709332895198521',  nome: 'Asa Norte' },
+  '10929311000193': { waba_id: '2473492822669100', nome: 'Asa Sul' },
+  '05801944000262': { waba_id: '594150304624458',  nome: 'Av 85' },
+  '05801944000424': { waba_id: '215140906282003',  nome: 'Av Independencia' },
+  '05801944000181': { waba_id: '107158601949509',  nome: 'Flamboyant' },
+  '10929311000355': { waba_id: '1986910505563248', nome: 'Sia' },
+  '10929311000436': { waba_id: '34179999728310534', nome: 'Tag Norte' },
+  '10929311000274': { waba_id: '953251587477663',  nome: 'Tag Sul' },
+  '05801944000343': { waba_id: '1150412947247109', nome: 'Tamandare' },
+  '05801944000505': { waba_id: '220912148947746',  nome: 'Walter Santos' },
+};
+const BITRIX_NOME_TO_WABA: Record<string, string> = Object.fromEntries(
+  Object.values(BITRIX_LOJAS).map(v => [v.nome.toLowerCase().replace(/[^a-z0-9]/g, ''), v.waba_id])
+);
+
+// Aliases de template a partir do tipo da campanha
+const BITRIX_TEMPLATE_ALIASES: Record<string, string> = {
+  'RODIZIO': 'lembrete_rodizio',
+};
+
+function resolveBitrixLoja(input: string): { waba_id?: string; loja?: string } {
+  const raw = (input || '').trim();
+  if (!raw) return {};
+  const digits = raw.replace(/\D/g, '');
+  // CNPJ conhecido → waba_id
+  if (digits.length === 14 && BITRIX_LOJAS[digits]) return { waba_id: BITRIX_LOJAS[digits].waba_id };
+  // já é waba_id (só dígitos)
+  if (/^\d+$/.test(raw)) return { waba_id: raw };
+  // nome fantasia conhecido → waba_id
+  const key = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (BITRIX_NOME_TO_WABA[key]) return { waba_id: BITRIX_NOME_TO_WABA[key] };
+  // fallback: manda como nome de loja
+  return { loja: raw };
+}
+
 async function sendBitrix(req: SendRequest): Promise<Response> {
   const baseUrl = Deno.env.get('GRIFFE_DISPAROS_BASE_URL') || 'https://griffe-disparos-bot-griffe.r7obki.easypanel.host';
   const apiKey = Deno.env.get('GRIFFE_DISPAROS_API_KEY') || '';
-  const template = (req.bitrixTemplate || req.token || 'lembrete_rodizio').trim();
-  const loja = (req.bitrixLoja || req.device || '').trim();
+  const rawTpl = (req.bitrixTemplate || req.token || 'lembrete_rodizio').trim();
+  const template = BITRIX_TEMPLATE_ALIASES[rawTpl.toUpperCase()] || rawTpl;
+  const lojaIn = (req.bitrixLoja || req.device || '').trim();
   const language = (req.bitrixLanguage || 'pt_BR').trim();
   const nome = (req.bitrixNome || req.text || '').trim();
 
@@ -49,11 +88,11 @@ async function sendBitrix(req: SendRequest): Promise<Response> {
     language,
     contatos: [{ numero: phone, nome }],
   };
-  // Aceita nome de loja OU waba_id (só dígitos)
-  if (/^\d+$/.test(loja)) body.waba_id = loja;
-  else body.loja = loja;
+  const resolved = resolveBitrixLoja(lojaIn);
+  if (resolved.waba_id) body.waba_id = resolved.waba_id;
+  else if (resolved.loja) body.loja = resolved.loja;
 
-  console.log(`Bitrix payload: loja=${loja}, template=${template}, numero=${phone}, nome=${nome}`);
+  console.log(`Bitrix payload: lojaIn=${lojaIn} → ${JSON.stringify(resolved)}, template=${template} (raw=${rawTpl}), numero=${phone}, nome=${nome}`);
 
   return fetch(`${baseUrl}/api/disparos`, {
     method: 'POST',
