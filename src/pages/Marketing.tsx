@@ -115,7 +115,7 @@ async function fetchParametro(unemId: string, nome: string): Promise<string> {
   }
 }
 
-const VALID_WHATS_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n'];
+const VALID_WHATS_PROVIDERS = ['Nexus', 'WhatsAppOficial', 'BrasilAPI', 'n8n', 'Bitrix'];
 
 function sanitizeProvider(value: string): string {
   const trimmed = value.trim();
