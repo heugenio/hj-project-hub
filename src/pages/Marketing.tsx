@@ -717,7 +717,7 @@ export default function Marketing() {
           toast.error("Provedor WhatsApp não configurado. Verifique o parâmetro SERVIDORWHATS para esta unidade.");
           return;
         }
-        if (whatsProvider !== 'n8n' && !whatsToken) {
+        if (whatsProvider !== 'n8n' && whatsProvider !== 'Bitrix' && !whatsToken) {
           toast.error("Token WhatsApp não configurado. Verifique o parâmetro TOKENWHATS para esta unidade.");
           return;
         }
@@ -915,12 +915,12 @@ export default function Marketing() {
               }
               if (curProvider === 'WhatsAppOficial') payload.phoneNumberId = curPhoneNumberId;
               if (curProvider === 'Bitrix') {
-                // template: TOKENWHATS OU tipo (msweTipo, ex.: RODIZIO → lembrete_rodizio)
-                payload.bitrixTemplate = curToken || msweTipo || 'lembrete_rodizio';
-                // loja: DEVICEWHATS OU CNPJ da unidade OU nome fantasia
-                payload.bitrixLoja = curDevice
-                  || (contato.raw as any)?.UNEM_CNPJ || (contato.raw as any)?.unem_CNPJ || (contato.raw as any)?.UNEM_CGC
-                  || contato.loja || emprNome;
+                // Bitrix/Griffe: TOKENWHATS e DEVICEWHATS são do APIBrasil; não usar aqui.
+                payload.token = '';
+                payload.device = '';
+                payload.bitrixTemplate = msweTipo || 'lembrete_rodizio';
+                payload.bitrixLoja = (contato.raw as any)?.UNEM_CNPJ || (contato.raw as any)?.unem_CNPJ || (contato.raw as any)?.UNEM_CGC
+                  || contatoUnemId || contato.loja || emprNome;
                 payload.bitrixNome = nomeComTratamento;
                 payload.type = 'text';
               } else if (bgImagemUrl) {
