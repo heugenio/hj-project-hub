@@ -158,12 +158,12 @@ export default function SalesDemo() {
 
 
   const grandTotals = {
-    qtd: data.reduce((s, r) => s + parseNum(r.DCFS_QTD), 0),
-    qtdFat: data.reduce((s, r) => s + parseNum(r.ITFT_QTDE_FATURADA), 0),
-    vlrContabil: data.reduce((s, r) => s + parseNum(r.ITFT_VLR_CONTABIL), 0),
-    custo: data.reduce((s, r) => s + parseNum(r.ITFT_CUSTO_NA_OPERACAO), 0),
-    vlrDev: data.reduce((s, r) => s + parseNum(r.VLR_DEV), 0),
-    qtdDev: data.reduce((s, r) => s + parseNum(r.QTDE_DEV), 0),
+    qtd: dataFiltrada.reduce((s, r) => s + parseNum(r.DCFS_QTD), 0),
+    qtdFat: dataFiltrada.reduce((s, r) => s + parseNum(r.ITFT_QTDE_FATURADA), 0),
+    vlrContabil: dataFiltrada.reduce((s, r) => s + parseNum(r.ITFT_VLR_CONTABIL), 0),
+    custo: dataFiltrada.reduce((s, r) => s + parseNum(r.ITFT_CUSTO_NA_OPERACAO), 0),
+    vlrDev: dataFiltrada.reduce((s, r) => s + parseNum(r.VLR_DEV), 0),
+    qtdDev: dataFiltrada.reduce((s, r) => s + parseNum(r.QTDE_DEV), 0),
     lucro: 0,
     pctLucro: 0,
   };
