@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [resumoLojas, setResumoLojas] = useState<ComparativoResumo[]>([]);
   const [unidadesMap, setUnidadesMap] = useState<Record<string, { sigla: string; uf: string }>>({});
   const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__pending__");
+  const [filtroLoja, setFiltroLoja] = useState<string>("");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
@@ -132,17 +133,78 @@ export default function Dashboard() {
     setFiltroGrpoTipo(pneusTipo || "__all__");
   }, [grpoTipos, filtroGrpoTipo]);
 
-  // Dados filtrados
+  // Loja selecionada (padrão = loja logada)
+  const lojaSel = filtroLoja || unemId;
+
+  // Base: ADM usa comparativo de todas as lojas quando disponível
+  const comparativoBase = useMemo(() => {
+    return perfil === "ADM" && comparativoGeral.length > 0 ? comparativoGeral : comparativo;
+  }, [perfil, comparativoGeral, comparativo]);
+
+  // Lista de lojas para o filtro
+  const lojasFiltro = useMemo(() => {
+    const ids = new Set<string>();
+    comparativoBase.forEach((i) => i.UNEM_ID && ids.add(i.UNEM_ID));
+    resumoLojas.forEach((l) => l.UNEM_ID && ids.add(l.UNEM_ID));
+    if (unemId) ids.add(unemId);
+    return Array.from(ids).sort((a, b) => {
+      const sa = unidadesMap[a]?.sigla || a;
+      const sb = unidadesMap[b]?.sigla || b;
+      return sa.localeCompare(sb);
+    });
+  }, [comparativoBase, resumoLojas, unidadesMap, unemId]);
+
+  // Dados filtrados (tipo + loja)
   const comparativoFiltrado = useMemo(() => {
-    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativo;
-    return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
-  }, [comparativo, filtroGrpoTipo]);
+    let base = comparativoBase;
+    if (filtroGrpoTipo !== "__all__" && filtroGrpoTipo !== "__pending__") {
+      base = base.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
+    }
+
+    if (lojaSel !== "__all__") {
+      const porLoja = base.filter((item) => item.UNEM_ID === lojaSel);
+      return porLoja.length > 0 ? porLoja : (comparativoBase === comparativo ? base : []);
+    }
+
+    // Todas as lojas: agregar por grupo
+    const map = new Map<string, Comparativo & { _vlr: number; _vlrAnt: number; _qtd: number; _qtdAnt: number }>();
+    base.forEach((item) => {
+      const key = `${item.GRPO_TIPO || "Geral"}|${item.GRPO_NOME || "N/A"}`;
+      const cur = map.get(key);
+      if (cur) {
+        cur._vlr += parseCurrency(item.ITFT_VLR_CONTABIL);
+        cur._vlrAnt += parseCurrency(item.ITFT_VLR_CONTABIL_ANT);
+        cur._qtd += parseCurrency(item.ITFT_QTDE);
+        cur._qtdAnt += parseCurrency(item.ITFT_QTDE_ANT);
+      } else {
+        map.set(key, {
+          ...item,
+          _vlr: parseCurrency(item.ITFT_VLR_CONTABIL),
+          _vlrAnt: parseCurrency(item.ITFT_VLR_CONTABIL_ANT),
+          _qtd: parseCurrency(item.ITFT_QTDE),
+          _qtdAnt: parseCurrency(item.ITFT_QTDE_ANT),
+        });
+      }
+    });
+
+    const fmt = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Array.from(map.values()).map((it) => ({
+      ...it,
+      UNEM_ID: "__all__",
+      ITFT_VLR_CONTABIL: fmt(it._vlr),
+      ITFT_VLR_CONTABIL_ANT: fmt(it._vlrAnt),
+      ITFT_QTDE: fmt(it._qtd),
+      ITFT_QTDE_ANT: fmt(it._qtdAnt),
+      CRECIMENTO: it._vlrAnt > 0 ? (((it._vlr - it._vlrAnt) / it._vlrAnt) * 100).toFixed(2) : "0",
+    })) as Comparativo[];
+  }, [comparativoBase, comparativo, filtroGrpoTipo, lojaSel]);
 
   // Comparativo geral (todas as lojas) filtrado por tipo
   const comparativoGeralFiltrado = useMemo(() => {
     if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativoGeral;
     return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativoGeral, filtroGrpoTipo]);
+
 
   // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
   const gruposFiltrados = useMemo(() => {
@@ -228,22 +290,47 @@ export default function Dashboard() {
             Visão geral — Perfil: <Badge variant="secondary" className="ml-1">{perfil}</Badge>
           </p>
         </div>
-        {grpoTipos.length > 1 && (
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filtroGrpoTipo === "__pending__" ? "__all__" : filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrar tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos os Tipos</SelectItem>
-                {grpoTipos.map((tipo) => (
-                  <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          {lojasFiltro.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <Select value={lojaSel} onValueChange={setFiltroLoja}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filtrar loja" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas as Lojas</SelectItem>
+                  {lojasFiltro.map((id) => {
+                    const info = unidadesMap[id];
+                    const label = info ? `${info.uf ? info.uf + " - " : ""}${info.sigla}` : id;
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {label}{id === unemId ? " (atual)" : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {grpoTipos.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={filtroGrpoTipo === "__pending__" ? "__all__" : filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filtrar tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os Tipos</SelectItem>
+                  {grpoTipos.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Summary cards — 6 KPIs modernos */}
@@ -339,7 +426,12 @@ export default function Dashboard() {
                         <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
                         <span className="text-xs text-muted-foreground">{loja.qtdAnt.toLocaleString("pt-BR")}</span>
                       </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-border/30">
+                        <span className="text-xs text-muted-foreground">Ticket Médio</span>
+                        <span className="text-xs font-semibold text-primary">{formatBRL(loja.qtd > 0 ? loja.vlr / loja.qtd : 0)}</span>
+                      </div>
                     </div>
+
 
                     {/* Growth bar */}
                     <div className="pt-1 border-t border-border/30">
@@ -388,7 +480,18 @@ export default function Dashboard() {
                     <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
                     <span className="text-xs text-muted-foreground">{lojasOrdenadas.reduce((s, l) => s + l.qtdAnt, 0).toLocaleString("pt-BR")}</span>
                   </div>
+                  {(() => {
+                    const tv = lojasOrdenadas.reduce((s, l) => s + l.vlr, 0);
+                    const tq = lojasOrdenadas.reduce((s, l) => s + l.qtd, 0);
+                    return (
+                      <div className="flex justify-between items-center pt-1 border-t border-border/30">
+                        <span className="text-xs text-muted-foreground">Ticket Médio</span>
+                        <span className="text-xs font-semibold text-primary">{formatBRL(tq > 0 ? tv / tq : 0)}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
+
               </CardContent>
             </Card>
           </div>
