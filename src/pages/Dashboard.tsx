@@ -290,22 +290,47 @@ export default function Dashboard() {
             Visão geral — Perfil: <Badge variant="secondary" className="ml-1">{perfil}</Badge>
           </p>
         </div>
-        {grpoTipos.length > 1 && (
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filtroGrpoTipo === "__pending__" ? "__all__" : filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrar tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos os Tipos</SelectItem>
-                {grpoTipos.map((tipo) => (
-                  <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          {lojasFiltro.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <Select value={lojaSel} onValueChange={setFiltroLoja}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filtrar loja" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas as Lojas</SelectItem>
+                  {lojasFiltro.map((id) => {
+                    const info = unidadesMap[id];
+                    const label = info ? `${info.uf ? info.uf + " - " : ""}${info.sigla}` : id;
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {label}{id === unemId ? " (atual)" : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {grpoTipos.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={filtroGrpoTipo === "__pending__" ? "__all__" : filtroGrpoTipo} onValueChange={setFiltroGrpoTipo}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filtrar tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os Tipos</SelectItem>
+                  {grpoTipos.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Summary cards — 6 KPIs modernos */}
