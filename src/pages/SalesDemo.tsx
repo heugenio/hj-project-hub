@@ -92,6 +92,8 @@ export default function SalesDemo() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [gruposSel, setGruposSel] = useState<string[]>([]);
+  const [gruposOpen, setGruposOpen] = useState(false);
 
   const handleSearch = async () => {
     if (!auth) return;
