@@ -426,7 +426,12 @@ export default function Dashboard() {
                         <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
                         <span className="text-xs text-muted-foreground">{loja.qtdAnt.toLocaleString("pt-BR")}</span>
                       </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-border/30">
+                        <span className="text-xs text-muted-foreground">Ticket Médio</span>
+                        <span className="text-xs font-semibold text-primary">{formatBRL(loja.qtd > 0 ? loja.vlr / loja.qtd : 0)}</span>
+                      </div>
                     </div>
+
 
                     {/* Growth bar */}
                     <div className="pt-1 border-t border-border/30">
