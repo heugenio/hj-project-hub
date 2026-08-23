@@ -290,6 +290,52 @@ export default function SalesDemo() {
               <label className="text-xs font-medium text-muted-foreground">Data Final</label>
               <Input type="date" value={dtFinal} onChange={(e) => setDtFinal(e.target.value)} className="w-40" />
             </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Grupos</label>
+              <Popover open={gruposOpen} onOpenChange={setGruposOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    disabled={gruposOptions.length === 0}
+                    className="w-64 justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {gruposSel.length === 0
+                        ? "Todos os grupos"
+                        : gruposSel.length === 1
+                        ? gruposSel[0]
+                        : `${gruposSel.length} grupos selecionados`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Digite para filtrar grupos..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum grupo encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {gruposOptions.map((g) => (
+                          <CommandItem key={g} value={g} onSelect={() => toggleGrupoSel(g)} className="gap-2">
+                            <Checkbox checked={gruposSel.includes(g)} className="pointer-events-none" />
+                            <span className="truncate">{g}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                  <div className="flex justify-between border-t p-2">
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => setGruposSel([])}>
+                      Limpar
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => setGruposSel(gruposOptions)}>
+                      Selecionar todos
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <Button onClick={handleSearch} disabled={loading} className="gap-2">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Consultar
