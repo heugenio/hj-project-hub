@@ -347,6 +347,18 @@ export default function SalesDemo() {
               </Button>
             )}
           </div>
+          {gruposSel.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {gruposSel.map((g) => (
+                <Badge key={g} variant="secondary" className="gap-1 text-[11px] font-normal">
+                  {g}
+                  <button type="button" onClick={() => toggleGrupoSel(g)} className="opacity-60 hover:opacity-100">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
