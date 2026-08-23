@@ -132,17 +132,78 @@ export default function Dashboard() {
     setFiltroGrpoTipo(pneusTipo || "__all__");
   }, [grpoTipos, filtroGrpoTipo]);
 
-  // Dados filtrados
+  // Loja selecionada (padrão = loja logada)
+  const lojaSel = filtroLoja || unemId;
+
+  // Base: ADM usa comparativo de todas as lojas quando disponível
+  const comparativoBase = useMemo(() => {
+    return perfil === "ADM" && comparativoGeral.length > 0 ? comparativoGeral : comparativo;
+  }, [perfil, comparativoGeral, comparativo]);
+
+  // Lista de lojas para o filtro
+  const lojasFiltro = useMemo(() => {
+    const ids = new Set<string>();
+    comparativoBase.forEach((i) => i.UNEM_ID && ids.add(i.UNEM_ID));
+    resumoLojas.forEach((l) => l.UNEM_ID && ids.add(l.UNEM_ID));
+    if (unemId) ids.add(unemId);
+    return Array.from(ids).sort((a, b) => {
+      const sa = unidadesMap[a]?.sigla || a;
+      const sb = unidadesMap[b]?.sigla || b;
+      return sa.localeCompare(sb);
+    });
+  }, [comparativoBase, resumoLojas, unidadesMap, unemId]);
+
+  // Dados filtrados (tipo + loja)
   const comparativoFiltrado = useMemo(() => {
-    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativo;
-    return comparativo.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
-  }, [comparativo, filtroGrpoTipo]);
+    let base = comparativoBase;
+    if (filtroGrpoTipo !== "__all__" && filtroGrpoTipo !== "__pending__") {
+      base = base.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
+    }
+
+    if (lojaSel !== "__all__") {
+      const porLoja = base.filter((item) => item.UNEM_ID === lojaSel);
+      return porLoja.length > 0 ? porLoja : (comparativoBase === comparativo ? base : []);
+    }
+
+    // Todas as lojas: agregar por grupo
+    const map = new Map<string, Comparativo & { _vlr: number; _vlrAnt: number; _qtd: number; _qtdAnt: number }>();
+    base.forEach((item) => {
+      const key = `${item.GRPO_TIPO || "Geral"}|${item.GRPO_NOME || "N/A"}`;
+      const cur = map.get(key);
+      if (cur) {
+        cur._vlr += parseCurrency(item.ITFT_VLR_CONTABIL);
+        cur._vlrAnt += parseCurrency(item.ITFT_VLR_CONTABIL_ANT);
+        cur._qtd += parseCurrency(item.ITFT_QTDE);
+        cur._qtdAnt += parseCurrency(item.ITFT_QTDE_ANT);
+      } else {
+        map.set(key, {
+          ...item,
+          _vlr: parseCurrency(item.ITFT_VLR_CONTABIL),
+          _vlrAnt: parseCurrency(item.ITFT_VLR_CONTABIL_ANT),
+          _qtd: parseCurrency(item.ITFT_QTDE),
+          _qtdAnt: parseCurrency(item.ITFT_QTDE_ANT),
+        });
+      }
+    });
+
+    const fmt = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Array.from(map.values()).map((it) => ({
+      ...it,
+      UNEM_ID: "__all__",
+      ITFT_VLR_CONTABIL: fmt(it._vlr),
+      ITFT_VLR_CONTABIL_ANT: fmt(it._vlrAnt),
+      ITFT_QTDE: fmt(it._qtd),
+      ITFT_QTDE_ANT: fmt(it._qtdAnt),
+      CRECIMENTO: it._vlrAnt > 0 ? (((it._vlr - it._vlrAnt) / it._vlrAnt) * 100).toFixed(2) : "0",
+    })) as Comparativo[];
+  }, [comparativoBase, comparativo, filtroGrpoTipo, lojaSel]);
 
   // Comparativo geral (todas as lojas) filtrado por tipo
   const comparativoGeralFiltrado = useMemo(() => {
     if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativoGeral;
     return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
   }, [comparativoGeral, filtroGrpoTipo]);
+
 
   // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
   const gruposFiltrados = useMemo(() => {
