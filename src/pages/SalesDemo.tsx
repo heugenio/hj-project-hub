@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, ChevronDown, ChevronRight, FileDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Loader2, Search, ChevronDown, ChevronRight, FileDown, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDemonstrativoVendas, type SalesDemo as SalesDemoType } from "@/lib/api";
 import { toast } from "sonner";
