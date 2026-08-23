@@ -480,7 +480,18 @@ export default function Dashboard() {
                     <span className="text-xs text-muted-foreground">Qtd. Anterior</span>
                     <span className="text-xs text-muted-foreground">{lojasOrdenadas.reduce((s, l) => s + l.qtdAnt, 0).toLocaleString("pt-BR")}</span>
                   </div>
+                  {(() => {
+                    const tv = lojasOrdenadas.reduce((s, l) => s + l.vlr, 0);
+                    const tq = lojasOrdenadas.reduce((s, l) => s + l.qtd, 0);
+                    return (
+                      <div className="flex justify-between items-center pt-1 border-t border-border/30">
+                        <span className="text-xs text-muted-foreground">Ticket Médio</span>
+                        <span className="text-xs font-semibold text-primary">{formatBRL(tq > 0 ? tv / tq : 0)}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
+
               </CardContent>
             </Card>
           </div>
