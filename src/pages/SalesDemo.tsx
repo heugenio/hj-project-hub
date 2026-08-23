@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, ChevronDown, ChevronRight, FileDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Loader2, Search, ChevronDown, ChevronRight, FileDown, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDemonstrativoVendas, type SalesDemo as SalesDemoType } from "@/lib/api";
 import { toast } from "sonner";
@@ -88,6 +92,8 @@ export default function SalesDemo() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [gruposSel, setGruposSel] = useState<string[]>([]);
+  const [gruposOpen, setGruposOpen] = useState(false);
 
   const handleSearch = async () => {
     if (!auth) return;
@@ -102,6 +108,7 @@ export default function SalesDemo() {
       });
       setData(result);
       setSearched(true);
+      setGruposSel([]);
       // Start with all groups expanded
       const allGroups = groupByGrupo(result).map(g => g.grupo);
       setExpandedGroups(new Set(allGroups));
@@ -130,15 +137,33 @@ export default function SalesDemo() {
     setExpandedGroups(new Set());
   };
 
-  const grouped = groupByGrupo(data);
+  // Opções de grupos (todos os grupos retornados pela consulta)
+  const gruposOptions = useMemo(() => {
+    const set = new Set<string>();
+    data.forEach((r) => set.add(r.GRUPO || "Sem Grupo"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [data]);
+
+  const toggleGrupoSel = (grupo: string) => {
+    setGruposSel((prev) => (prev.includes(grupo) ? prev.filter((g) => g !== grupo) : [...prev, grupo]));
+  };
+
+  // Dados filtrados pelos grupos selecionados (vazio = todos)
+  const dataFiltrada = useMemo(() => {
+    if (gruposSel.length === 0) return data;
+    return data.filter((r) => gruposSel.includes(r.GRUPO || "Sem Grupo"));
+  }, [data, gruposSel]);
+
+  const grouped = groupByGrupo(dataFiltrada);
+
 
   const grandTotals = {
-    qtd: data.reduce((s, r) => s + parseNum(r.DCFS_QTD), 0),
-    qtdFat: data.reduce((s, r) => s + parseNum(r.ITFT_QTDE_FATURADA), 0),
-    vlrContabil: data.reduce((s, r) => s + parseNum(r.ITFT_VLR_CONTABIL), 0),
-    custo: data.reduce((s, r) => s + parseNum(r.ITFT_CUSTO_NA_OPERACAO), 0),
-    vlrDev: data.reduce((s, r) => s + parseNum(r.VLR_DEV), 0),
-    qtdDev: data.reduce((s, r) => s + parseNum(r.QTDE_DEV), 0),
+    qtd: dataFiltrada.reduce((s, r) => s + parseNum(r.DCFS_QTD), 0),
+    qtdFat: dataFiltrada.reduce((s, r) => s + parseNum(r.ITFT_QTDE_FATURADA), 0),
+    vlrContabil: dataFiltrada.reduce((s, r) => s + parseNum(r.ITFT_VLR_CONTABIL), 0),
+    custo: dataFiltrada.reduce((s, r) => s + parseNum(r.ITFT_CUSTO_NA_OPERACAO), 0),
+    vlrDev: dataFiltrada.reduce((s, r) => s + parseNum(r.VLR_DEV), 0),
+    qtdDev: dataFiltrada.reduce((s, r) => s + parseNum(r.QTDE_DEV), 0),
     lucro: 0,
     pctLucro: 0,
   };
@@ -265,6 +290,52 @@ export default function SalesDemo() {
               <label className="text-xs font-medium text-muted-foreground">Data Final</label>
               <Input type="date" value={dtFinal} onChange={(e) => setDtFinal(e.target.value)} className="w-40" />
             </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Grupos</label>
+              <Popover open={gruposOpen} onOpenChange={setGruposOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    disabled={gruposOptions.length === 0}
+                    className="w-64 justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {gruposSel.length === 0
+                        ? "Todos os grupos"
+                        : gruposSel.length === 1
+                        ? gruposSel[0]
+                        : `${gruposSel.length} grupos selecionados`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Digite para filtrar grupos..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum grupo encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {gruposOptions.map((g) => (
+                          <CommandItem key={g} value={g} onSelect={() => toggleGrupoSel(g)} className="gap-2">
+                            <Checkbox checked={gruposSel.includes(g)} className="pointer-events-none" />
+                            <span className="truncate">{g}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                  <div className="flex justify-between border-t p-2">
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => setGruposSel([])}>
+                      Limpar
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => setGruposSel(gruposOptions)}>
+                      Selecionar todos
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <Button onClick={handleSearch} disabled={loading} className="gap-2">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Consultar
@@ -276,6 +347,18 @@ export default function SalesDemo() {
               </Button>
             )}
           </div>
+          {gruposSel.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {gruposSel.map((g) => (
+                <Badge key={g} variant="secondary" className="gap-1 text-[11px] font-normal">
+                  {g}
+                  <button type="button" onClick={() => toggleGrupoSel(g)} className="opacity-60 hover:opacity-100">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
