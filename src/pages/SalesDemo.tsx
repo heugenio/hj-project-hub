@@ -108,6 +108,7 @@ export default function SalesDemo() {
       });
       setData(result);
       setSearched(true);
+      setGruposSel([]);
       // Start with all groups expanded
       const allGroups = groupByGrupo(result).map(g => g.grupo);
       setExpandedGroups(new Set(allGroups));
@@ -136,7 +137,25 @@ export default function SalesDemo() {
     setExpandedGroups(new Set());
   };
 
-  const grouped = groupByGrupo(data);
+  // Opções de grupos (todos os grupos retornados pela consulta)
+  const gruposOptions = useMemo(() => {
+    const set = new Set<string>();
+    data.forEach((r) => set.add(r.GRUPO || "Sem Grupo"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [data]);
+
+  const toggleGrupoSel = (grupo: string) => {
+    setGruposSel((prev) => (prev.includes(grupo) ? prev.filter((g) => g !== grupo) : [...prev, grupo]));
+  };
+
+  // Dados filtrados pelos grupos selecionados (vazio = todos)
+  const dataFiltrada = useMemo(() => {
+    if (gruposSel.length === 0) return data;
+    return data.filter((r) => gruposSel.includes(r.GRUPO || "Sem Grupo"));
+  }, [data, gruposSel]);
+
+  const grouped = groupByGrupo(dataFiltrada);
+
 
   const grandTotals = {
     qtd: data.reduce((s, r) => s + parseNum(r.DCFS_QTD), 0),
