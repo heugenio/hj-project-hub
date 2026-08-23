@@ -245,7 +245,10 @@ export default function Dashboard() {
   // KPIs derivados do demonstrativo de vendas (filtrado)
   const totalFaturamento = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
   const totalQtdVendida = salesDataFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_FATURADA), 0);
-  const ticketMedio = totalQtdVendida > 0 ? totalFaturamento / totalQtdVendida : 0;
+  // Ticket médio: usa o demonstrativo quando houver quantidade; senão cai para o comparativo (Fat. Atual / Qtd. Atual)
+  const tmValor = totalFaturamento > 0 ? totalFaturamento : vlrAtual;
+  const tmQtd = totalQtdVendida > 0 ? totalQtdVendida : qtdAtual;
+  const ticketMedio = tmQtd > 0 ? tmValor / tmQtd : 0;
   const totalLucro = salesDataFiltrado.reduce(
     (s, item) => s + (parseCurrency(item.ITFT_VLR_LUCRO) || (parseCurrency(item.ITFT_VLR_CONTABIL) - parseCurrency(item.ITFT_CUSTO_NA_OPERACAO))),
     0
