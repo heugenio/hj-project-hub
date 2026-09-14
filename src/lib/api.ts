@@ -335,16 +335,35 @@ export const getPedidos = (
 
 export async function setFaturarPedido(
   pddsId: string,
-  payload?: unknown
-): Promise<{ ok: boolean; raw: string }> {
+  payload?: unknown,
+  unemId?: string
+): Promise<{ ok: boolean; raw: string; status?: string; verificado?: boolean }> {
   const text = await proxyFetch(
-    `/setFaturarPedidos?id=${encodeURIComponent(pddsId)}`,
+    `/setFaturarPedido?id=${encodeURIComponent(pddsId)}`,
     'POST',
     payload
   );
   const lower = (text || '').toLowerCase();
-  const ok = !/(erro|error|falha|fail)/.test(lower);
-  return { ok, raw: text };
+  if (/(erro|error|falha|fail)/.test(lower)) return { ok: false, raw: text, verificado: true };
+
+  // O backend legado responde "200 OK" para qualquer chamada (inclusive endpoints inexistentes),
+  // portanto confirmamos o faturamento relendo o status do pedido.
+  if (unemId) {
+    try {
+      await new Promise((r) => setTimeout(r, 800));
+      const lista = await getPedidos(unemId, { id: pddsId });
+      const item = Array.isArray(lista)
+        ? lista.find((p) => String(p.PDDS_ID) === String(pddsId)) || lista[0]
+        : undefined;
+      const status = String(item?.PDDS_STATUS || '');
+      const ok = /faturad/i.test(status);
+      return { ok, raw: text, status, verificado: true };
+    } catch {
+      return { ok: true, raw: text, verificado: false };
+    }
+  }
+
+  return { ok: true, raw: text, verificado: false };
 }
 
 // Cofres (configuração PIX dos bancos)
