@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, BoxesIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { getProdutos, type Produto } from "@/lib/api";
+import { getProdutos, searchProdutosByNome, type Produto } from "@/lib/api";
 
 export default function Produtos() {
   const [search, setSearch] = useState("");
@@ -20,7 +20,7 @@ export default function Produtos() {
     setLoading(true);
     setSearched(true);
     try {
-      const data = await getProdutos(search);
+      const data = await searchProdutosByNome(search);
       setProdutos(data);
       if (data.length === 0) toast.info("Nenhum produto encontrado");
     } catch {
