@@ -28,7 +28,7 @@ import {
   type Vendedor, type Midia, type OrdemServicoFull,
   type OperacaoComercial,
 } from '@/lib/api-os';
-import type { Pedido as PedidoListItem } from '@/lib/api';
+import { parseValorBR, type Pedido as PedidoListItem } from '@/lib/api';
 import { supabase } from '@/integrations/supabase/client';
 import { getApiBaseUrl } from '@/lib/base-url';
 import { useEmpresaHeader } from '@/hooks/useEmpresaHeader';
@@ -62,6 +62,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
 
   const [descontoOS, setDescontoOS] = useState<number>(0);
   const [descontoServico, setDescontoServico] = useState<number>(0);
+  const [difal, setDifal] = useState<number>(0);
 
   const [vendedorText, setVendedorText] = useState('');
   const [vendedor, setVendedor] = useState<Vendedor | null>(null);
@@ -160,17 +161,24 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
           ORSV_ID: i.PDDS_ID || pddsId,
           ITOS_TIPO: 'P' as 'P' | 'S',
           ITOS_DESCRICAO: String(i.ITPD_PROD_DESCRICAO || i.PROD_NOME || i.ITPD_DESCRICAO_ESTENDIDA || ''),
-          ITOS_QTDE: Number(i.ITPD_QTDE || 0),
-          ITOS_VLR_UNITARIO: Number(i.ITPD_PRECO_UNITARIO || 0),
-          ITOS_DESCONTO: Number(i.ITPD_DESCONTO || 0),
-          ITOS_VLR_TOTAL: Number(i.ITPD_VLR_FINAL || 0),
+          ITOS_QTDE: parseValorBR(i.ITPD_QTDE),
+          ITOS_VLR_UNITARIO: parseValorBR(i.ITPD_PRECO_UNITARIO),
+          ITOS_DESCONTO: parseValorBR(i.ITPD_DESCONTO),
+          ITOS_VLR_TOTAL: parseValorBR(i.ITPD_VLR_FINAL),
           ITOS_UNIDADE_MEDIDA: i.ITPD_UNID_SIGLA || 'UN',
-          ITRQ_PRECO_TABELA: Number(i.ITPD_PRECO_TABELA || i.ITPD_PRECO_UNITARIO || 0),
-          ITRQ_VLR_DESCONTO_SOBRE_TOTAL: Number(i.ITPD_VLR_DESCONTO_SOBRE_TOTAL || 0),
+          ITRQ_PRECO_TABELA: parseValorBR(i.ITPD_PRECO_TABELA || i.ITPD_PRECO_UNITARIO),
+          ITRQ_VLR_DESCONTO_SOBRE_TOTAL: parseValorBR(i.ITPD_VLR_DESCONTO_SOBRE_TOTAL),
           PROD_ID: i.PROD_ID || '',
           PROD_CODIGO: i.PROD_CODIGO || '',
         }));
         setItens(itensMapped);
+
+        // DIFAL cobrado do cliente (outras despesas acessórias dos itens)
+        const difalTotal = (itensRaw || []).reduce(
+          (sum: number, i: any) => sum + parseValorBR(i.ITPD_OUTRAS_DESP_ACES),
+          0
+        );
+        setDifal(difalTotal);
 
         if (d.PDDS_VLR_DESCONTO) setDescontoOS(Number(d.PDDS_VLR_DESCONTO));
         if (d.PDDS_VLR_DESCONTO_SERVICO) setDescontoServico(Number(d.PDDS_VLR_DESCONTO_SERVICO));
@@ -255,7 +263,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
 
   const subtotal = itens.reduce((s, i) => s + (i.ITOS_QTDE * i.ITOS_VLR_UNITARIO), 0);
   const descontoItens = itens.reduce((s, i) => s + i.ITOS_DESCONTO, 0);
-  const totalFinal = Math.max(0, subtotal - descontoItens - descontoOS - descontoServico);
+  const totalFinal = Math.max(0, subtotal - descontoItens - descontoOS - descontoServico) + difal;
 
   // ====== PDF do Pedido ======
   const buildPdf = useCallback((): jsPDF => {
@@ -484,6 +492,13 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       doc.setFont('helvetica', 'bold');
       doc.text(formatCurrency(descontoItens + descontoOS + descontoServico), tgValX, tgY, { align: 'right' });
       tgY += 5;
+      if (difal > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.text('DIFAL:', tgX, tgY);
+        doc.setFont('helvetica', 'bold');
+        doc.text(formatCurrency(difal), tgValX, tgY, { align: 'right' });
+        tgY += 5;
+      }
       doc.setFont('helvetica', 'normal');
       doc.text('Total:', tgX, tgY);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
@@ -509,7 +524,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     });
 
     return doc;
-  }, [auth, unidadeHeader, logoEmpresa, numeroPedido, orsvId, dataPedido, cliente, vendedor, vendedorText, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, subtotal, totalFinal, observacoes]);
+  }, [auth, unidadeHeader, logoEmpresa, numeroPedido, orsvId, dataPedido, cliente, vendedor, vendedorText, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, difal, subtotal, totalFinal, observacoes]);
 
   const handlePrint = useCallback(() => {
     if (!pedidoPersistido) return;
@@ -673,6 +688,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         PDDS_VLR_SUBTOTAL: subtotal,
         PDDS_VLR_DESCONTO: descontoOS,
         PDDS_VLR_DESCONTO_SERVICO: descontoServico,
+        PDDS_VLR_DIFAL: difal,
         PDDS_VLR_TOTAL: totalFinal,
         PDDS_STATUS: 'Aberto',
         UNEM_ID: auth?.unidade?.unem_Id,
@@ -832,6 +848,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         </Card>
         <ResumoFinanceiro
           itens={itens}
+          difal={difal}
           descontoOS={descontoOS}
           descontoServico={descontoServico}
           onDescontoOSChange={setDescontoOS}
