@@ -187,7 +187,7 @@ export default function Pedidos() {
                     <TableCell className="text-[10px] font-mono whitespace-nowrap">{formatCpfCnpj(p.PESS_CPFCNPJ || p.PDDS_CPFCNPJ)}</TableCell>
                     <TableCell className="text-[10px] max-w-[120px] truncate" title={`${p.VEIC_MARCA ?? ""} ${p.VEIC_MODELO ?? ""}`}>{p.VEIC_MARCA} {p.VEIC_MODELO}</TableCell>
                     <TableCell className="text-[10px] font-mono whitespace-nowrap">{p.VEIC_PLACA}</TableCell>
-                    <TableCell className="text-[10px] text-right whitespace-nowrap">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
+                    <TableCell className="text-[10px] text-right whitespace-nowrap">{formatCurrency(parseValorBR(p.PDDS_VLR_TOTAL))}</TableCell>
                     <TableCell>
                       <Badge className={(statusColor[rowStatus] || "bg-muted text-muted-foreground") + " text-[9px] px-1.5 py-0 whitespace-nowrap"}>
                         {rowStatus}

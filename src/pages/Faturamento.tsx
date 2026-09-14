@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPedidos, type Pedido } from "@/lib/api";
+import { getPedidos, parseValorBR, type Pedido } from "@/lib/api";
 import { getNegociacoesPedidos } from "@/lib/api-os";
 import { toast } from "sonner";
 import RecebimentoModal from "@/components/faturamento/RecebimentoModal";
@@ -139,7 +139,7 @@ export default function Faturamento() {
 
   const totalSelecionado = data
     .filter((p) => selected.has(p.PDDS_ID))
-    .reduce((s, p) => s + (Number(p.PDDS_VLR_TOTAL) || 0), 0);
+    .reduce((s, p) => s + parseValorBR(p.PDDS_VLR_TOTAL), 0);
 
   const [filaIds, setFilaIds] = useState<string[]>([]);
   const [filaIdx, setFilaIdx] = useState(0);
@@ -308,7 +308,7 @@ export default function Faturamento() {
                       <TableCell>
                         <Badge className="bg-primary text-primary-foreground">{p.PDDS_STATUS || "Aberto"}</Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(p.PDDS_VLR_TOTAL)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(parseValorBR(p.PDDS_VLR_TOTAL))}</TableCell>
                     </TableRow>
                     {isOpen && (
                       <TableRow key={p.PDDS_ID + '-venc'} className="bg-muted/20 hover:bg-muted/20">

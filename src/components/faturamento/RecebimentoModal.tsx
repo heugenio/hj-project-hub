@@ -154,7 +154,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
   const tefAbortRef = useRef<AbortController | null>(null);
   const tefBusy = tefOverlay.open;
 
-  const total = Number(pedido?.PDDS_VLR_TOTAL || 0);
+  const total = parseValorBR(pedido?.PDDS_VLR_TOTAL);
   const cliente = pedido?.PESS_NOME || pedido?.PESS_RAZAO_SOCIAL || "-";
 
   const formasOptions = useMemo(
@@ -727,7 +727,7 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
           cliente_id: String((pedido as any)?.PESS_ID || ""),
           cliente_nome: (pedido as any)?.PESS_NOME || (pedido as any)?.PESS_RAZAO_SOCIAL,
           telefone: (pedido as any)?.TELEFONE || (pedido as any)?.PESS_TELEFONE || (pedido as any)?.PESS_CELULAR,
-          valor: Number((pedido as any)?.PDDS_VLR_TOTAL || total || 0),
+          valor: parseValorBR((pedido as any)?.PDDS_VLR_TOTAL) || total || 0,
           documento_numero: String(pedido.PDDS_NUMERO || ""),
           origem: "Faturamento",
         });
