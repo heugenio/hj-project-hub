@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Loader2, Package, Warehouse } from 'lucide-react';
-import { getConsultaEstoque, getGrupos, getMarcas, type ConsultaEstoqueItem, type Grupo, type Marca } from '@/lib/api';
+import { getConsultaEstoque, getGrupos, getMarcas, searchEstoqueByNome, type ConsultaEstoqueItem, type Grupo, type Marca } from '@/lib/api';
 
 interface ProdutoSearchDialogProps {
   open: boolean;
@@ -87,15 +87,39 @@ export function ProdutoSearchDialog({ open, onOpenChange, unemId, onSelect }: Pr
     setLoading(true);
     setSearched(true);
     try {
-      const data = await getConsultaEstoque({
-        unem_id: unemId,
-        prod_codigo: prodCodigo || undefined,
-        prod_nome: prodNome || undefined,
-        marc_id: marcId || undefined,
-        grpo_id: grpoId || undefined,
-        referencia: referencia || undefined,
-        aplicacao: aplicacao || undefined,
-      });
+      const hasMultiWordName = prodNome.trim().split(/\s+/).filter(Boolean).length > 1;
+      let data: ConsultaEstoqueItem[];
+      if (hasMultiWordName) {
+        // Busca tolerante a múltiplas palavras no nome
+        data = await searchEstoqueByNome({
+          unem_id: unemId,
+          prod_nome: prodNome,
+          marc_id: marcId || undefined,
+          grpo_id: grpoId || undefined,
+        });
+        // Filtra adicionalmente por código/referência/aplicação no cliente
+        const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const filterBy = (val: string) => {
+          if (!val) return () => true;
+          const v = norm(val);
+          return (item: ConsultaEstoqueItem) =>
+            Object.values(item).some((x) => norm(String(x ?? '')).includes(v));
+        };
+        const fCodigo = filterBy(prodCodigo);
+        const fRef = filterBy(referencia);
+        const fAplic = filterBy(aplicacao);
+        data = data.filter((item) => fCodigo(item) && fRef(item) && fAplic(item));
+      } else {
+        data = await getConsultaEstoque({
+          unem_id: unemId,
+          prod_codigo: prodCodigo || undefined,
+          prod_nome: prodNome || undefined,
+          marc_id: marcId || undefined,
+          grpo_id: grpoId || undefined,
+          referencia: referencia || undefined,
+          aplicacao: aplicacao || undefined,
+        });
+      }
       setResults(data);
     } catch {
       setResults([]);
