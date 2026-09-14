@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, BoxesIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { getProdutos, searchProdutosByNome, type Produto } from "@/lib/api";
+import { searchProdutosByNome, type Produto } from "@/lib/api";
 
 export default function Produtos() {
   const [search, setSearch] = useState("");
