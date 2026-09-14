@@ -283,6 +283,20 @@ export const getOrdemServicos = (
   return apiGet<OrdemServico[]>(`/getOrdemServicos?${params.toString()}`);
 };
 
+// Converte valores numéricos vindos da API legada ("1599,4", "1.599,40", 1599.4)
+export function parseValorBR(value: unknown): number {
+  if (typeof value === 'number') return isFinite(value) ? value : 0;
+  if (value == null) return 0;
+  let s = String(value).trim();
+  if (!s) return 0;
+  s = s.replace(/[^\d.,-]/g, '');
+  if (s.includes(',')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  }
+  const n = Number(s);
+  return isFinite(n) ? n : 0;
+}
+
 // Pedidos (retorno do endpoint /getPedidos no backend legado)
 export interface Pedido {
   PDDS_ID: string;
