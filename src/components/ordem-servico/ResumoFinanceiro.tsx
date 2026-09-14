@@ -8,6 +8,7 @@ interface ResumoFinanceiroProps {
   itens: ItemOS[];
   descontoOS?: number;
   descontoServico?: number;
+  difal?: number;
   onDescontoOSChange?: (v: number) => void;
   onDescontoServicoChange?: (v: number) => void;
 }
@@ -19,6 +20,7 @@ export function ResumoFinanceiro({
   itens,
   descontoOS = 0,
   descontoServico = 0,
+  difal = 0,
   onDescontoOSChange,
   onDescontoServicoChange,
 }: ResumoFinanceiroProps) {
@@ -27,7 +29,7 @@ export function ResumoFinanceiro({
   const subtotalServicos = itens
     .filter(i => i.ITOS_TIPO === 'S')
     .reduce((sum, i) => sum + Math.max(0, (i.ITOS_QTDE * i.ITOS_VLR_UNITARIO) - i.ITOS_DESCONTO), 0);
-  const total = Math.max(0, subtotal - descontoItens - descontoOS - descontoServico);
+  const total = Math.max(0, subtotal - descontoItens - descontoOS - descontoServico) + difal;
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
@@ -45,6 +47,13 @@ export function ResumoFinanceiro({
             <span className="text-muted-foreground">Desconto Itens</span>
             <span className="font-medium text-destructive">- {formatCurrency(descontoItens)}</span>
           </div>
+
+          {difal > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">DIFAL</span>
+              <span className="font-medium text-foreground">+ {formatCurrency(difal)}</span>
+            </div>
+          )}
 
           {onDescontoServicoChange && (
             <div className="flex items-center justify-between gap-2">

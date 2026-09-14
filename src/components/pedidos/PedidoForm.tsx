@@ -255,7 +255,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
 
   const subtotal = itens.reduce((s, i) => s + (i.ITOS_QTDE * i.ITOS_VLR_UNITARIO), 0);
   const descontoItens = itens.reduce((s, i) => s + i.ITOS_DESCONTO, 0);
-  const totalFinal = Math.max(0, subtotal - descontoItens - descontoOS - descontoServico);
+  const totalFinal = Math.max(0, subtotal - descontoItens - descontoOS - descontoServico) + difal;
 
   // ====== PDF do Pedido ======
   const buildPdf = useCallback((): jsPDF => {
@@ -484,6 +484,13 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
       doc.setFont('helvetica', 'bold');
       doc.text(formatCurrency(descontoItens + descontoOS + descontoServico), tgValX, tgY, { align: 'right' });
       tgY += 5;
+      if (difal > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.text('DIFAL:', tgX, tgY);
+        doc.setFont('helvetica', 'bold');
+        doc.text(formatCurrency(difal), tgValX, tgY, { align: 'right' });
+        tgY += 5;
+      }
       doc.setFont('helvetica', 'normal');
       doc.text('Total:', tgX, tgY);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
@@ -509,7 +516,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
     });
 
     return doc;
-  }, [auth, unidadeHeader, logoEmpresa, numeroPedido, orsvId, dataPedido, cliente, vendedor, vendedorText, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, subtotal, totalFinal, observacoes]);
+  }, [auth, unidadeHeader, logoEmpresa, numeroPedido, orsvId, dataPedido, cliente, vendedor, vendedorText, statusPedido, itens, parcelas, descontoItens, descontoOS, descontoServico, difal, subtotal, totalFinal, observacoes]);
 
   const handlePrint = useCallback(() => {
     if (!pedidoPersistido) return;
@@ -673,6 +680,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         PDDS_VLR_SUBTOTAL: subtotal,
         PDDS_VLR_DESCONTO: descontoOS,
         PDDS_VLR_DESCONTO_SERVICO: descontoServico,
+        PDDS_VLR_DIFAL: difal,
         PDDS_VLR_TOTAL: totalFinal,
         PDDS_STATUS: 'Aberto',
         UNEM_ID: auth?.unidade?.unem_Id,
@@ -832,6 +840,7 @@ export default function PedidoForm({ onBack, editingPedido, viewMode = false }: 
         </Card>
         <ResumoFinanceiro
           itens={itens}
+          difal={difal}
           descontoOS={descontoOS}
           descontoServico={descontoServico}
           onDescontoOSChange={setDescontoOS}
