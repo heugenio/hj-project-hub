@@ -118,6 +118,83 @@ export const getUsuarios = (unemId: string) => apiGet<Usuario[]>(`/getUsuario?un
 export const getGrupos = () => apiGet<Grupo[]>('/getGrupos');
 export const getMarcas = () => apiGet<Marca[]>('/getMarcas');
 
+// Normaliza texto para busca: lowercase + remove acentos
+function normalizeText(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Busca de estoque tolerante a múltiplas palavras. A API legada faz LIKE '%texto%',
+// então uma frase como "auto vanguard 5 porta" não retorna nada. Aqui quebramos em
+// tokens, buscamos pelo token mais distintivo (mais longo) e filtramos no cliente
+// exigindo que TODOS os tokens apareçam em algum campo do item.
+export async function searchEstoqueByNome(params: {
+  unem_id: string;
+  prod_nome: string;
+  marc_id?: string;
+  grpo_id?: string;
+}): Promise<ConsultaEstoqueItem[]> {
+  const raw = (params.prod_nome ?? '').trim();
+  if (!raw) return [];
+  const tokens = raw.split(/\s+/).filter(Boolean).map(normalizeText);
+  if (tokens.length === 0) return [];
+  if (tokens.length === 1) {
+    return getConsultaEstoque({
+      unem_id: params.unem_id,
+      prod_nome: raw,
+      marc_id: params.marc_id,
+      grpo_id: params.grpo_id,
+    });
+  }
+  // Múltiplas palavras: usa o token mais longo (mais distintivo) como chave da API
+  // e depois filtra no cliente garantindo que todos os tokens estejam presentes.
+  const ordered = [...tokens].sort((a, b) => b.length - a.length);
+  let data: ConsultaEstoqueItem[] = [];
+  for (const tok of ordered) {
+    try {
+      data = await getConsultaEstoque({
+        unem_id: params.unem_id,
+        prod_nome: tok,
+        marc_id: params.marc_id,
+        grpo_id: params.grpo_id,
+      });
+    } catch {
+      data = [];
+    }
+    if (data.length > 0) break;
+  }
+  return data.filter((item) => {
+    const hay = Object.values(item)
+      .map((v) => normalizeText(String(v ?? '')))
+      .join(' ');
+    return tokens.every((t) => hay.includes(t));
+  });
+}
+
+// Mesma ideia para /getProdutos (página de Produtos)
+export async function searchProdutosByNome(nome: string): Promise<Produto[]> {
+  const raw = (nome ?? '').trim();
+  if (!raw) return [];
+  const tokens = raw.split(/\s+/).filter(Boolean).map(normalizeText);
+  if (tokens.length === 0) return [];
+  if (tokens.length === 1) return getProdutos(raw);
+  const ordered = [...tokens].sort((a, b) => b.length - a.length);
+  let data: Produto[] = [];
+  for (const tok of ordered) {
+    try {
+      data = await getProdutos(tok);
+    } catch {
+      data = [];
+    }
+    if (data.length > 0) break;
+  }
+  return data.filter((item) => {
+    const hay = Object.values(item)
+      .map((v) => normalizeText(String(v ?? '')))
+      .join(' ');
+    return tokens.every((t) => hay.includes(t));
+  });
+}
+
 // Produtos
 export interface Produto {
   prod_Codigo?: string;
