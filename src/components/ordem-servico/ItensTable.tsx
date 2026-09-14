@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Package, Wrench, Search, X } from 'lucide-react';
 import type { ItemOS } from '@/lib/api-os';
-import { getConsultaEstoque, type ConsultaEstoqueItem } from '@/lib/api';
+import { getConsultaEstoque, searchEstoqueByNome, type ConsultaEstoqueItem } from '@/lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
 import { ProdutoSearchDialog } from './ProdutoSearchDialog';
 
@@ -120,7 +120,7 @@ export function ItensTable({ itens, onChange, unemId }: ItensTableProps) {
   const fetchProdutosPorNome = useCallback(async (query: string) => {
     if (!unemId || query.length < 2) return [];
     try {
-      const data = await getConsultaEstoque({ unem_id: unemId, prod_nome: query });
+      const data = await searchEstoqueByNome({ unem_id: unemId, prod_nome: query });
       return data.map(buildOption);
     } catch { return []; }
   }, [unemId]);
