@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, CheckCircle2, Banknote, Send, CreditCard } from "lucide-react";
 import { toast } from "sonner";
-import { setFaturarPedido, getCofres, type Cofre, type Pedido } from "@/lib/api";
+import { setFaturarPedido, getCofres, parseValorBR, type Cofre, type Pedido } from "@/lib/api";
 import {
   getNegociacoesPedidos,
   getFormasPagamentos,
