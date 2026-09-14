@@ -705,10 +705,12 @@ export default function RecebimentoModal({ open, pedido, fila, onClose, onFatura
       console.log("[Recebimento] JSON setFaturarPedido (POST):", JSON.stringify(payload, null, 2));
       console.log("[Recebimento] Faturando pedido", payload);
 
-      const res = await setFaturarPedido(pedido.PDDS_ID, payload);
+      const res = await setFaturarPedido(pedido.PDDS_ID, payload, unemId);
       console.log("[Recebimento] Resposta faturamento", res);
       if (!res.ok) {
-        toast.error("Falha ao faturar pedido " + pedido.PDDS_NUMERO);
+        toast.error(
+          `Pedido ${pedido.PDDS_NUMERO} NÃO foi faturado${res.status ? ` (status: ${res.status})` : ""}.`
+        );
         setConfirmando(false);
         return;
       }
