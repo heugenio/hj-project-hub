@@ -180,15 +180,19 @@ export default function Dashboard() {
     setFiltroGrpoTipo(pneusTipo || "__all__");
   }, [grpoTipos, filtroGrpoTipo]);
 
-  // Loja selecionada (padrão = loja logada)
-  const lojaSel = filtroLoja || unemId;
+  // Comparativo de todas as lojas já carregadas (inclui a loja logada)
+  const comparativoTodasLojas = useMemo(() => {
+    const porLoja: Comparativo[] = Object.values(comparativoPorLoja).flat();
+    const daLogada = comparativo.map((i) => ({ ...i, UNEM_ID: i.UNEM_ID || unemId }));
+    return [...daLogada, ...porLoja.filter((i) => i.UNEM_ID !== unemId)];
+  }, [comparativoPorLoja, comparativo, unemId]);
 
   // Base: ADM usa o comparativo consolidado por loja quando disponível
   const comparativoBase = useMemo(() => {
     if (perfil !== "ADM") return comparativo;
-    if (comparativoPorLoja.length > 0) return comparativoPorLoja;
+    if (comparativoTodasLojas.length > 0) return comparativoTodasLojas;
     return comparativoGeral.length > 0 ? comparativoGeral : comparativo;
-  }, [perfil, comparativoPorLoja, comparativoGeral, comparativo]);
+  }, [perfil, comparativoTodasLojas, comparativoGeral, comparativo]);
 
   // Lista de lojas para o filtro
   const lojasFiltro = useMemo(() => {
