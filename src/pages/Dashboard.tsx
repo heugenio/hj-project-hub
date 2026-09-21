@@ -141,23 +141,31 @@ export default function Dashboard() {
       const worker = async () => {
         while (fila.length > 0 && !cancel) {
           const id = fila.shift()!;
-          const [vendasResult, compResult] = await Promise.allSettled([
-            getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id }),
-            getComparativo(id),
-          ]);
+          // até 3 tentativas: falha de rede/timeout não pode virar cache vazio
+          let vendas: SalesDemo[] | null = null;
+          let comp: Comparativo[] | null = null;
+          for (let tentativa = 0; tentativa < 3 && !cancel; tentativa++) {
+            const [vendasResult, compResult] = await Promise.allSettled([
+              vendas ? Promise.resolve(vendas) : getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id }),
+              comp ? Promise.resolve(comp) : getComparativo(id),
+            ]);
+            if (vendasResult.status === "fulfilled" && Array.isArray(vendasResult.value)) {
+              vendas = vendasResult.value as SalesDemo[];
+            }
+            if (compResult.status === "fulfilled" && Array.isArray(compResult.value)) {
+              comp = (compResult.value as Comparativo[]).map((item) => ({ ...item, UNEM_ID: id }));
+            }
+            if (vendas && comp) break;
+            await new Promise((r) => setTimeout(r, 800 * (tentativa + 1)));
+          }
           if (cancel) continue;
-
-          const vendas = vendasResult.status === "fulfilled" && Array.isArray(vendasResult.value)
-            ? vendasResult.value
-            : [];
-          const comp = compResult.status === "fulfilled" && Array.isArray(compResult.value)
-            ? compResult.value.map((item) => ({ ...item, UNEM_ID: id }))
-            : [];
-          setSalesPorLoja((prev) => ({ ...prev, [id]: vendas }));
-          setComparativoPorLoja((prev) => ({ ...prev, [id]: comp }));
+          if (vendas && comp) {
+            setSalesPorLoja((prev) => ({ ...prev, [id]: vendas as SalesDemo[] }));
+            setComparativoPorLoja((prev) => ({ ...prev, [id]: comp as Comparativo[] }));
+          }
         }
       };
-      await Promise.all([worker(), worker(), worker()]);
+      await Promise.all([worker(), worker()]);
     })();
 
     return () => { cancel = true; };
