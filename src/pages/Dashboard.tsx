@@ -308,10 +308,12 @@ export default function Dashboard() {
   }
 
   // KPIs do comparativo filtrado (somando todos os grupos do filtro ativo)
-  const vlrAtual = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
-  const vlrAnterior = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL_ANT), 0);
-  const qtdAtual = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE), 0);
-  const qtdAnterior = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_ANT), 0);
+  // Fonte dos KPIs: resumo por loja/tipo (confiável para qualquer loja) quando disponível
+  const kpiFonte = comparativoGeralFiltrado.length > 0 ? comparativoGeralFiltrado : comparativoFiltrado;
+  const vlrAtual = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
+  const vlrAnterior = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL_ANT), 0);
+  const qtdAtual = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE), 0);
+  const qtdAnterior = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_ANT), 0);
   const crescimento = vlrAnterior > 0 ? ((vlrAtual - vlrAnterior) / vlrAnterior) * 100 : 0;
 
   // KPIs derivados do demonstrativo de vendas (filtrado)
