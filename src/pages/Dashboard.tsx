@@ -62,6 +62,7 @@ export default function Dashboard() {
   const [filtroLoja, setFiltroLoja] = useState<string>("");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
   const [salesPorLoja, setSalesPorLoja] = useState<Record<string, SalesDemo[]>>({});
+  const [comparativoPorLoja, setComparativoPorLoja] = useState<Comparativo[]>([]);
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
@@ -140,6 +141,19 @@ export default function Dashboard() {
       );
       if (cancel) return;
       setSalesPorLoja(Object.fromEntries(entries));
+
+      const comps = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const c = await getComparativo(id);
+            return (Array.isArray(c) ? c : []).map((item) => ({ ...item, UNEM_ID: id }));
+          } catch {
+            return [] as Comparativo[];
+          }
+        })
+      );
+      if (cancel) return;
+      setComparativoPorLoja(comps.flat());
     })();
     return () => { cancel = true; };
   }, [unidadesMap, perfil]);
@@ -164,10 +178,12 @@ export default function Dashboard() {
   // Loja selecionada (padrão = loja logada)
   const lojaSel = filtroLoja || unemId;
 
-  // Base: ADM usa comparativo de todas as lojas quando disponível
+  // Base: ADM usa o comparativo consolidado por loja quando disponível
   const comparativoBase = useMemo(() => {
-    return perfil === "ADM" && comparativoGeral.length > 0 ? comparativoGeral : comparativo;
-  }, [perfil, comparativoGeral, comparativo]);
+    if (perfil !== "ADM") return comparativo;
+    if (comparativoPorLoja.length > 0) return comparativoPorLoja;
+    return comparativoGeral.length > 0 ? comparativoGeral : comparativo;
+  }, [perfil, comparativoPorLoja, comparativoGeral, comparativo]);
 
   // Lista de lojas para o filtro
   const lojasFiltro = useMemo(() => {
@@ -191,7 +207,9 @@ export default function Dashboard() {
 
     if (lojaSel !== "__all__") {
       const porLoja = base.filter((item) => item.UNEM_ID === lojaSel);
-      return porLoja.length > 0 ? porLoja : (comparativoBase === comparativo ? base : []);
+      if (porLoja.length > 0) return porLoja;
+      // Sem consolidação por loja ainda: mantém a base (loja logada)
+      return comparativoPorLoja.length > 0 ? [] : (comparativoBase === comparativo ? base : []);
     }
 
     // Todas as lojas: agregar por grupo
@@ -225,7 +243,7 @@ export default function Dashboard() {
       ITFT_QTDE_ANT: fmt(it._qtdAnt),
       CRECIMENTO: it._vlrAnt > 0 ? (((it._vlr - it._vlrAnt) / it._vlrAnt) * 100).toFixed(2) : "0",
     })) as Comparativo[];
-  }, [comparativoBase, comparativo, filtroGrpoTipo, lojaSel]);
+  }, [comparativoBase, comparativo, comparativoPorLoja, filtroGrpoTipo, lojaSel]);
 
   // Comparativo geral (todas as lojas) filtrado por tipo
   const comparativoGeralFiltrado = useMemo(() => {
