@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__pending__");
   const [filtroLoja, setFiltroLoja] = useState<string>("");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
+  const [salesPorLoja, setSalesPorLoja] = useState<Record<string, SalesDemo[]>>({});
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
@@ -117,6 +118,33 @@ export default function Dashboard() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [unemId, resumoId, perfil, emprId]);
+
+  // Demonstrativo de vendas de todas as lojas (para o filtro "Todas as Lojas")
+  useEffect(() => {
+    const ids = Object.keys(unidadesMap);
+    if (perfil !== "ADM" || ids.length === 0) return;
+    let cancel = false;
+    const now = new Date();
+    const dtInicial = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/01`;
+    const dtFinal = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+    (async () => {
+      const entries = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const d = await getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id });
+            return [id, Array.isArray(d) ? d : []] as const;
+          } catch {
+            return [id, [] as SalesDemo[]] as const;
+          }
+        })
+      );
+      if (cancel) return;
+      setSalesPorLoja(Object.fromEntries(entries));
+    })();
+    return () => { cancel = true; };
+  }, [unidadesMap, perfil]);
+
+
 
 
   // Lista única de GRPO_TIPO para o filtro
@@ -222,10 +250,20 @@ export default function Dashboard() {
     return nomes;
   }, [comparativoFiltrado, filtroGrpoTipo]);
 
+  // Base de vendas conforme loja selecionada (agrega todas quando "__all__")
+  const salesBase = useMemo(() => {
+    if (lojaSel === "__all__") {
+      const todos = Object.values(salesPorLoja).flat();
+      return todos.length > 0 ? todos : salesData;
+    }
+    if (lojaSel === unemId) return salesData;
+    return salesPorLoja[lojaSel] || [];
+  }, [lojaSel, salesPorLoja, salesData, unemId]);
+
   const salesDataFiltrado = useMemo(() => {
-    if (!gruposFiltrados) return salesData;
-    return salesData.filter((item) => gruposFiltrados.has(normalizeGroupName(item.GRUPO)));
-  }, [salesData, gruposFiltrados]);
+    if (!gruposFiltrados) return salesBase;
+    return salesBase.filter((item) => gruposFiltrados.has(normalizeGroupName(item.GRUPO)));
+  }, [salesBase, gruposFiltrados]);
 
   if (loading) {
     return (
