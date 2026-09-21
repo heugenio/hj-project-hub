@@ -140,6 +140,19 @@ export default function Dashboard() {
       );
       if (cancel) return;
       setSalesPorLoja(Object.fromEntries(entries));
+
+      const comps = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const c = await getComparativo(id);
+            return (Array.isArray(c) ? c : []).map((item) => ({ ...item, UNEM_ID: id }));
+          } catch {
+            return [] as Comparativo[];
+          }
+        })
+      );
+      if (cancel) return;
+      setComparativoPorLoja(comps.flat());
     })();
     return () => { cancel = true; };
   }, [unidadesMap, perfil]);
