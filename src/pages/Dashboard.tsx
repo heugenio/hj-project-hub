@@ -178,10 +178,12 @@ export default function Dashboard() {
   // Loja selecionada (padrão = loja logada)
   const lojaSel = filtroLoja || unemId;
 
-  // Base: ADM usa comparativo de todas as lojas quando disponível
+  // Base: ADM usa o comparativo consolidado por loja quando disponível
   const comparativoBase = useMemo(() => {
-    return perfil === "ADM" && comparativoGeral.length > 0 ? comparativoGeral : comparativo;
-  }, [perfil, comparativoGeral, comparativo]);
+    if (perfil !== "ADM") return comparativo;
+    if (comparativoPorLoja.length > 0) return comparativoPorLoja;
+    return comparativoGeral.length > 0 ? comparativoGeral : comparativo;
+  }, [perfil, comparativoPorLoja, comparativoGeral, comparativo]);
 
   // Lista de lojas para o filtro
   const lojasFiltro = useMemo(() => {
