@@ -216,9 +216,7 @@ export default function Dashboard() {
 
     if (lojaSel !== "__all__") {
       const porLoja = base.filter((item) => item.UNEM_ID === lojaSel);
-      if (porLoja.length > 0) return porLoja;
-      // Sem consolidação por loja ainda: mantém a base (loja logada)
-      return comparativoPorLoja.length > 0 ? [] : (comparativoBase === comparativo ? base : []);
+      return porLoja;
     }
 
     // Todas as lojas: agregar por grupo
