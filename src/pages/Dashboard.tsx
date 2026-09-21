@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [filtroGrpoTipo, setFiltroGrpoTipo] = useState<string>("__pending__");
   const [filtroLoja, setFiltroLoja] = useState<string>("");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
+  const [salesPorLoja, setSalesPorLoja] = useState<Record<string, SalesDemo[]>>({});
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
