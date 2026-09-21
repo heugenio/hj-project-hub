@@ -243,7 +243,7 @@ export default function Dashboard() {
       ITFT_QTDE_ANT: fmt(it._qtdAnt),
       CRECIMENTO: it._vlrAnt > 0 ? (((it._vlr - it._vlrAnt) / it._vlrAnt) * 100).toFixed(2) : "0",
     })) as Comparativo[];
-  }, [comparativoBase, comparativo, filtroGrpoTipo, lojaSel]);
+  }, [comparativoBase, comparativo, comparativoPorLoja, filtroGrpoTipo, lojaSel]);
 
   // Comparativo geral (todas as lojas) filtrado por tipo
   const comparativoGeralFiltrado = useMemo(() => {
