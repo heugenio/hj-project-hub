@@ -250,10 +250,20 @@ export default function Dashboard() {
     return nomes;
   }, [comparativoFiltrado, filtroGrpoTipo]);
 
+  // Base de vendas conforme loja selecionada (agrega todas quando "__all__")
+  const salesBase = useMemo(() => {
+    if (lojaSel === "__all__") {
+      const todos = Object.values(salesPorLoja).flat();
+      return todos.length > 0 ? todos : salesData;
+    }
+    if (lojaSel === unemId) return salesData;
+    return salesPorLoja[lojaSel] || [];
+  }, [lojaSel, salesPorLoja, salesData, unemId]);
+
   const salesDataFiltrado = useMemo(() => {
-    if (!gruposFiltrados) return salesData;
-    return salesData.filter((item) => gruposFiltrados.has(normalizeGroupName(item.GRUPO)));
-  }, [salesData, gruposFiltrados]);
+    if (!gruposFiltrados) return salesBase;
+    return salesBase.filter((item) => gruposFiltrados.has(normalizeGroupName(item.GRUPO)));
+  }, [salesBase, gruposFiltrados]);
 
   if (loading) {
     return (
