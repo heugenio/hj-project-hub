@@ -62,11 +62,14 @@ export default function Dashboard() {
   const [filtroLoja, setFiltroLoja] = useState<string>("");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
   const [salesPorLoja, setSalesPorLoja] = useState<Record<string, SalesDemo[]>>({});
-  const [comparativoPorLoja, setComparativoPorLoja] = useState<Comparativo[]>([]);
+  const [comparativoPorLoja, setComparativoPorLoja] = useState<Record<string, Comparativo[]>>({});
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
   const emprId = unemId.substring(0, 8);
+
+  // Loja selecionada (padrão = loja logada)
+  const lojaSel = filtroLoja || unemId;
 
   // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
   const resumoId = perfil === "ADM" ? emprId : unemId;
@@ -120,43 +123,45 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [unemId, resumoId, perfil, emprId]);
 
-  // Demonstrativo de vendas de todas as lojas (para o filtro "Todas as Lojas")
+  // Carrega dados das demais lojas conforme o filtro (com concorrência limitada)
   useEffect(() => {
-    const ids = Object.keys(unidadesMap);
-    if (perfil !== "ADM" || ids.length === 0) return;
+    if (perfil !== "ADM") return;
+    const todos = Object.keys(unidadesMap);
+    if (todos.length === 0) return;
+    const alvo = lojaSel === "__all__" ? todos : [lojaSel];
+    const pendentes = alvo.filter((id) => id !== unemId && !(id in salesPorLoja));
+    if (pendentes.length === 0) return;
+
     let cancel = false;
     const now = new Date();
     const dtInicial = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/01`;
     const dtFinal = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-    (async () => {
-      const entries = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            const d = await getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id });
-            return [id, Array.isArray(d) ? d : []] as const;
-          } catch {
-            return [id, [] as SalesDemo[]] as const;
-          }
-        })
-      );
-      if (cancel) return;
-      setSalesPorLoja(Object.fromEntries(entries));
 
-      const comps = await Promise.all(
-        ids.map(async (id) => {
+    (async () => {
+      const fila = [...pendentes];
+      const worker = async () => {
+        while (fila.length > 0 && !cancel) {
+          const id = fila.shift()!;
           try {
-            const c = await getComparativo(id);
-            return (Array.isArray(c) ? c : []).map((item) => ({ ...item, UNEM_ID: id }));
+            const vendas = await getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id });
+            if (!cancel) setSalesPorLoja((p) => ({ ...p, [id]: Array.isArray(vendas) ? vendas : [] }));
           } catch {
-            return [] as Comparativo[];
+            if (!cancel) setSalesPorLoja((p) => ({ ...p, [id]: [] }));
           }
-        })
-      );
-      if (cancel) return;
-      setComparativoPorLoja(comps.flat());
+          try {
+            const comp = await getComparativo(id);
+            const rows = (Array.isArray(comp) ? comp : []).map((item) => ({ ...item, UNEM_ID: id }));
+            if (!cancel) setComparativoPorLoja((p) => ({ ...p, [id]: rows }));
+          } catch {
+            if (!cancel) setComparativoPorLoja((p) => ({ ...p, [id]: [] }));
+          }
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
     })();
+
     return () => { cancel = true; };
-  }, [unidadesMap, perfil]);
+  }, [unidadesMap, perfil, lojaSel, unemId, salesPorLoja]);
 
 
 
@@ -175,15 +180,19 @@ export default function Dashboard() {
     setFiltroGrpoTipo(pneusTipo || "__all__");
   }, [grpoTipos, filtroGrpoTipo]);
 
-  // Loja selecionada (padrão = loja logada)
-  const lojaSel = filtroLoja || unemId;
+  // Comparativo de todas as lojas já carregadas (inclui a loja logada)
+  const comparativoTodasLojas = useMemo(() => {
+    const porLoja: Comparativo[] = Object.values(comparativoPorLoja).flat();
+    const daLogada = comparativo.map((i) => ({ ...i, UNEM_ID: i.UNEM_ID || unemId }));
+    return [...daLogada, ...porLoja.filter((i) => i.UNEM_ID !== unemId)];
+  }, [comparativoPorLoja, comparativo, unemId]);
 
   // Base: ADM usa o comparativo consolidado por loja quando disponível
   const comparativoBase = useMemo(() => {
     if (perfil !== "ADM") return comparativo;
-    if (comparativoPorLoja.length > 0) return comparativoPorLoja;
+    if (comparativoTodasLojas.length > 0) return comparativoTodasLojas;
     return comparativoGeral.length > 0 ? comparativoGeral : comparativo;
-  }, [perfil, comparativoPorLoja, comparativoGeral, comparativo]);
+  }, [perfil, comparativoTodasLojas, comparativoGeral, comparativo]);
 
   // Lista de lojas para o filtro
   const lojasFiltro = useMemo(() => {
@@ -207,9 +216,7 @@ export default function Dashboard() {
 
     if (lojaSel !== "__all__") {
       const porLoja = base.filter((item) => item.UNEM_ID === lojaSel);
-      if (porLoja.length > 0) return porLoja;
-      // Sem consolidação por loja ainda: mantém a base (loja logada)
-      return comparativoPorLoja.length > 0 ? [] : (comparativoBase === comparativo ? base : []);
+      return porLoja;
     }
 
     // Todas as lojas: agregar por grupo
@@ -245,11 +252,20 @@ export default function Dashboard() {
     })) as Comparativo[];
   }, [comparativoBase, comparativo, comparativoPorLoja, filtroGrpoTipo, lojaSel]);
 
-  // Comparativo geral (todas as lojas) filtrado por tipo
+  // Comparativo por loja (Visão Multi-Lojas): usa o resumo por loja/tipo da API
   const comparativoGeralFiltrado = useMemo(() => {
-    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativoGeral;
-    return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
-  }, [comparativoGeral, filtroGrpoTipo]);
+    const fonte: Comparativo[] = resumoLojas.length > 0
+      ? (resumoLojas as unknown as Comparativo[])
+      : (comparativoTodasLojas.length > 0 ? comparativoTodasLojas : comparativoGeral);
+
+    let base = fonte;
+    if (filtroGrpoTipo !== "__all__" && filtroGrpoTipo !== "__pending__") {
+      const alvo = filtroGrpoTipo.toLowerCase();
+      base = base.filter((item) => (item.GRPO_TIPO || "Geral").toLowerCase() === alvo);
+    }
+    if (lojaSel !== "__all__") base = base.filter((item) => item.UNEM_ID === lojaSel);
+    return base;
+  }, [resumoLojas, comparativoTodasLojas, comparativoGeral, filtroGrpoTipo, lojaSel]);
 
 
   // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
@@ -292,10 +308,12 @@ export default function Dashboard() {
   }
 
   // KPIs do comparativo filtrado (somando todos os grupos do filtro ativo)
-  const vlrAtual = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
-  const vlrAnterior = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL_ANT), 0);
-  const qtdAtual = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE), 0);
-  const qtdAnterior = comparativoFiltrado.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_ANT), 0);
+  // Fonte dos KPIs: resumo por loja/tipo (confiável para qualquer loja) quando disponível
+  const kpiFonte = comparativoGeralFiltrado.length > 0 ? comparativoGeralFiltrado : comparativoFiltrado;
+  const vlrAtual = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL), 0);
+  const vlrAnterior = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_VLR_CONTABIL_ANT), 0);
+  const qtdAtual = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE), 0);
+  const qtdAnterior = kpiFonte.reduce((s, item) => s + parseCurrency(item.ITFT_QTDE_ANT), 0);
   const crescimento = vlrAnterior > 0 ? ((vlrAtual - vlrAnterior) / vlrAnterior) * 100 : 0;
 
   // KPIs derivados do demonstrativo de vendas (filtrado)
