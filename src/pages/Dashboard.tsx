@@ -128,7 +128,7 @@ export default function Dashboard() {
     if (perfil !== "ADM") return;
     const todos = Object.keys(unidadesMap);
     if (todos.length === 0) return;
-    const alvo = lojaSelRef === "__all__" ? todos : [lojaSelRef];
+    const alvo = lojaSel === "__all__" ? todos : [lojaSel];
     const pendentes = alvo.filter((id) => id !== unemId && !(id in salesPorLoja));
     if (pendentes.length === 0) return;
 
@@ -161,7 +161,7 @@ export default function Dashboard() {
     })();
 
     return () => { cancel = true; };
-  }, [unidadesMap, perfil, lojaSelRef, unemId, salesPorLoja]);
+  }, [unidadesMap, perfil, lojaSel, unemId, salesPorLoja]);
 
 
 
