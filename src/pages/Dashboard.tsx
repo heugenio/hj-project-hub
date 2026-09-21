@@ -62,6 +62,7 @@ export default function Dashboard() {
   const [filtroLoja, setFiltroLoja] = useState<string>("");
   const [salesData, setSalesData] = useState<SalesDemo[]>([]);
   const [salesPorLoja, setSalesPorLoja] = useState<Record<string, SalesDemo[]>>({});
+  const [comparativoPorLoja, setComparativoPorLoja] = useState<Comparativo[]>([]);
 
   const perfil: Perfil = auth?.user?.GRUS_PERFIL || "ADM";
   const unemId = auth?.unidade?.unem_Id || "";
