@@ -120,43 +120,45 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [unemId, resumoId, perfil, emprId]);
 
-  // Demonstrativo de vendas de todas as lojas (para o filtro "Todas as Lojas")
+  // Carrega dados das demais lojas conforme o filtro (com concorrência limitada)
   useEffect(() => {
-    const ids = Object.keys(unidadesMap);
-    if (perfil !== "ADM" || ids.length === 0) return;
+    if (perfil !== "ADM") return;
+    const todos = Object.keys(unidadesMap);
+    if (todos.length === 0) return;
+    const alvo = lojaSelRef === "__all__" ? todos : [lojaSelRef];
+    const pendentes = alvo.filter((id) => id !== unemId && !(id in salesPorLoja));
+    if (pendentes.length === 0) return;
+
     let cancel = false;
     const now = new Date();
     const dtInicial = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/01`;
     const dtFinal = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-    (async () => {
-      const entries = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            const d = await getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id });
-            return [id, Array.isArray(d) ? d : []] as const;
-          } catch {
-            return [id, [] as SalesDemo[]] as const;
-          }
-        })
-      );
-      if (cancel) return;
-      setSalesPorLoja(Object.fromEntries(entries));
 
-      const comps = await Promise.all(
-        ids.map(async (id) => {
+    (async () => {
+      const fila = [...pendentes];
+      const worker = async () => {
+        while (fila.length > 0 && !cancel) {
+          const id = fila.shift()!;
           try {
-            const c = await getComparativo(id);
-            return (Array.isArray(c) ? c : []).map((item) => ({ ...item, UNEM_ID: id }));
+            const vendas = await getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id });
+            if (!cancel) setSalesPorLoja((p) => ({ ...p, [id]: Array.isArray(vendas) ? vendas : [] }));
           } catch {
-            return [] as Comparativo[];
+            if (!cancel) setSalesPorLoja((p) => ({ ...p, [id]: [] }));
           }
-        })
-      );
-      if (cancel) return;
-      setComparativoPorLoja(comps.flat());
+          try {
+            const comp = await getComparativo(id);
+            const rows = (Array.isArray(comp) ? comp : []).map((item) => ({ ...item, UNEM_ID: id }));
+            if (!cancel) setComparativoPorLoja((p) => ({ ...p, [id]: rows }));
+          } catch {
+            if (!cancel) setComparativoPorLoja((p) => ({ ...p, [id]: [] }));
+          }
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
     })();
+
     return () => { cancel = true; };
-  }, [unidadesMap, perfil]);
+  }, [unidadesMap, perfil, lojaSelRef, unemId, salesPorLoja]);
 
 
 
