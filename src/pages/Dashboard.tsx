@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, getDemonstrativoVendas, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
+import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, getDemonstrativoVendas, parseValorBR, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
   ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store, Filter,
@@ -25,8 +25,7 @@ const COLORS = [
 ];
 
 function parseCurrency(val: string | undefined): number {
-  if (!val) return 0;
-  return parseFloat(val.replace(/\./g, "").replace(",", ".")) || parseFloat(val) || 0;
+  return parseValorBR(val);
 }
 
 function formatBRL(value: number): string {
@@ -129,7 +128,7 @@ export default function Dashboard() {
     const todos = Object.keys(unidadesMap);
     if (todos.length === 0) return;
     const alvo = lojaSel === "__all__" ? todos : [lojaSel];
-    const pendentes = alvo.filter((id) => id !== unemId && !(id in salesPorLoja));
+    const pendentes = alvo.filter((id) => id !== unemId && (!(id in salesPorLoja) || !(id in comparativoPorLoja)));
     if (pendentes.length === 0) return;
 
     let cancel = false;
@@ -142,26 +141,27 @@ export default function Dashboard() {
       const worker = async () => {
         while (fila.length > 0 && !cancel) {
           const id = fila.shift()!;
-          try {
-            const vendas = await getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id });
-            if (!cancel) setSalesPorLoja((p) => ({ ...p, [id]: Array.isArray(vendas) ? vendas : [] }));
-          } catch {
-            if (!cancel) setSalesPorLoja((p) => ({ ...p, [id]: [] }));
-          }
-          try {
-            const comp = await getComparativo(id);
-            const rows = (Array.isArray(comp) ? comp : []).map((item) => ({ ...item, UNEM_ID: id }));
-            if (!cancel) setComparativoPorLoja((p) => ({ ...p, [id]: rows }));
-          } catch {
-            if (!cancel) setComparativoPorLoja((p) => ({ ...p, [id]: [] }));
-          }
+          const [vendasResult, compResult] = await Promise.allSettled([
+            getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id }),
+            getComparativo(id),
+          ]);
+          if (cancel) continue;
+
+          const vendas = vendasResult.status === "fulfilled" && Array.isArray(vendasResult.value)
+            ? vendasResult.value
+            : [];
+          const comp = compResult.status === "fulfilled" && Array.isArray(compResult.value)
+            ? compResult.value.map((item) => ({ ...item, UNEM_ID: id }))
+            : [];
+          setSalesPorLoja((prev) => ({ ...prev, [id]: vendas }));
+          setComparativoPorLoja((prev) => ({ ...prev, [id]: comp }));
         }
       };
       await Promise.all([worker(), worker(), worker()]);
     })();
 
     return () => { cancel = true; };
-  }, [unidadesMap, perfil, lojaSel, unemId, salesPorLoja]);
+  }, [unidadesMap, perfil, lojaSel, unemId]);
 
 
 
@@ -287,8 +287,12 @@ export default function Dashboard() {
   // Base de vendas conforme loja selecionada (agrega todas quando "__all__")
   const salesBase = useMemo(() => {
     if (lojaSel === "__all__") {
-      const todos = Object.values(salesPorLoja).flat();
-      return todos.length > 0 ? todos : salesData;
+      return [
+        ...salesData,
+        ...Object.entries(salesPorLoja)
+          .filter(([id]) => id !== unemId)
+          .flatMap(([, vendas]) => vendas),
+      ];
     }
     if (lojaSel === unemId) return salesData;
     return salesPorLoja[lojaSel] || [];
