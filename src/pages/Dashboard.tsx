@@ -252,11 +252,20 @@ export default function Dashboard() {
     })) as Comparativo[];
   }, [comparativoBase, comparativo, comparativoPorLoja, filtroGrpoTipo, lojaSel]);
 
-  // Comparativo geral (todas as lojas) filtrado por tipo
+  // Comparativo por loja (Visão Multi-Lojas): usa o resumo por loja/tipo da API
   const comparativoGeralFiltrado = useMemo(() => {
-    if (filtroGrpoTipo === "__all__" || filtroGrpoTipo === "__pending__") return comparativoGeral;
-    return comparativoGeral.filter((item) => (item.GRPO_TIPO || "Geral") === filtroGrpoTipo);
-  }, [comparativoGeral, filtroGrpoTipo]);
+    const fonte: Comparativo[] = resumoLojas.length > 0
+      ? (resumoLojas as unknown as Comparativo[])
+      : (comparativoTodasLojas.length > 0 ? comparativoTodasLojas : comparativoGeral);
+
+    let base = fonte;
+    if (filtroGrpoTipo !== "__all__" && filtroGrpoTipo !== "__pending__") {
+      const alvo = filtroGrpoTipo.toLowerCase();
+      base = base.filter((item) => (item.GRPO_TIPO || "Geral").toLowerCase() === alvo);
+    }
+    if (lojaSel !== "__all__") base = base.filter((item) => item.UNEM_ID === lojaSel);
+    return base;
+  }, [resumoLojas, comparativoTodasLojas, comparativoGeral, filtroGrpoTipo, lojaSel]);
 
 
   // Filtrar salesData pelo mesmo GRPO_TIPO do filtro
