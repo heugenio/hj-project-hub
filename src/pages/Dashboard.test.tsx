@@ -39,7 +39,7 @@ function open(client: QueryClient) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.userId = "user-a";
-  mocks.comparativo.mockResolvedValue([]);
+  mocks.comparativo.mockResolvedValue([{ UNEM_ID: "000640010004", GRPO_NOME: "MICHELIN", GRPO_TIPO: "Pneus", ITFT_VLR_CONTABIL: "100", ITFT_QTDE: "1", ITFT_VLR_CONTABIL_ANT: "50", ITFT_QTDE_ANT: "1", CRECIMENTO: "100" }]);
   mocks.vendas.mockResolvedValue([]);
   mocks.resumo.mockImplementation(() => new Promise(() => {}));
   mocks.unidades.mockImplementation(() => new Promise(() => {}));
