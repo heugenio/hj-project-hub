@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getApiBaseUrl } from "@/lib/base-url";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, getDemonstrativoVendas, parseValorBR, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
@@ -51,6 +53,7 @@ type Perfil = "ADM" | "Vendas" | "FINANCEIRO" | string;
 
 export default function Dashboard() {
   const { auth } = useAuth();
+  const queryClient = useQueryClient();
   const [comparativo, setComparativo] = useState<Comparativo[]>([]);
   const [comparativoGeral, setComparativoGeral] = useState<Comparativo[]>([]);
   const [resumo, setResumo] = useState<ComparativoResumo | null>(null);
@@ -72,55 +75,67 @@ export default function Dashboard() {
 
   // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
   const resumoId = perfil === "ADM" ? emprId : unemId;
+  const baseUrl = getApiBaseUrl();
+  const userId = auth?.user?.usrs_ID;
+  const fetchDashboard = useCallback(<T,>(key: string, load: () => Promise<T>) =>
+    queryClient.fetchQuery({
+      queryKey: ["dashboard", baseUrl, userId, unemId, perfil, key],
+      queryFn: load,
+      staleTime: 60_000,
+      gcTime: 300_000,
+      retry: false,
+    }), [queryClient, baseUrl, userId, unemId, perfil]);
 
   useEffect(() => {
     if (!unemId) return;
+    let active = true;
     setLoading(true);
+    setSalesPorLoja({});
+    setComparativoPorLoja({});
+    setUnidadesMap({});
+    setResumoLojas([]);
+    setComparativoGeral([]);
+    setFiltroLoja("");
 
     // Datas do mês atual
     const now = new Date();
     const dtInicial = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/01`;
     const dtFinal = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
-    const fetches: Promise<unknown>[] = [
-      getComparativo(unemId),
-      getComparativoResumo(resumoId),
-      getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }),
-    ];
+    // Renderizar a loja atual sem aguardar resumo e cadastro de outras lojas.
+    const compRequest = fetchDashboard(`comparativo:${unemId}`, () => getComparativo(unemId))
+      .then((comp) => { if (active) setComparativo(Array.isArray(comp) ? comp : []); });
+    const salesRequest = fetchDashboard(`vendas:${unemId}:${dtInicial}:${dtFinal}`, () =>
+      getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }))
+      .then((sales) => { if (active) setSalesData(Array.isArray(sales) ? sales : []); });
+    Promise.allSettled([compRequest, salesRequest])
+      .then(() => { if (active) setLoading(false); });
 
-    // Para ADM, buscar comparativo e unidades de todas as lojas
-    if (perfil === "ADM" && emprId) {
-      fetches.push(getUnidadesEmpresariais(emprId));
-      fetches.push(getComparativo(resumoId)); // comparativo de todas as lojas com GRPO_TIPO
-    }
-
-    Promise.all(fetches)
-      .then(([comp, res, sales, unidades, compGeral]) => {
-        setComparativo(Array.isArray(comp) ? comp as Comparativo[] : []);
-        const lojas = Array.isArray(res) ? res as ComparativoResumo[] : [];
+    fetchDashboard(`resumo:${resumoId}`, () => getComparativoResumo(resumoId))
+      .then((res) => {
+        if (!active) return;
+        const lojas = Array.isArray(res) ? res : [];
         setResumoLojas(lojas);
-        setSalesData(Array.isArray(sales) ? sales as SalesDemo[] : []);
-        setComparativoGeral(Array.isArray(compGeral) ? compGeral as Comparativo[] : []);
+        setResumo(lojas.find((l) => l.UNEM_ID === unemId) || lojas[0] || null);
+      }).catch(console.error);
 
-        // Resumo da unidade logada
-        const lojaLogada = lojas.find((l) => l.UNEM_ID === unemId);
-        setResumo(lojaLogada || lojas[0] || null);
-
-        // Mapear UNEM_ID → { sigla, uf }
-        if (unidades && Array.isArray(unidades)) {
+    // getComparativo exige uma unidade completa; o ID da empresa retornava vazio.
+    if (perfil === "ADM" && emprId) {
+      fetchDashboard(`unidades:${emprId}`, () => getUnidadesEmpresariais(emprId))
+        .then((unidades) => {
+          if (!active) return;
           const map: Record<string, { sigla: string; uf: string }> = {};
-          (unidades as UnidadeEmpresarial[]).forEach((u) => {
+          unidades.forEach((u) => {
             map[u.unem_Id] = {
               sigla: u.unem_Sigla || u.unem_Fantasia || u.unem_Id,
               uf: u.unem_Uf || "",
             };
           });
           setUnidadesMap(map);
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [unemId, resumoId, perfil, emprId]);
+        }).catch(console.error);
+    }
+    return () => { active = false; };
+  }, [unemId, resumoId, perfil, emprId, fetchDashboard]);
 
   // Carrega dados das demais lojas conforme o filtro (com concorrência limitada)
   useEffect(() => {
@@ -140,14 +155,15 @@ export default function Dashboard() {
       const fila = [...pendentes];
       const worker = async () => {
         while (fila.length > 0 && !cancel) {
-          const id = fila.shift()!;
+          const id = fila.shift();
+          if (!id) return;
           // até 3 tentativas: falha de rede/timeout não pode virar cache vazio
           let vendas: SalesDemo[] | null = null;
           let comp: Comparativo[] | null = null;
           for (let tentativa = 0; tentativa < 3 && !cancel; tentativa++) {
             const [vendasResult, compResult] = await Promise.allSettled([
-              vendas ? Promise.resolve(vendas) : getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id }),
-              comp ? Promise.resolve(comp) : getComparativo(id),
+              vendas ? Promise.resolve(vendas) : fetchDashboard(`vendas:${id}:${dtInicial}:${dtFinal}`, () => getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id })),
+              comp ? Promise.resolve(comp) : fetchDashboard(`comparativo:${id}`, () => getComparativo(id)),
             ]);
             if (vendasResult.status === "fulfilled" && Array.isArray(vendasResult.value)) {
               vendas = vendasResult.value as SalesDemo[];
@@ -169,7 +185,7 @@ export default function Dashboard() {
     })();
 
     return () => { cancel = true; };
-  }, [unidadesMap, perfil, lojaSel, unemId]);
+  }, [unidadesMap, perfil, lojaSel, unemId, fetchDashboard]);
 
 
 
@@ -205,6 +221,7 @@ export default function Dashboard() {
   // Lista de lojas para o filtro
   const lojasFiltro = useMemo(() => {
     const ids = new Set<string>();
+    Object.keys(unidadesMap).forEach((id) => ids.add(id));
     comparativoBase.forEach((i) => i.UNEM_ID && ids.add(i.UNEM_ID));
     resumoLojas.forEach((l) => l.UNEM_ID && ids.add(l.UNEM_ID));
     if (unemId) ids.add(unemId);
@@ -354,7 +371,7 @@ export default function Dashboard() {
   comparativoFiltrado.forEach((item) => {
     const tipo = item.GRPO_TIPO || "Geral";
     if (!tiposMap.has(tipo)) tiposMap.set(tipo, []);
-    tiposMap.get(tipo)!.push(item);
+    tiposMap.get(tipo)?.push(item);
   });
 
   // Ordenar cada grupo por valor atual decrescente
