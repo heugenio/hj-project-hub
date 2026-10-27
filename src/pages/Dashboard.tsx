@@ -76,7 +76,7 @@ export default function Dashboard() {
   // Para ADM, passa apenas os 8 primeiros caracteres (nível empresa/corporação)
   const resumoId = perfil === "ADM" ? emprId : unemId;
   const baseUrl = getApiBaseUrl();
-  const userId = auth?.user?.USRS_ID;
+  const userId = auth?.user?.usrs_ID;
   const fetchDashboard = useCallback(<T,>(key: string, load: () => Promise<T>) =>
     queryClient.fetchQuery({
       queryKey: ["dashboard", baseUrl, userId, unemId, perfil, key],
