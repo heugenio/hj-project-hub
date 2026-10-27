@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiBaseUrl } from "@/lib/base-url";
+import { comparativoFromSales, previousSalesPeriod } from "@/lib/dashboard-comparativo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, getDemonstrativoVendas, parseValorBR, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
@@ -85,6 +86,17 @@ export default function Dashboard() {
       gcTime: 300_000,
       retry: false,
     }), [queryClient, baseUrl, userId, unemId, perfil]);
+  const loadComparativo = useCallback((id: string, now: Date, dtInicial: string, dtFinal: string) =>
+    fetchDashboard(`comparativo:v2:${id}:${dtInicial}:${dtFinal}`, async () => {
+      const rows = await getComparativo(id);
+      if (rows.length > 0) return rows.map((row) => ({ ...row, UNEM_ID: id }));
+      const previous = previousSalesPeriod(now);
+      const [currentSales, previousSales] = await Promise.all([
+        fetchDashboard(`vendas:${id}:${dtInicial}:${dtFinal}`, () => getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id })),
+        fetchDashboard(`vendas:${id}:${previous.dtInicial}:${previous.dtFinal}`, () => getDemonstrativoVendas({ ...previous, unem_id: id })),
+      ]);
+      return comparativoFromSales(id, currentSales, previousSales);
+    }), [fetchDashboard]);
 
   useEffect(() => {
     if (!unemId) return;
@@ -103,7 +115,7 @@ export default function Dashboard() {
     const dtFinal = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
     // Renderizar a loja atual sem aguardar resumo e cadastro de outras lojas.
-    const compRequest = fetchDashboard(`comparativo:${unemId}`, () => getComparativo(unemId))
+    const compRequest = loadComparativo(unemId, now, dtInicial, dtFinal)
       .then((comp) => { if (active) setComparativo(Array.isArray(comp) ? comp : []); });
     const salesRequest = fetchDashboard(`vendas:${unemId}:${dtInicial}:${dtFinal}`, () =>
       getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }))
@@ -135,7 +147,7 @@ export default function Dashboard() {
         }).catch(console.error);
     }
     return () => { active = false; };
-  }, [unemId, resumoId, perfil, emprId, fetchDashboard]);
+  }, [unemId, resumoId, perfil, emprId, fetchDashboard, loadComparativo]);
 
   // Carrega dados das demais lojas conforme o filtro (com concorrência limitada)
   useEffect(() => {
@@ -163,7 +175,7 @@ export default function Dashboard() {
           for (let tentativa = 0; tentativa < 3 && !cancel; tentativa++) {
             const [vendasResult, compResult] = await Promise.allSettled([
               vendas ? Promise.resolve(vendas) : fetchDashboard(`vendas:${id}:${dtInicial}:${dtFinal}`, () => getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id })),
-              comp ? Promise.resolve(comp) : fetchDashboard(`comparativo:${id}`, () => getComparativo(id)),
+              comp ? Promise.resolve(comp) : loadComparativo(id, now, dtInicial, dtFinal),
             ]);
             if (vendasResult.status === "fulfilled" && Array.isArray(vendasResult.value)) {
               vendas = vendasResult.value as SalesDemo[];
@@ -185,7 +197,7 @@ export default function Dashboard() {
     })();
 
     return () => { cancel = true; };
-  }, [unidadesMap, perfil, lojaSel, unemId, fetchDashboard]);
+  }, [unidadesMap, perfil, lojaSel, unemId, fetchDashboard, loadComparativo]);
 
 
 
@@ -193,13 +205,16 @@ export default function Dashboard() {
   // Lista única de GRPO_TIPO para o filtro
   const grpoTipos = useMemo(() => {
     const tipos = new Set<string>();
-    comparativo.forEach((item) => tipos.add(item.GRPO_TIPO || "Geral"));
+    const rows = lojaSel === unemId ? comparativo : lojaSel === "__all__"
+      ? [...comparativo, ...Object.values(comparativoPorLoja).flat()]
+      : comparativoPorLoja[lojaSel] || [];
+    rows.forEach((item) => tipos.add(item.GRPO_TIPO || "Geral"));
     return Array.from(tipos).sort();
-  }, [comparativo]);
+  }, [comparativo, comparativoPorLoja, lojaSel, unemId]);
 
   // Auto-detectar "Pneus" no primeiro carregamento
   useEffect(() => {
-    if (filtroGrpoTipo !== "__pending__" || grpoTipos.length === 0) return;
+    if (grpoTipos.length === 0 || filtroGrpoTipo === "__all__" || grpoTipos.includes(filtroGrpoTipo)) return;
     const pneusTipo = grpoTipos.find((t) => t.toLowerCase().includes("pneu"));
     setFiltroGrpoTipo(pneusTipo || "__all__");
   }, [grpoTipos, filtroGrpoTipo]);

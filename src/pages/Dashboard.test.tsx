@@ -39,7 +39,7 @@ function open(client: QueryClient) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.userId = "user-a";
-  mocks.comparativo.mockResolvedValue([]);
+  mocks.comparativo.mockResolvedValue([{ UNEM_ID: "000640010004", GRPO_NOME: "MICHELIN", GRPO_TIPO: "Pneus", ITFT_VLR_CONTABIL: "100", ITFT_QTDE: "1", ITFT_VLR_CONTABIL_ANT: "50", ITFT_QTDE_ANT: "1", CRECIMENTO: "100" }]);
   mocks.vendas.mockResolvedValue([]);
   mocks.resumo.mockImplementation(() => new Promise(() => {}));
   mocks.unidades.mockImplementation(() => new Promise(() => {}));
@@ -47,6 +47,19 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Dashboard request loading", () => {
+  it("loads actual sales from both periods when the comparative endpoint is empty", async () => {
+    mocks.comparativo.mockResolvedValue([]);
+    mocks.vendas.mockResolvedValue([{ GRPO_ID: "michelin", GRUPO: "0001 - MICHELIN", ITFT_VLR_CONTABIL: "3350", ITFT_QTDE_FATURADA: "5" }]);
+    const client = new QueryClient();
+    open(client);
+    await screen.findByRole("heading", { name: "Dashboard" });
+    const comparison = client.getQueryCache().getAll().find((query) => String(query.queryKey.at(-1)).startsWith("comparativo:v2:"));
+    expect(comparison?.state.data).toEqual([expect.objectContaining({
+      UNEM_ID: "000640010004", GRPO_NOME: "MICHELIN", ITFT_VLR_CONTABIL: "3.350", ITFT_VLR_CONTABIL_ANT: "3.350", ITFT_QTDE: "5",
+    })]);
+    expect(mocks.vendas).toHaveBeenCalledTimes(2);
+  });
+
   it("shows the current branch without waiting for slow summaries or branch metadata", async () => {
     open(new QueryClient());
     expect(await screen.findByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
