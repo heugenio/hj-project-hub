@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiBaseUrl } from "@/lib/base-url";
-import { comparativoFromSales, previousSalesPeriod } from "@/lib/dashboard-comparativo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, parseValorBR, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
