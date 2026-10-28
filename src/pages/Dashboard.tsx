@@ -358,12 +358,21 @@ export default function Dashboard() {
   const tmQtd = totalQtdVendida > 0 ? totalQtdVendida : qtdAtual;
   const ticketMedio = tmQtd > 0 ? tmValor / tmQtd : 0;
   // Lucro e margem vêm do getComparativoResumo (ITFT_VLR_LUCRO / ITFT_CUSTO_NA_OPERACAO)
-  const totalLucro = kpiFonte.reduce((s, item) => {
+  // Só considera linhas que trazem lucro ou custo; sem esses campos não dá para calcular (evita margem 100%)
+  let totalLucro = 0;
+  let vlrComLucro = 0;
+  for (const item of kpiFonte) {
     const r = item as unknown as Record<string, unknown>;
-    const lucro = parseCurrency(r.ITFT_VLR_LUCRO as string);
-    return s + (lucro || (parseCurrency(item.ITFT_VLR_CONTABIL) - parseCurrency(r.ITFT_CUSTO_NA_OPERACAO as string)));
-  }, 0);
-  const margemMedia = vlrAtual > 0 ? (totalLucro / vlrAtual) * 100 : 0;
+    const temLucro = r.ITFT_VLR_LUCRO != null && String(r.ITFT_VLR_LUCRO).trim() !== "";
+    const temCusto = r.ITFT_CUSTO_NA_OPERACAO != null && String(r.ITFT_CUSTO_NA_OPERACAO).trim() !== "";
+    if (!temLucro && !temCusto) continue;
+    const vlr = parseCurrency(item.ITFT_VLR_CONTABIL);
+    totalLucro += temLucro
+      ? parseCurrency(r.ITFT_VLR_LUCRO as string)
+      : vlr - parseCurrency(r.ITFT_CUSTO_NA_OPERACAO as string);
+    vlrComLucro += vlr;
+  }
+  const margemMedia = vlrComLucro > 0 ? (totalLucro / vlrComLucro) * 100 : 0;
 
   // Recompra: usa DCFS_QTD quando disponível; senão faz fallback para quantidade faturada
   const totalBaseRecompra = salesDataFiltrado.reduce(
