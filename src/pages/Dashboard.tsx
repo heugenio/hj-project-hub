@@ -359,20 +359,34 @@ export default function Dashboard() {
   const ticketMedio = tmQtd > 0 ? tmValor / tmQtd : 0;
   // Lucro e margem vêm do getComparativoResumo (ITFT_VLR_LUCRO / ITFT_CUSTO_NA_OPERACAO)
   // Só considera linhas que trazem lucro ou custo; sem esses campos não dá para calcular (evita margem 100%)
+  const campo = (r: Record<string, unknown>, nome: string): string | null => {
+    const key = Object.keys(r).find((k) => k.toUpperCase() === nome);
+    const v = key ? r[key] : null;
+    return v != null && String(v).trim() !== "" ? String(v) : null;
+  };
   let totalLucro = 0;
   let vlrComLucro = 0;
+  let somaPer = 0;
+  let qtdPer = 0;
   for (const item of kpiFonte) {
     const r = item as unknown as Record<string, unknown>;
-    const temLucro = r.ITFT_VLR_LUCRO != null && String(r.ITFT_VLR_LUCRO).trim() !== "";
-    const temCusto = r.ITFT_CUSTO_NA_OPERACAO != null && String(r.ITFT_CUSTO_NA_OPERACAO).trim() !== "";
-    if (!temLucro && !temCusto) continue;
+    const lucroStr = campo(r, "ITFT_VLR_LUCRO");
+    const custoStr = campo(r, "ITFT_CUSTO_NA_OPERACAO");
+    const perStr = campo(r, "ITFT_PER_LUCRO");
     const vlr = parseCurrency(item.ITFT_VLR_CONTABIL);
-    totalLucro += temLucro
-      ? parseCurrency(r.ITFT_VLR_LUCRO as string)
-      : vlr - parseCurrency(r.ITFT_CUSTO_NA_OPERACAO as string);
+    if (perStr != null) { somaPer += parseCurrency(perStr); qtdPer++; }
+    let lucro: number | null = null;
+    if (lucroStr != null) lucro = parseCurrency(lucroStr);
+    else if (custoStr != null) lucro = vlr - parseCurrency(custoStr);
+    else if (perStr != null) lucro = (vlr * parseCurrency(perStr)) / 100;
+    if (lucro == null) continue;
+    totalLucro += lucro;
     vlrComLucro += vlr;
   }
-  const margemMedia = vlrComLucro > 0 ? (totalLucro / vlrComLucro) * 100 : 0;
+  // Margem média ponderada pelo faturamento; se não houver valores, usa a média de ITFT_PER_LUCRO
+  const margemMedia = vlrComLucro > 0
+    ? (totalLucro / vlrComLucro) * 100
+    : qtdPer > 0 ? somaPer / qtdPer : 0;
 
   // Recompra: usa DCFS_QTD quando disponível; senão faz fallback para quantidade faturada
   const totalBaseRecompra = salesDataFiltrado.reduce(
