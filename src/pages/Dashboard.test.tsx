@@ -47,17 +47,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Dashboard request loading", () => {
-  it("loads actual sales from both periods when the comparative endpoint is empty", async () => {
-    mocks.comparativo.mockResolvedValue([]);
-    mocks.vendas.mockResolvedValue([{ GRPO_ID: "michelin", GRUPO: "0001 - MICHELIN", ITFT_VLR_CONTABIL: "3350", ITFT_QTDE_FATURADA: "5" }]);
-    const client = new QueryClient();
-    open(client);
+  it("never calls getDemonstrativoVendas", async () => {
+    open(new QueryClient());
     await screen.findByRole("heading", { name: "Dashboard" });
-    const comparison = client.getQueryCache().getAll().find((query) => String(query.queryKey.at(-1)).startsWith("comparativo:v2:"));
-    expect(comparison?.state.data).toEqual([expect.objectContaining({
-      UNEM_ID: "000640010004", GRPO_NOME: "MICHELIN", ITFT_VLR_CONTABIL: "3.350", ITFT_VLR_CONTABIL_ANT: "3.350", ITFT_QTDE: "5",
-    })]);
-    expect(mocks.vendas).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(mocks.comparativo).toHaveBeenCalled());
+    expect(mocks.vendas).not.toHaveBeenCalled();
   });
 
   it("shows the current branch without waiting for slow summaries or branch metadata", async () => {
@@ -75,7 +69,6 @@ describe("Dashboard request loading", () => {
     open(client);
     await screen.findByRole("heading", { name: "Dashboard" });
     expect(mocks.comparativo).toHaveBeenCalledTimes(1);
-    expect(mocks.vendas).toHaveBeenCalledTimes(1);
     expect(mocks.unidades).toHaveBeenCalledTimes(1);
   });
 
@@ -87,6 +80,5 @@ describe("Dashboard request loading", () => {
     mocks.userId = "user-b";
     open(client);
     await waitFor(() => expect(mocks.comparativo).toHaveBeenCalledTimes(2));
-    expect(mocks.vendas).toHaveBeenCalledTimes(2);
   });
 });
