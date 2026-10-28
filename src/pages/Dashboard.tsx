@@ -4,7 +4,7 @@ import { getApiBaseUrl } from "@/lib/base-url";
 import { comparativoFromSales, previousSalesPeriod } from "@/lib/dashboard-comparativo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, getDemonstrativoVendas, parseValorBR, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
+import { getComparativo, getComparativoResumo, getUnidadesEmpresariais, parseValorBR, type Comparativo, type ComparativoResumo, type UnidadeEmpresarial, type SalesDemo } from "@/lib/api";
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
   ArrowUpRight, ArrowDownRight, Loader2, BarChart3, Wallet, CreditCard, Store, Filter,
@@ -89,13 +89,7 @@ export default function Dashboard() {
   const loadComparativo = useCallback((id: string, now: Date, dtInicial: string, dtFinal: string) =>
     fetchDashboard(`comparativo:v2:${id}:${dtInicial}:${dtFinal}`, async () => {
       const rows = await getComparativo(id);
-      if (rows.length > 0) return rows.map((row) => ({ ...row, UNEM_ID: id }));
-      const previous = previousSalesPeriod(now);
-      const [currentSales, previousSales] = await Promise.all([
-        fetchDashboard(`vendas:${id}:${dtInicial}:${dtFinal}`, () => getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id })),
-        fetchDashboard(`vendas:${id}:${previous.dtInicial}:${previous.dtFinal}`, () => getDemonstrativoVendas({ ...previous, unem_id: id })),
-      ]);
-      return comparativoFromSales(id, currentSales, previousSales);
+      return rows.map((row) => ({ ...row, UNEM_ID: id }));
     }), [fetchDashboard]);
 
   useEffect(() => {
@@ -117,10 +111,7 @@ export default function Dashboard() {
     // Renderizar a loja atual sem aguardar resumo e cadastro de outras lojas.
     const compRequest = loadComparativo(unemId, now, dtInicial, dtFinal)
       .then((comp) => { if (active) setComparativo(Array.isArray(comp) ? comp : []); });
-    const salesRequest = fetchDashboard(`vendas:${unemId}:${dtInicial}:${dtFinal}`, () =>
-      getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: unemId }))
-      .then((sales) => { if (active) setSalesData(Array.isArray(sales) ? sales : []); });
-    Promise.allSettled([compRequest, salesRequest])
+    Promise.allSettled([compRequest])
       .then(() => { if (active) setLoading(false); });
 
     fetchDashboard(`resumo:${resumoId}`, () => getComparativoResumo(resumoId))
@@ -155,7 +146,7 @@ export default function Dashboard() {
     const todos = Object.keys(unidadesMap);
     if (todos.length === 0) return;
     const alvo = lojaSel === "__all__" ? todos : [lojaSel];
-    const pendentes = alvo.filter((id) => id !== unemId && (!(id in salesPorLoja) || !(id in comparativoPorLoja)));
+    const pendentes = alvo.filter((id) => id !== unemId && !(id in comparativoPorLoja));
     if (pendentes.length === 0) return;
 
     let cancel = false;
@@ -174,7 +165,7 @@ export default function Dashboard() {
           let comp: Comparativo[] | null = null;
           for (let tentativa = 0; tentativa < 3 && !cancel; tentativa++) {
             const [vendasResult, compResult] = await Promise.allSettled([
-              vendas ? Promise.resolve(vendas) : fetchDashboard(`vendas:${id}:${dtInicial}:${dtFinal}`, () => getDemonstrativoVendas({ dtInicial, dtFinal, unem_id: id })),
+              Promise.resolve([] as SalesDemo[]),
               comp ? Promise.resolve(comp) : loadComparativo(id, now, dtInicial, dtFinal),
             ]);
             if (vendasResult.status === "fulfilled" && Array.isArray(vendasResult.value)) {
@@ -367,11 +358,13 @@ export default function Dashboard() {
   const tmValor = totalFaturamento > 0 ? totalFaturamento : vlrAtual;
   const tmQtd = totalQtdVendida > 0 ? totalQtdVendida : qtdAtual;
   const ticketMedio = tmQtd > 0 ? tmValor / tmQtd : 0;
-  const totalLucro = salesDataFiltrado.reduce(
-    (s, item) => s + (parseCurrency(item.ITFT_VLR_LUCRO) || (parseCurrency(item.ITFT_VLR_CONTABIL) - parseCurrency(item.ITFT_CUSTO_NA_OPERACAO))),
-    0
-  );
-  const margemMedia = totalFaturamento > 0 ? (totalLucro / totalFaturamento) * 100 : 0;
+  // Lucro e margem vêm do getComparativoResumo (ITFT_VLR_LUCRO / ITFT_CUSTO_NA_OPERACAO)
+  const totalLucro = kpiFonte.reduce((s, item) => {
+    const r = item as unknown as Record<string, unknown>;
+    const lucro = parseCurrency(r.ITFT_VLR_LUCRO as string);
+    return s + (lucro || (parseCurrency(item.ITFT_VLR_CONTABIL) - parseCurrency(r.ITFT_CUSTO_NA_OPERACAO as string)));
+  }, 0);
+  const margemMedia = vlrAtual > 0 ? (totalLucro / vlrAtual) * 100 : 0;
 
   // Recompra: usa DCFS_QTD quando disponível; senão faz fallback para quantidade faturada
   const totalBaseRecompra = salesDataFiltrado.reduce(
