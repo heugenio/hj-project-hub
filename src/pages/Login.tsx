@@ -22,7 +22,7 @@ import {
   type UnidadeEmpresarial,
   type Usuario,
 } from "@/lib/api";
-import { Loader2, Eye, EyeOff, Settings } from "lucide-react";
+import { Loader2, Eye, EyeOff, Settings, AlertTriangle } from "lucide-react";
 import vertticeFull from "@/assets/verttice-full.jpeg";
 import { toast } from "sonner";
 
@@ -35,6 +35,7 @@ export default function Login() {
   const [corporacoes, setCorporacoes] = useState<Corporacao[]>([]);
   const [selectedCprc, setSelectedCprc] = useState("");
   const [loadingCorp, setLoadingCorp] = useState(false);
+  const [corpErro, setCorpErro] = useState<string | null>(null);
 
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [selectedEmpresa, setSelectedEmpresa] = useState("");
@@ -65,10 +66,17 @@ export default function Login() {
     setLoadingCorp(true);
     getCorporacoes()
       .then((data) => {
-        setCorporacoes(data);
+        setCorpErro(null);
+        setCorporacoes(Array.isArray(data) ? data : []);
         if (data.length === 1) setSelectedCprc(data[0].cprc_id);
       })
-      .catch(() => toast.error("Erro ao carregar corporações"))
+      .catch(() => {
+        setCorporacoes([]);
+        setCorpErro(
+          "O sistema de gestão não está respondendo no momento. Verifique a conexão e tente novamente."
+        );
+        toast.error("Erro ao carregar corporações");
+      })
       .finally(() => setLoadingCorp(false));
   }, []);
 
@@ -216,6 +224,26 @@ export default function Login() {
           </div>
 
           <div className="space-y-5">
+            {corpErro && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-foreground">
+                    Servidor indisponível
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{corpErro}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => window.location.reload()}
+                  >
+                    Tentar novamente
+                  </Button>
+                </div>
+              </div>
+            )}
             {/* Corporação */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Corporação</Label>
